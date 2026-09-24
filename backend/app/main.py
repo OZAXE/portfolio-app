@@ -11,7 +11,7 @@ Endpoints prévus pour le MVP :
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .data import fetch_company_financials
+from .data import INVALID_TICKER_ERROR, fetch_company_financials
 from .valuation import evaluate_company
 from .sheets import get_portfolio_positions
 
@@ -43,6 +43,8 @@ def get_portfolio():
 @app.get("/analysis/{ticker}")
 def get_analysis(ticker: str):
     cf = fetch_company_financials(ticker)
+    if cf.raw_error == INVALID_TICKER_ERROR:
+        raise HTTPException(status_code=404, detail=f"{INVALID_TICKER_ERROR} : {ticker}")
     if cf.raw_error:
         raise HTTPException(status_code=502, detail=f"Erreur de récupération des données : {cf.raw_error}")
     result = evaluate_company(cf)

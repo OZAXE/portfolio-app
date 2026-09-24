@@ -23,11 +23,18 @@ class ValuationResult:
     notes: list[str]
 
 
+# Défauts du DCF, réutilisés dans l'alerte sur les écarts extrêmes
+DEFAULT_GROWTH_RATE = 0.05
+DEFAULT_DISCOUNT_RATE = 0.09
+
+# Au-delà de cet écart (en %), on signale que les hypothèses par défaut collent sans doute mal
+EXTREME_MARGIN_THRESHOLD_PCT = 75
+
+
 def compute_dcf(
     fcf_history: list[float],
-    shares_outstanding: float | None,
-    growth_rate: float = 0.05,
-    discount_rate: float = 0.09,
+    growth_rate: float = DEFAULT_GROWTH_RATE,
+    discount_rate: float = DEFAULT_DISCOUNT_RATE,
     terminal_growth: float = 0.02,
     projection_years: int = 10,
 ) -> float | None:
@@ -35,12 +42,16 @@ def compute_dcf(
     DCF à deux phases : croissance explicite pendant `projection_years`,
     puis valeur terminale à croissance stable (formule de Gordon-Shapiro).
 
+    Renvoie la valeur d'entreprise (flux actualisés), pas une valeur par
+    action : le passage aux capitaux propres se fait dans
+    `equity_value_per_share`, pour tenir compte de la dette nette.
+
     growth_rate / discount_rate / terminal_growth sont les hypothèses clés :
     c'est là que se joue la subjectivité de toute valorisation DCF, donc
     à ajuster selon ta propre lecture de l'entreprise plutôt qu'à prendre
     tel quel.
     """
-    if not fcf_history or not shares_outstanding:
+    if not fcf_history:
         return None
 
     base_fcf = fcf_history[-1]  # dernier FCF connu
@@ -56,8 +67,29 @@ def compute_dcf(
     terminal_value = (fcf * (1 + terminal_growth)) / (discount_rate - terminal_growth)
     pv_terminal = terminal_value / ((1 + discount_rate) ** projection_years)
 
-    enterprise_value = pv_sum + pv_terminal
-    return enterprise_value / shares_outstanding
+    return pv_sum + pv_terminal
+
+
+def equity_value_per_share(
+    enterprise_value: float | None,
+    total_debt: float | None,
+    total_cash: float | None,
+    shares_outstanding: float | None,
+) -> float | None:
+    """
+    Valeur des capitaux propres par action = (valeur d'entreprise - dette nette) / actions,
+    avec dette nette = dette totale - trésorerie. Une dette ou une trésorerie
+    inconnue est comptée à 0. Renvoie None si les capitaux propres ressortent
+    négatifs (la dette dépasse la valeur des flux futurs).
+    """
+    if enterprise_value is None or not shares_outstanding:
+        return None
+
+    net_debt = (total_debt or 0) - (total_cash or 0)
+    equity_value = enterprise_value - net_debt
+    if equity_value <= 0:
+        return None
+    return equity_value / shares_outstanding
 
 
 def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str]]:
@@ -68,6 +100,9 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
     secteur par exemple, un ROE de 15% n'a pas le même sens en banque
     qu'en tech).
     """
+    if cf.quote_type == "ETF":
+        return None, ["Score qualité non pertinent pour un ETF, pas de fondamentaux d'entreprise"]
+
     notes = []
     points = 0.0
     pillars_scored = 0
@@ -125,12 +160,21 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
 
 
 def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
-    intrinsic_value = compute_dcf(cf.fcf_history, cf.shares_outstanding)
+    enterprise_value = compute_dcf(cf.fcf_history)
+    intrinsic_value = equity_value_per_share(
+        enterprise_value, cf.total_debt, cf.total_cash, cf.shares_outstanding
+    )
     quality_score, notes = compute_quality_score(cf)
 
     margin_of_safety = None
     if intrinsic_value is not None and cf.current_price:
         margin_of_safety = ((intrinsic_value - cf.current_price) / intrinsic_value) * 100
+        if abs(margin_of_safety) > EXTREME_MARGIN_THRESHOLD_PCT:
+            notes.append(
+                f"Écart important : les hypothèses DCF par défaut (croissance "
+                f"{DEFAULT_GROWTH_RATE:.0%}, actualisation {DEFAULT_DISCOUNT_RATE:.0%}) sont "
+                f"probablement mal adaptées à cette entreprise, à ajuster manuellement"
+            )
 
     return ValuationResult(
         ticker=cf.ticker,

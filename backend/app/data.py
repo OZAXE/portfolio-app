@@ -12,11 +12,15 @@ est parfois moins complète hors US. À vérifier ticker par ticker.
 from dataclasses import dataclass, field
 import yfinance as yf
 
+# Message utilisé par main.py pour distinguer un ticker inconnu (404) d'une panne de source (502)
+INVALID_TICKER_ERROR = "Ticker invalide ou données introuvables"
+
 
 @dataclass
 class CompanyFinancials:
     ticker: str
     name: str | None = None
+    quote_type: str | None = None  # "EQUITY", "ETF", ...
     currency: str | None = None
     current_price: float | None = None
     market_cap: float | None = None
@@ -38,6 +42,10 @@ class CompanyFinancials:
     fcf_history: list[float] = field(default_factory=list)  # du plus ancien au plus récent
     shares_outstanding: float | None = None
 
+    # Bilan (pour passer de la valeur d'entreprise à la valeur des capitaux propres)
+    total_debt: float | None = None
+    total_cash: float | None = None
+
     raw_error: str | None = None
 
 
@@ -53,7 +61,13 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
         t = yf.Ticker(ticker)
         info = t.info or {}
 
+        # Sur un ticker inconnu, yfinance ne lève pas d'exception : il renvoie un info quasi vide
+        if not info.get("symbol") and not info.get("shortName"):
+            result.raw_error = INVALID_TICKER_ERROR
+            return result
+
         result.name = info.get("longName") or info.get("shortName")
+        result.quote_type = info.get("quoteType")
         result.currency = info.get("currency")
         result.current_price = info.get("currentPrice") or info.get("regularMarketPrice")
         result.market_cap = info.get("marketCap")
@@ -70,6 +84,9 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
 
         result.free_cash_flow = info.get("freeCashflow")
         result.shares_outstanding = info.get("sharesOutstanding")
+
+        result.total_debt = info.get("totalDebt")
+        result.total_cash = info.get("totalCash")
 
         # Historique de cash flow libre sur les années disponibles (pour projeter le DCF)
         try:
