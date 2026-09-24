@@ -10,7 +10,14 @@ est parfois moins complète hors US. À vérifier ticker par ticker.
 """
 
 from dataclasses import dataclass, field
+import time
 import yfinance as yf
+
+# Yahoo renvoie parfois un info partiel (bilan et ratios absents) sur un appel isolé :
+# si tous ces champs manquent, on retente avant de conclure qu'ils sont indisponibles
+CRITICAL_INFO_KEYS = ("totalDebt", "totalCash", "returnOnEquity", "operatingMargins")
+MAX_EXTRA_ATTEMPTS = 2
+RETRY_DELAY_SECONDS = 1.5
 
 # Message utilisé par main.py pour distinguer un ticker inconnu (404) d'une panne de source (502)
 INVALID_TICKER_ERROR = "Ticker invalide ou données introuvables"
@@ -49,6 +56,25 @@ class CompanyFinancials:
     raw_error: str | None = None
 
 
+def _fetch_ticker_with_retry(ticker: str) -> tuple[yf.Ticker, dict]:
+    """
+    Récupère t.info, en retentant jusqu'à MAX_EXTRA_ATTEMPTS fois si tous les
+    champs critiques sont absents. Pas de retry pour un ticker inconnu (info
+    sans symbole) ni pour un ETF, qui n'ont de toute façon pas ces champs.
+    """
+    for attempt in range(MAX_EXTRA_ATTEMPTS + 1):
+        if attempt > 0:
+            time.sleep(RETRY_DELAY_SECONDS)
+        t = yf.Ticker(ticker)  # nouvel objet à chaque tentative : yfinance met info en cache
+        info = t.info or {}
+        is_unknown = not info.get("symbol") and not info.get("shortName")
+        if is_unknown or info.get("quoteType") == "ETF":
+            break
+        if any(info.get(key) is not None for key in CRITICAL_INFO_KEYS):
+            break
+    return t, info
+
+
 def fetch_company_financials(ticker: str) -> CompanyFinancials:
     """
     Va chercher les fondamentaux d'une entreprise.
@@ -58,8 +84,7 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
     """
     result = CompanyFinancials(ticker=ticker)
     try:
-        t = yf.Ticker(ticker)
-        info = t.info or {}
+        t, info = _fetch_ticker_with_retry(ticker)
 
         # Sur un ticker inconnu, yfinance ne lève pas d'exception : il renvoie un info quasi vide
         if not info.get("symbol") and not info.get("shortName"):

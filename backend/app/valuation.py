@@ -72,20 +72,21 @@ def compute_dcf(
 
 def equity_value_per_share(
     enterprise_value: float | None,
-    total_debt: float | None,
-    total_cash: float | None,
+    total_debt: float,
+    total_cash: float,
     shares_outstanding: float | None,
 ) -> float | None:
     """
     Valeur des capitaux propres par action = (valeur d'entreprise - dette nette) / actions,
-    avec dette nette = dette totale - trésorerie. Une dette ou une trésorerie
-    inconnue est comptée à 0. Renvoie None si les capitaux propres ressortent
-    négatifs (la dette dépasse la valeur des flux futurs).
+    avec dette nette = dette totale - trésorerie. Dette et trésorerie doivent
+    être connues (0 est une vraie valeur, None doit être filtré en amont).
+    Renvoie None si les capitaux propres ressortent négatifs (la dette dépasse
+    la valeur des flux futurs).
     """
     if enterprise_value is None or not shares_outstanding:
         return None
 
-    net_debt = (total_debt or 0) - (total_cash or 0)
+    net_debt = total_debt - total_cash
     equity_value = enterprise_value - net_debt
     if equity_value <= 0:
         return None
@@ -161,10 +162,20 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
 
 def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
     enterprise_value = compute_dcf(cf.fcf_history)
-    intrinsic_value = equity_value_per_share(
-        enterprise_value, cf.total_debt, cf.total_cash, cf.shares_outstanding
-    )
     quality_score, notes = compute_quality_score(cf)
+
+    # None = donnée absente chez Yahoo, à ne pas confondre avec une dette ou trésorerie réellement à 0
+    intrinsic_value = None
+    if cf.total_debt is None or cf.total_cash is None:
+        if enterprise_value is not None:
+            notes.append(
+                "Dette nette indisponible (données Yahoo incomplètes), valeur intrinsèque "
+                "non calculée pour éviter un chiffre trompeur"
+            )
+    else:
+        intrinsic_value = equity_value_per_share(
+            enterprise_value, cf.total_debt, cf.total_cash, cf.shares_outstanding
+        )
 
     margin_of_safety = None
     if intrinsic_value is not None and cf.current_price:
