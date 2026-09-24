@@ -13,7 +13,8 @@ import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .data import INVALID_TICKER_ERROR, fetch_company_financials
+from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
+from .debug import router as debug_router
 from .valuation import evaluate_company
 from .sheets import get_portfolio_positions
 
@@ -21,6 +22,7 @@ from .sheets import get_portfolio_positions
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 app = FastAPI(title="Portfolio Insights API")
+app.include_router(debug_router)  # TEMPORAIRE, voir debug.py
 
 # CORS ouvert pour l'instant : à restreindre au domaine du frontend une fois déployé
 app.add_middleware(
@@ -50,6 +52,8 @@ def get_analysis(ticker: str):
     cf = fetch_company_financials(ticker)
     if cf.raw_error == INVALID_TICKER_ERROR:
         raise HTTPException(status_code=404, detail=f"{INVALID_TICKER_ERROR} : {ticker}")
+    if cf.raw_error == SOURCE_UNAVAILABLE_ERROR:
+        raise HTTPException(status_code=503, detail=SOURCE_UNAVAILABLE_ERROR)
     if cf.raw_error:
         raise HTTPException(status_code=502, detail=f"Erreur de récupération des données : {cf.raw_error}")
     result = evaluate_company(cf)

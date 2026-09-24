@@ -9,10 +9,13 @@ Limite connue : la profondeur historique des comptes de résultat / bilans
 est parfois moins complète hors US. À vérifier ticker par ticker.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 import logging
+import threading
 import time
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +25,49 @@ CRITICAL_INFO_KEYS = ("totalDebt", "totalCash", "returnOnEquity", "operatingMarg
 MAX_EXTRA_ATTEMPTS = 2
 RETRY_DELAY_SECONDS = 4  # assez espacé pour ne pas déclencher le rate limiting de Yahoo
 
-# Message utilisé par main.py pour distinguer un ticker inconnu (404) d'une panne de source (502)
+# Messages utilisés par main.py pour choisir le code HTTP : ticker inconnu (404),
+# Yahoo qui refuse l'accès (503), toute autre erreur (502)
 INVALID_TICKER_ERROR = "Ticker invalide ou données introuvables"
+SOURCE_UNAVAILABLE_ERROR = "Source de données Yahoo indisponible (accès refusé ou limité par Yahoo)"
+
+# Sur un refus d'accès (crumb rejeté, rate limiting), yfinance ne lève pas d'exception :
+# il logue l'erreur HTTP et renvoie un info vide, comme pour un ticker inconnu.
+# On distingue les deux cas grâce à ces logs.
+_ACCESS_DENIED_MARKERS = ("HTTP Error 401", "HTTP Error 429", "Invalid Crumb", "Unauthorized", "rate-limited")
+_NOT_FOUND_MARKERS = ("HTTP Error 404", "Quote not found")
+
+
+class _ThreadLogCapture(logging.Handler):
+    """Garde les messages de yfinance émis par le thread courant (les requêtes FastAPI tournent en parallèle)."""
+
+    def __init__(self):
+        super().__init__(level=logging.WARNING)
+        self.thread_id = threading.get_ident()
+        self.messages: list[str] = []
+
+    def emit(self, record):
+        if record.thread == self.thread_id:
+            self.messages.append(record.getMessage())
+
+
+@contextmanager
+def capture_yfinance_errors():
+    handler = _ThreadLogCapture()
+    yf_logger = logging.getLogger("yfinance")
+    yf_logger.addHandler(handler)
+    try:
+        yield handler.messages
+    finally:
+        yf_logger.removeHandler(handler)
+
+
+def classify_empty_response(yahoo_errors: list[str]) -> str:
+    """Ticker inconnu ou accès refusé, d'après les erreurs loguées par yfinance."""
+    if any(m in e for e in yahoo_errors for m in _NOT_FOUND_MARKERS):
+        return INVALID_TICKER_ERROR
+    if any(m in e for e in yahoo_errors for m in _ACCESS_DENIED_MARKERS):
+        return SOURCE_UNAVAILABLE_ERROR
+    return INVALID_TICKER_ERROR
 
 
 @dataclass
@@ -67,20 +111,24 @@ def _has_critical_fields(info: dict) -> bool:
     return any(info.get(key) is not None for key in CRITICAL_INFO_KEYS)
 
 
-def _fetch_info(ticker: str, attempt: int) -> tuple[yf.Ticker, dict]:
+def _fetch_info(ticker: str, attempt: int) -> tuple[yf.Ticker, dict, list[str]]:
     t = yf.Ticker(ticker)  # nouvel objet à chaque tentative : yfinance met info en cache
-    info = t.info or {}
+    with capture_yfinance_errors() as yahoo_errors:
+        info = t.info or {}
     logger.info(
         "%s tentative %d : %d clés, symbol=%r, champs critiques=%s",
         ticker, attempt, len(info), info.get("symbol"),
         {key: info.get(key) for key in CRITICAL_INFO_KEYS},
     )
     if not _is_identified(info):
-        logger.warning("%s tentative %d : info vide ou sans identifiant, brut=%r", ticker, attempt, info)
-    return t, info
+        logger.warning(
+            "%s tentative %d : info vide ou sans identifiant, brut=%r, erreurs yfinance=%r",
+            ticker, attempt, info, yahoo_errors,
+        )
+    return t, info, yahoo_errors
 
 
-def _fetch_ticker_with_retry(ticker: str) -> tuple[yf.Ticker, dict]:
+def _fetch_ticker_with_retry(ticker: str) -> tuple[yf.Ticker, dict, list[str]]:
     """
     Récupère t.info. La validité du ticker se juge sur la première tentative
     uniquement. Si le ticker est identifié mais que tous les champs critiques
@@ -89,22 +137,22 @@ def _fetch_ticker_with_retry(ticker: str) -> tuple[yf.Ticker, dict]:
     ignorée : on garde la première réponse, déjà valide. Pas de retry pour un
     ETF, qui n'a de toute façon pas ces champs.
     """
-    t, info = _fetch_info(ticker, attempt=1)
+    t, info, yahoo_errors = _fetch_info(ticker, attempt=1)
     if not _is_identified(info) or info.get("quoteType") == "ETF" or _has_critical_fields(info):
-        return t, info
+        return t, info, yahoo_errors
 
     for attempt in range(2, MAX_EXTRA_ATTEMPTS + 2):
         time.sleep(RETRY_DELAY_SECONDS)
         try:
-            retry_t, retry_info = _fetch_info(ticker, attempt)
+            retry_t, retry_info, retry_errors = _fetch_info(ticker, attempt)
         except Exception as e:
             logger.warning("%s tentative %d en erreur, ignorée : %s", ticker, attempt, e)
             continue
         if _has_critical_fields(retry_info):
-            return retry_t, retry_info
+            return retry_t, retry_info, retry_errors
 
     logger.warning("%s : champs critiques toujours absents après %d tentatives", ticker, MAX_EXTRA_ATTEMPTS + 1)
-    return t, info
+    return t, info, yahoo_errors
 
 
 def fetch_company_financials(ticker: str) -> CompanyFinancials:
@@ -116,11 +164,11 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
     """
     result = CompanyFinancials(ticker=ticker)
     try:
-        t, info = _fetch_ticker_with_retry(ticker)
+        t, info, yahoo_errors = _fetch_ticker_with_retry(ticker)
 
-        # Sur un ticker inconnu, yfinance ne lève pas d'exception : il renvoie un info quasi vide
+        # Ticker inconnu ou accès refusé : dans les deux cas yfinance renvoie un info quasi vide
         if not _is_identified(info):
-            result.raw_error = INVALID_TICKER_ERROR
+            result.raw_error = classify_empty_response(yahoo_errors)
             return result
 
         result.name = info.get("longName") or info.get("shortName")
@@ -154,6 +202,8 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
         except Exception:
             pass  # pas bloquant, le DCF peut retomber sur free_cash_flow seul
 
+    except YFRateLimitError:
+        result.raw_error = SOURCE_UNAVAILABLE_ERROR
     except Exception as e:
         result.raw_error = str(e)
 
