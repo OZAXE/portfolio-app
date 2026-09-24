@@ -71,14 +71,17 @@
 
   <script>
     // À adapter avec l'URL de ton backend une fois déployé sur Render
-    const API_BASE_URL = "http://localhost:8000";
+    const API_BASE_URL = "https://portfolio-app-blvx.onrender.com";
 
     async function loadPortfolio() {
       const statusEl = document.getElementById("status");
       const container = document.getElementById("positions");
       try {
         const res = await fetch(`${API_BASE_URL}/portfolio/analysis`);
-        if (!res.ok) throw new Error(`Erreur API : ${res.status}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || `Erreur API : ${res.status}`);
+        }
         const data = await res.json();
         statusEl.style.display = "none";
 

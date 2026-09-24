@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
 from .valuation import evaluate_company
-from .sheets import get_portfolio_positions
+from .sheets import SheetNotConfiguredError, get_portfolio_positions
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -36,13 +36,18 @@ def health():
     return {"status": "ok"}
 
 
+def _load_positions():
+    try:
+        return get_portfolio_positions()
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
+
+
 @app.get("/portfolio")
 def get_portfolio():
-    try:
-        positions = get_portfolio_positions()
-        return [p.__dict__ for p in positions]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return [p.__dict__ for p in _load_positions()]
 
 
 @app.get("/analysis/{ticker}")
@@ -63,7 +68,7 @@ def get_analysis(ticker: str):
 
 @app.get("/portfolio/analysis")
 def get_portfolio_analysis():
-    positions = get_portfolio_positions()
+    positions = _load_positions()
     output = []
     for pos in positions:
         cf = fetch_company_financials(pos.ticker)

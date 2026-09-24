@@ -22,6 +22,10 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SHEET_ID = "1XMLtJmBYTvngn9weClVpc9RS2pSqshBJv2MwDvtVcRw"  # fileId de ton Sheet "Investissement"
 
 
+class SheetNotConfiguredError(RuntimeError):
+    """Identifiants du compte de service absents : l'API renvoie une 503 plutôt qu'une 500."""
+
+
 @dataclass
 class Position:
     ticker: str
@@ -32,7 +36,7 @@ class Position:
 def get_portfolio_positions(worksheet_name: str = "Portefeuille") -> list[Position]:
     creds_path = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
     if not creds_path:
-        raise RuntimeError(
+        raise SheetNotConfiguredError(
             "Variable d'environnement GOOGLE_SERVICE_ACCOUNT_JSON manquante "
             "(chemin vers le fichier de credentials du compte de service)."
         )
