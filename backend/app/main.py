@@ -14,7 +14,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
-from .debug import router as debug_router
 from .valuation import evaluate_company
 from .sheets import get_portfolio_positions
 
@@ -22,7 +21,6 @@ from .sheets import get_portfolio_positions
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 app = FastAPI(title="Portfolio Insights API")
-app.include_router(debug_router)  # TEMPORAIRE, voir debug.py
 
 # CORS ouvert pour l'instant : à restreindre au domaine du frontend une fois déployé
 app.add_middleware(

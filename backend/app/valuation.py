@@ -10,7 +10,7 @@ d'actualisation) et voir l'impact direct sur le résultat.
 """
 
 from dataclasses import dataclass
-from .data import CompanyFinancials
+from .data import STATEMENTS_SOURCE, CompanyFinancials
 
 
 @dataclass
@@ -163,6 +163,11 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
 def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
     enterprise_value = compute_dcf(cf.fcf_history)
     quality_score, notes = compute_quality_score(cf)
+    if cf.data_source == STATEMENTS_SOURCE and cf.quote_type != "ETF":
+        notes.append(
+            "Ratios recalculés sur le dernier exercice annuel (données Yahoo en temps réel "
+            "inaccessibles depuis ce serveur) : PER prévisionnel indisponible"
+        )
 
     # None = donnée absente chez Yahoo, à ne pas confondre avec une dette ou trésorerie réellement à 0
     intrinsic_value = None
