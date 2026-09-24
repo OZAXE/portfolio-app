@@ -8,12 +8,17 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/analysis   -> l'analyse complète pour toutes les positions du portefeuille
 """
 
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .data import INVALID_TICKER_ERROR, fetch_company_financials
 from .valuation import evaluate_company
 from .sheets import get_portfolio_positions
+
+# uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 app = FastAPI(title="Portfolio Insights API")
 
