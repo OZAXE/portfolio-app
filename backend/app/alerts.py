@@ -59,6 +59,11 @@ def compute_alerts(positions: set[str], watchlist: set[str], screener: dict, inv
             events.append({**base, "type": "score",
                            "message": f"Score qualité de {name} en baisse : {prev_score:.1f} → {score:.1f} / 20"})
 
+        # prev_dividend_cut absent la première nuit : pas d'alerte en rafale sur l'historique existant
+        if s.get("dividend_cut") and "prev_dividend_cut" in s and not s["prev_dividend_cut"]:
+            events.append({**base, "type": "dividende",
+                           "message": f"{name} a baissé son dividende de plus de 10 % sur la dernière année"})
+
     for fund in (investors or {}).get("funds", []):
         if not fund.get("new_filing"):
             continue

@@ -41,7 +41,7 @@ HISTORY_NAME = "history.json"
 HISTORY_EVERY_DAYS = 6  # un relevé par semaine (le run du samedi, après la clôture du vendredi)
 
 # Valeurs de la veille gardées sur chaque fiche : les alertes comparent avec elles
-TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score")
+TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score", "dividend_cut")
 
 PRICE_BATCH = 150
 DELAY_BETWEEN_TICKERS = 0.8  # secondes
@@ -122,6 +122,15 @@ def analyze(entry: dict) -> dict:
         "dcf_reliable": v.dcf_reliable,
         "growth_rate": v.growth_rate_used,
         "discount_rate": v.discount_rate_used,
+        "dividend_yield": cf.dividend_yield,
+        "dividend_rate": cf.dividend_rate,
+        "dividend_ttm": cf.dividend_ttm,
+        "payout_ratio": cf.payout_ratio,
+        "dividend_growth_5y": cf.dividend_growth_5y,
+        "dividend_growth_10y": cf.dividend_growth_10y,
+        "dividend_streak": cf.dividend_streak,
+        "dividend_cut": cf.dividend_cut,
+        "dividend_history": cf.dividend_history,
         "base_fcf": v.base_fcf,
         "net_debt": v.net_debt,
         "shares": v.shares_used,

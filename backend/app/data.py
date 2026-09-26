@@ -11,6 +11,7 @@ est parfois moins complète hors US. À vérifier ticker par ticker.
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 import logging
 import math
 import threading
@@ -116,6 +117,20 @@ class CompanyFinancials:
     total_debt: float | None = None
     total_cash: float | None = None
 
+    # Dividende (montants par action, en unité principale de la devise de cotation)
+    dividend_rate: float | None = None  # dividende annuel attendu
+    dividend_yield: float | None = None  # rendement, en fraction (0.03 = 3 %)
+    payout_ratio: float | None = None  # part du bénéfice distribuée
+    dividend_ttm: float | None = None  # versé sur les 12 derniers mois
+    dividend_history: list[list] = field(default_factory=list)  # [année, total] des années complètes
+    dividend_growth_5y: float | None = None  # croissance annuelle moyenne
+    dividend_growth_10y: float | None = None
+    dividend_streak: int | None = None  # années de hausse consécutives
+    dividend_cut: bool = False  # dernière année complète en baisse de plus de 10 %
+
+    # Facteur entre le cours brut Yahoo et l'unité principale (100 pour les pence de Londres)
+    price_divisor: float = 1.0
+
     # QUOTE_SUMMARY_SOURCE (ratios Yahoo glissants) ou STATEMENTS_SOURCE (recalculés sur le dernier exercice)
     data_source: str | None = None
 
@@ -200,6 +215,7 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
                 return result
 
         _fill_fcf_history(result, t)
+        _fill_dividends(result, t)
         _convert_financials_to_quote_currency(result)
 
     except YFRateLimitError:
@@ -224,6 +240,7 @@ def _normalize_minor_currency(result: CompanyFinancials) -> None:
         return
     major, factor = minor
     result.currency = major
+    result.price_divisor = factor
     if result.current_price is not None:
         result.current_price /= factor
 
@@ -290,6 +307,12 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
     result.industry = info.get("industry")
     result.beta = _number(info.get("beta"))
     result.financial_currency = info.get("financialCurrency")
+
+    # dividendYield est en pourcentage chez Yahoo (2.41 = 2,41 %), dividendRate en unité principale
+    result.dividend_rate = _number(info.get("dividendRate"))
+    raw_yield = _number(info.get("dividendYield"))
+    result.dividend_yield = raw_yield / 100 if raw_yield is not None else None
+    result.payout_ratio = _number(info.get("payoutRatio"))
 
     result.free_cash_flow = _number(info.get("freeCashflow"))
     result.shares_outstanding = _number(info.get("sharesOutstanding"))
@@ -375,6 +398,55 @@ def _fill_from_statements(result: CompanyFinancials, t: yf.Ticker) -> bool:
         result.ev_to_ebitda = _ratio(enterprise_value, ebitda)
     # forward_pe reste à None : les prévisions d'analystes ne sont disponibles que via quoteSummary
     return True
+
+
+DIVIDEND_HISTORY_YEARS = 15
+
+
+def _cagr(first: float, last: float, years: int) -> float | None:
+    return (last / first) ** (1 / years) - 1 if first > 0 and last > 0 else None
+
+
+def _fill_dividends(result: CompanyFinancials, t: yf.Ticker) -> None:
+    """Historique des versements (API chart, disponible même quand quoteSummary est bloqué) :
+    totaux par année civile, croissance, années de hausse consécutives, baisse récente."""
+    try:
+        dividends = t.dividends
+    except Exception:
+        return
+    if dividends is None or dividends.empty:
+        if result.quote_type != "ETF" and result.dividend_yield is None:
+            result.dividend_yield = 0.0  # pas de dividende versé
+        return
+
+    dividends = dividends / result.price_divisor  # pence -> livres, comme le cours
+    now = datetime.now(timezone.utc)
+    last_12m = dividends[dividends.index >= (now - timedelta(days=365))]
+    result.dividend_ttm = float(last_12m.sum())
+    if result.dividend_yield is None and result.current_price:
+        result.dividend_yield = result.dividend_ttm / result.current_price
+
+    yearly = dividends.groupby(dividends.index.year).sum()
+    yearly = yearly[yearly.index < now.year]  # l'année en cours est incomplète
+    if yearly.empty:
+        return
+    # Années sans versement comptées à 0 : une interruption doit casser la série
+    years = list(range(int(yearly.index.min()), int(yearly.index.max()) + 1))
+    totals = [float(yearly.get(y, 0.0)) for y in years]
+    result.dividend_history = [[y, round(v, 4)] for y, v in zip(years, totals)][-DIVIDEND_HISTORY_YEARS:]
+
+    if len(totals) >= 6:
+        result.dividend_growth_5y = _cagr(totals[-6], totals[-1], 5)
+    if len(totals) >= 11:
+        result.dividend_growth_10y = _cagr(totals[-11], totals[-1], 10)
+    streak = 0
+    for previous, current in zip(reversed(totals[:-1]), reversed(totals[1:])):
+        if previous > 0 and current > previous * 1.005:
+            streak += 1
+        else:
+            break
+    result.dividend_streak = streak
+    result.dividend_cut = len(totals) >= 2 and totals[-2] > 0 and totals[-1] < 0.9 * totals[-2]
 
 
 def _fill_fcf_history(result: CompanyFinancials, t: yf.Ticker) -> None:

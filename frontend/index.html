@@ -151,6 +151,12 @@
     .star.off { color: var(--muted); }
     .history-box { position: relative; height: 180px; margin-top: 10px; }
 
+    /* Dividende */
+    .div-title { margin-top: 12px; font-weight: 600; color: var(--text); font-size: 13px; }
+    .div-bars { display: flex; align-items: flex-end; gap: 3px; height: 60px; margin-top: 8px; }
+    .div-bars span { flex: 1; background: var(--series-cto); border-radius: 2px 2px 0 0; min-height: 1px; }
+    .div-years { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+
     /* Briefs */
     .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
     .brief-item .title { font-weight: 600; font-size: 15px; }
@@ -276,6 +282,7 @@
           <option value="score">Tri : score qualité</option>
           <option value="pe">Tri : PER le plus bas</option>
           <option value="cap">Tri : capitalisation</option>
+          <option value="yield">Tri : rendement du dividende</option>
         </select>
       </div>
       <div class="filters">
@@ -284,6 +291,7 @@
         <button class="chip" id="filter-owned">Mes positions</button>
         <button class="chip" id="filter-investors">Super investisseurs</button>
         <button class="chip" id="filter-watch">Ma watchlist</button>
+        <button class="chip" id="filter-dividend">Dividende en hausse 5 ans</button>
       </div>
       <div class="result-count" id="market-count"></div>
       <div id="market-list"></div>
@@ -419,6 +427,9 @@
         quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
         dcf_reliable: v.dcf_reliable, growth_rate: v.growth_rate_used, discount_rate: v.discount_rate_used,
         base_fcf: v.base_fcf, net_debt: v.net_debt, shares: v.shares_used,
+        dividend_yield: f.dividend_yield, dividend_ttm: f.dividend_ttm, payout_ratio: f.payout_ratio,
+        dividend_growth_5y: f.dividend_growth_5y, dividend_growth_10y: f.dividend_growth_10y,
+        dividend_streak: f.dividend_streak, dividend_cut: f.dividend_cut, dividend_history: f.dividend_history,
         notes: v.notes, fundamentals_updated: new Date().toISOString(), indices: [],
       };
     }
@@ -620,7 +631,7 @@
     let market = null;
     let marketLoading = false;
     let marketShown = PAGE_SIZE;
-    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false, investors: false, watch: false };
+    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false, investors: false, watch: false, dividend: false };
 
     const ownedTickers = () => new Set((overview?.holdings || []).map((h) => h.yahoo_ticker));
 
@@ -658,7 +669,8 @@
         (!f.quality || (s.quality_score ?? 0) >= 14) &&
         (!f.owned || owned.has(s.ticker)) &&
         (!f.investors || !!investors?.by_ticker?.[s.ticker]) &&
-        (!f.watch || watchlist.has(s.ticker))
+        (!f.watch || watchlist.has(s.ticker)) &&
+        (!f.dividend || (s.dividend_streak ?? 0) >= 5)
       );
       // Les actions sans valeur pour le critère de tri passent en fin de liste
       const key = {
@@ -666,6 +678,7 @@
         score: (s) => s.quality_score,
         pe: (s) => (s.pe > 0 ? -s.pe : null),
         cap: (s) => s.market_cap_eur ?? null,
+        yield: (s) => (s.dividend_yield > 0 ? s.dividend_yield : null),
       }[f.sort];
       return list.sort((a, b) => (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
     }
@@ -737,6 +750,7 @@
           </div>
           ${dcf}
           ${hypotheses}
+          ${dividendBlock(s)}
           ${holdersLine(s.ticker)}
           <div>
             <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
@@ -776,7 +790,7 @@
         if (market) renderMarket();
       });
     }
-    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"]]) {
+    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"], ["filter-dividend", "dividend"]]) {
       document.getElementById(id).addEventListener("click", (e) => {
         marketFilters[key] = !marketFilters[key];
         e.currentTarget.classList.toggle("active", marketFilters[key]);
@@ -870,6 +884,32 @@
           </details>`).join("");
     }
 
+    // Section dividende d'une fiche (rendement, croissance, régularité, versements annuels)
+    function dividendBlock(s) {
+      if (s.dividend_yield == null && !(s.dividend_history || []).length) return "";
+      if (!s.dividend_yield && !(s.dividend_history || []).length) {
+        return `<div class="div-title">Dividende</div><div class="hypotheses">Pas de dividende versé.</div>`;
+      }
+      const cur = s.currency || "";
+      const hist = (s.dividend_history || []).slice(-12);
+      const max = Math.max(...hist.map((h) => h[1]), 0);
+      const bars = hist.length >= 2 ? `
+        <div class="div-bars">${hist.map((h) => `<span style="height:${max ? (h[1] / max) * 100 : 0}%" title="${h[0]} : ${money(h[1], cur)}"></span>`).join("")}</div>
+        <div class="div-years"><span>${hist[0][0]}</span><span>${hist[hist.length - 1][0]}</span></div>` : "";
+      return `
+        <div class="div-title">Dividende</div>
+        <div class="metrics">
+          <div class="row"><span>Rendement</span><span>${pctPlain(s.dividend_yield)}</span></div>
+          <div class="row"><span>Versé sur 12 mois</span><span>${money(s.dividend_ttm, cur)}</span></div>
+          <div class="row"><span>Taux de distribution</span><span>${pctPlain(s.payout_ratio)}</span></div>
+          <div class="row"><span>Années de hausse</span><span>${s.dividend_streak ?? "N/A"}</span></div>
+          <div class="row"><span>Croissance 5 ans</span><span>${s.dividend_growth_5y != null ? pctPlain(s.dividend_growth_5y) + " /an" : "N/A"}</span></div>
+          <div class="row"><span>Croissance 10 ans</span><span>${s.dividend_growth_10y != null ? pctPlain(s.dividend_growth_10y) + " /an" : "N/A"}</span></div>
+        </div>
+        ${s.dividend_cut ? `<div class="hypotheses negative">Dividende en baisse de plus de 10 % sur la dernière année.</div>` : ""}
+        ${bars}`;
+    }
+
     // Fonds qui détiennent une action, pour la fiche du screener
     function holdersLine(ticker) {
       const holders = investors?.by_ticker?.[ticker];
@@ -944,7 +984,7 @@
     }
 
     // --- Alertes (calculées par l'API sur le screener de la nuit) ---
-    const ALERT_ICONS = { "sous-évaluée": "💰", baisse: "📉", score: "⚠️", "super investisseur": "👀" };
+    const ALERT_ICONS = { "sous-évaluée": "💰", baisse: "📉", score: "⚠️", "super investisseur": "👀", dividende: "✂️" };
 
     async function loadAlerts() {
       let data;

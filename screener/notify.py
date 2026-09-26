@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 log = logging.getLogger("notify")
 
 EVENT_TAGS = {"sous-évaluée": "moneybag", "baisse": "chart_with_downwards_trend",
-              "score": "warning", "super investisseur": "eyes"}
+              "score": "warning", "super investisseur": "eyes", "dividende": "scissors"}
 
 
 def api_get(path: str, token: str):
