@@ -258,8 +258,14 @@ def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
         )
         return result
 
+    # Pour les sociétés à plusieurs classes d'actions (Alphabet), Yahoo ne donne que le nombre
+    # d'actions de la classe cotée : la capitalisation / le cours donne le total, cohérent avec le FCF
+    shares = cf.shares_outstanding
+    if cf.market_cap and cf.current_price:
+        shares = cf.market_cap / cf.current_price
+
     intrinsic_value = equity_value_per_share(
-        compute_dcf(base_fcf, growth, discount), cf.total_debt, cf.total_cash, cf.shares_outstanding
+        compute_dcf(base_fcf, growth, discount), cf.total_debt, cf.total_cash, shares
     )
     if intrinsic_value is None:
         notes.append(
