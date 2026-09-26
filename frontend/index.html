@@ -256,13 +256,20 @@
               <button data-mode="value" class="active">Valeur</button>
               <button data-mode="pct">Performance</button>
             </div>
-            <div class="legend">
-              <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
-              <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
-              <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>
-            </div>
+            <select class="fin-select" id="bench-select" aria-label="Comparer à un indice" style="margin-top:0">
+              <option value="">PEA / CTO</option>
+              <option value="world">Comparer au MSCI World</option>
+              <option value="sp500">Comparer au S&amp;P 500</option>
+              <option value="cac40">Comparer au CAC 40</option>
+            </select>
+          </div>
+          <div class="legend" id="chart-legend" style="margin-top:10px">
+            <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
+            <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
+            <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>
           </div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
+          <p class="help" id="bench-summary" style="margin-top:8px"></p>
         </div>
 
         <h2>Positions</h2>
@@ -510,7 +517,74 @@
         .join("");
     }
 
+    // Comparaison à un indice : portefeuille reconstitué jour par jour vs même argent placé dans l'ETF
+    let benchmarkKey = "";
+    const benchmarkData = {};
+
+    async function renderBenchmarkChart() {
+      const summary = document.getElementById("bench-summary");
+      if (!benchmarkData[benchmarkKey]) {
+        summary.textContent = "Reconstitution de ton portefeuille jour par jour…";
+        try {
+          benchmarkData[benchmarkKey] = await api(`/portfolio/performance?benchmark=${benchmarkKey}`);
+        } catch (e) {
+          summary.textContent = "Comparaison indisponible : " + e.message;
+          return;
+        }
+      }
+      const data = benchmarkData[benchmarkKey];
+      const pts = data.points;
+      if (!pts.length) { summary.textContent = "Aucune opération datée à comparer."; return; }
+      const pct = chartMode === "pct";
+      const series = [
+        ["Mon portefeuille", (p) => (pct ? p.value / p.invested - 1 : p.value), "--series-total", []],
+        [`Même argent dans : ${data.benchmark}`, (p) => (p.benchmark == null ? null : pct ? p.benchmark / p.invested - 1 : p.benchmark), "--series-cto", []],
+      ];
+      if (!pct) series.push(["Montant investi", (p) => p.invested, "--muted", [4, 4]]);
+      document.getElementById("chart-legend").innerHTML = series
+        .map(([label, , color]) => `<span><i class="dot" style="background:var(${color})"></i>${escapeHtml(label)}</span>`).join("");
+      drawLineChart(series.map(([label, get, color, dash]) => ({
+        label, data: pts.map((p) => ({ x: new Date(p.date).getTime(), y: get(p) })), color, dash, width: label === "Mon portefeuille" ? 2.5 : 1.8, points: 0,
+      })), pct);
+      const s = data.summary;
+      summary.textContent = s
+        ? `Depuis ta première opération : ton portefeuille ${pctFmt.format(s.portfolio_pct)}, ${data.benchmark} ${s.benchmark_pct != null ? pctFmt.format(s.benchmark_pct) : "N/A"}, à montants et dates identiques. Cours de clôture, dividendes réinvestis pour les ETF de capitalisation.`
+        : "";
+    }
+
+    function drawLineChart(datasets, pct) {
+      const fmt = pct ? (v) => pctFmt.format(v) : (v) => eur.format(v);
+      const xs = datasets.flatMap((d) => d.data.map((p) => p.x));
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("history-chart"), {
+        type: "line",
+        data: {
+          datasets: datasets.map((d) => ({
+            label: d.label, data: d.data, borderColor: cssVar(d.color), backgroundColor: cssVar(d.color),
+            borderWidth: d.width, borderDash: d.dash || [], pointRadius: d.points ?? 2.5, pointHoverRadius: 4, tension: 0.2, spanGaps: true,
+          })),
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { title: (items) => dateFmt.format(new Date(items[0].parsed.x)), label: (item) => ` ${item.dataset.label} : ${fmt(item.parsed.y)}` } },
+          },
+          scales: {
+            x: { type: "linear", min: Math.min(...xs), max: Math.max(...xs), ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => dateFmt.format(new Date(v)) }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: pct ? (v) => pctFmt.format(v) : (v) => `${Math.round(v / 100) / 10} k€` }, grid: { color: cssVar("--line") } },
+          },
+        },
+      });
+    }
+
     function renderChart() {
+      if (benchmarkKey) { renderBenchmarkChart(); return; }
+      document.getElementById("bench-summary").textContent = "";
+      document.getElementById("chart-legend").innerHTML = `
+        <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
+        <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
+        <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>`;
       const points = overview.history;
       const x = (p) => new Date(p.date).getTime();
       const series = chartMode === "value"
@@ -565,6 +639,11 @@
         },
       });
     }
+
+    document.getElementById("bench-select").addEventListener("change", (e) => {
+      benchmarkKey = e.target.value;
+      renderChart();
+    });
 
     document.getElementById("chart-mode").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-mode]");

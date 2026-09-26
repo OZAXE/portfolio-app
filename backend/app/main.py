@@ -326,7 +326,10 @@ def get_settings(user: User = Depends(require_access)):
 def post_operation(payload: dict = Body(...), user: User = Depends(require_access)):
     ticker = str(payload.get("ticker") or "").strip().upper()
     stock = next((s for s in (_screener_data("screener.json") or {}).get("stocks", []) if s["ticker"] == ticker), {})
-    return _operation_call(lambda: add_operation(user.sheet_id, payload, stock.get("sector", ""), stock.get("country", "")))
+    result = _operation_call(lambda: add_operation(user.sheet_id, payload, stock.get("sector", ""), stock.get("country", "")))
+    for key in [k for k in _performance_cache if k[0] == user.sheet_id]:
+        _performance_cache.pop(key)  # la courbe comparée doit intégrer la nouvelle opération
+    return result
 
 
 @app.get("/fx/{currency}")
@@ -345,3 +348,23 @@ def get_fx(currency: str):
     if history.empty:
         raise HTTPException(status_code=404, detail=f"Taux {base}/EUR indisponible")
     return {"currency": currency, "rate": float(history["Close"].iloc[-1]) / divisor}
+
+
+# --- Performance comparée à un indice (reconstituée à partir des opérations datées) ---
+PERFORMANCE_CACHE_SECONDS = 6 * 3600
+_performance_cache: dict[tuple[str, str], tuple[float, dict]] = {}
+
+
+@app.get("/portfolio/performance")
+def get_performance(benchmark: str = "world", user: User = Depends(require_access)):
+    from .performance import BENCHMARKS, portfolio_performance
+
+    if benchmark not in BENCHMARKS:
+        raise HTTPException(status_code=400, detail=f"Indice inconnu (choix : {', '.join(BENCHMARKS)})")
+    key = (user.sheet_id, benchmark)
+    cached = _performance_cache.get(key)
+    if cached and time.monotonic() - cached[0] < PERFORMANCE_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: portfolio_performance(user.sheet_id, benchmark))
+    _performance_cache[key] = (time.monotonic(), result)
+    return result
