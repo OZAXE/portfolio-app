@@ -23,7 +23,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-SHEET_ID = "11yHfADl5DfjJo0cnGAFIE452OZvkkKi3VI32LBQvpJM"  # fileId de ton Sheet "Investissement"
+WRITE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Origine des dates en valeur brute dans Google Sheets (comme Excel)
 SHEETS_EPOCH = date(1899, 12, 30)
@@ -80,6 +80,7 @@ class HoldingLine:
     gain: float | None
     gain_pct: float | None
     sector: str | None
+    name: str | None = None
 
 
 @dataclass
@@ -111,8 +112,13 @@ def google_credentials(scopes: list[str]) -> Credentials:
     return Credentials.from_service_account_file(creds_path, scopes=scopes)
 
 
-def _open_sheet() -> gspread.Spreadsheet:
-    return gspread.authorize(google_credentials(SCOPES)).open_by_key(SHEET_ID)
+def _open_sheet(sheet_id: str, write: bool = False) -> gspread.Spreadsheet:
+    return gspread.authorize(google_credentials(WRITE_SCOPES if write else SCOPES)).open_by_key(sheet_id)
+
+
+def is_v2(sheet: gspread.Spreadsheet) -> bool:
+    """Format v2 (modèle de l'appli, voir workbook.py) : reconnu à son onglet Opérations."""
+    return _find_worksheet(sheet, "Opérations") is not None
 
 
 def _find_worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet | None:
@@ -128,8 +134,13 @@ def _worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet:
     return ws
 
 
-def get_portfolio_positions(worksheet_name: str = "Portefeuille") -> list[Position]:
-    ws = _worksheet(_open_sheet(), worksheet_name)
+def get_portfolio_positions(sheet_id: str) -> list[Position]:
+    sheet = _open_sheet(sheet_id)
+    if is_v2(sheet):
+        rows = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
+        return [Position(ticker=h.yahoo_ticker, quantity=q, envelope=h.envelope)
+                for h, q in parse_positions_v2(rows) if h.yahoo_ticker and q]
+    ws = _worksheet(sheet, "Portefeuille")
     # Valeurs brutes : en formaté, un Sheet en français renvoie "0,97" que float() refuse
     rows = ws.get_all_records(value_render_option=UNFORMATTED)
 
@@ -227,11 +238,49 @@ def parse_savings(rows: list[list]) -> list[dict]:
     return savings
 
 
-def get_overview() -> Overview:
-    sheet = _open_sheet()
-    courbe = _worksheet(sheet, "Courbe").get_values(value_render_option=UNFORMATTED)
+def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
+    """Onglet Positions du modèle : une ligne par titre (colonnes de workbook.POSITIONS_HEADERS).
+    Les titres entièrement vendus (quantité nulle) sont écartés."""
+    lines = []
+    for r in range(1, len(rows)):
+        ticker = _cell(rows, r, 0)
+        quantity = _number(_cell(rows, r, 4))
+        if not ticker or not quantity:
+            continue
+        ticker = str(ticker).strip()
+        lines.append((HoldingLine(
+            ticker=ticker, yahoo_ticker=ticker, envelope=_cell(rows, r, 3),
+            value=_number(_cell(rows, r, 10)), invested=_number(_cell(rows, r, 6)),
+            gain=_number(_cell(rows, r, 11)), gain_pct=_number(_cell(rows, r, 12)),
+            sector=_cell(rows, r, 13), name=_cell(rows, r, 1),
+        ), quantity))
+    return lines
+
+
+def parse_history_v2(rows: list[list]) -> list[HistoryPoint]:
+    """Onglet Historique du modèle : un relevé par ligne (date, valeur et investi par enveloppe)."""
+    points = []
+    for r in range(1, len(rows)):
+        iso = _serial_to_iso(_cell(rows, r, 0))
+        pea, pea_in, cto, cto_in = (_number(_cell(rows, r, c)) for c in (1, 2, 3, 4))
+        if iso is None or None in (pea, cto):
+            continue
+        ratio = lambda v, i: v / i - 1 if v is not None and i else None
+        total, total_in = pea + cto, (pea_in or 0) + (cto_in or 0)
+        points.append(HistoryPoint(date=iso, pea_value=pea, pea_pct=ratio(pea, pea_in), cto_value=cto,
+                                   cto_pct=ratio(cto, cto_in), total_value=total, total_pct=ratio(total, total_in)))
+    return sorted(points, key=lambda p: p.date)
+
+
+def get_overview(sheet_id: str) -> Overview:
+    sheet = _open_sheet(sheet_id)
     historique = _worksheet(sheet, "Historique").get_values(value_render_option=UNFORMATTED)
-    overview = Overview(holdings=parse_holdings(courbe), history=parse_history(historique))
+    if is_v2(sheet):
+        positions = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
+        overview = Overview(holdings=[h for h, _ in parse_positions_v2(positions)], history=parse_history_v2(historique))
+    else:
+        courbe = _worksheet(sheet, "Courbe").get_values(value_render_option=UNFORMATTED)
+        overview = Overview(holdings=parse_holdings(courbe), history=parse_history(historique))
     livret = _find_worksheet(sheet, "Livret")  # onglet facultatif
     if livret is not None:
         overview.savings = parse_savings(livret.get_values(value_render_option=UNFORMATTED))
@@ -240,33 +289,31 @@ def get_overview() -> Overview:
 
 # --- Watchlist : onglet "Watchlist" (TICKER au format Yahoo, date d'ajout), géré depuis l'appli ---
 WATCHLIST_TAB = "Watchlist"
-WRITE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 
-def _watchlist_worksheet(create: bool) -> gspread.Worksheet | None:
-    sheet = gspread.authorize(google_credentials(WRITE_SCOPES)).open_by_key(SHEET_ID)
-    try:
-        return sheet.worksheet(WATCHLIST_TAB)
-    except gspread.WorksheetNotFound:
+def _watchlist_worksheet(sheet_id: str, create: bool) -> gspread.Worksheet | None:
+    sheet = _open_sheet(sheet_id, write=True)
+    ws = _find_worksheet(sheet, WATCHLIST_TAB)
+    if ws is None:
         if not create:
             return None
         ws = sheet.add_worksheet(WATCHLIST_TAB, rows=200, cols=2)
         ws.update(range_name="A1:B1", values=[["TICKER", "AJOUTÉ LE"]])
-        return ws
+    return ws
 
 
-def get_watchlist() -> list[str]:
-    ws = _watchlist_worksheet(create=False)
+def get_watchlist(sheet_id: str) -> list[str]:
+    ws = _watchlist_worksheet(sheet_id, create=False)
     if ws is None:
         return []
     tickers = ws.col_values(1)[1:]
     return [t.strip().upper() for t in tickers if t.strip()]
 
 
-def add_to_watchlist(ticker: str) -> list[str]:
+def add_to_watchlist(sheet_id: str, ticker: str) -> list[str]:
     """Nécessite que le compte de service soit Éditeur du Sheet (pas seulement Lecteur)."""
     ticker = ticker.strip().upper()
-    ws = _watchlist_worksheet(create=True)
+    ws = _watchlist_worksheet(sheet_id, create=True)
     current = [t.strip().upper() for t in ws.col_values(1)[1:]]
     if ticker not in current:
         ws.append_row([ticker, date.today().isoformat()], value_input_option="USER_ENTERED")
@@ -274,9 +321,9 @@ def add_to_watchlist(ticker: str) -> list[str]:
     return [t for t in current if t]
 
 
-def remove_from_watchlist(ticker: str) -> list[str]:
+def remove_from_watchlist(sheet_id: str, ticker: str) -> list[str]:
     ticker = ticker.strip().upper()
-    ws = _watchlist_worksheet(create=False)
+    ws = _watchlist_worksheet(sheet_id, create=False)
     if ws is None:
         return []
     column = ws.col_values(1)

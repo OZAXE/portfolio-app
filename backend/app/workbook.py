@@ -59,7 +59,9 @@ POSITION_FORMULAS = {
     "G2": '=MAP(E2:E; F2:F; LAMBDA(q; p; IF(q=""; ""; q*p)))',
     "H2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(GOOGLEFINANCE(VLOOKUP(t; Titres!A:B; 2; FALSE)); ""))))',
     "I2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:F; 6; FALSE); "EUR"))))',
-    "J2": '=MAP(I2:I; LAMBDA(d; IF(d=""; ""; IF(d="EUR"; 1; IFERROR(GOOGLEFINANCE("CURRENCY:"&d&"EUR"); "")))))',
+    # Londres cote souvent en pence (devise "GBp" dans Titres) : taux livre/euro divisé par 100
+    "J2": '=MAP(I2:I; LAMBDA(d; IF(d=""; ""; IF(d="EUR"; 1; IF(d="GBp"; GOOGLEFINANCE("CURRENCY:GBPEUR")/100;'
+          ' IFERROR(GOOGLEFINANCE("CURRENCY:"&d&"EUR"); ""))))))',
     "K2": '=MAP(E2:E; H2:H; J2:J; LAMBDA(q; c; x; IF(OR(q=""; c=""; x=""); ""; q*c*x)))',
     "L2": '=MAP(K2:K; G2:G; LAMBDA(v; i; IF(OR(v=""; i=""); ""; v-i)))',
     "M2": '=MAP(L2:L; G2:G; LAMBDA(p; i; IF(OR(p=""; i=""; i=0); ""; p/i)))',

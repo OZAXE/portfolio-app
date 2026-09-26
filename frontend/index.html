@@ -543,7 +543,7 @@
       const sorted = [...overview.holdings].sort((a, b) => (b.value || 0) - (a.value || 0));
       document.getElementById("positions").innerHTML = sorted.map((h) => {
         const a = analyses[h.yahoo_ticker];
-        const name = a?.financials?.name || h.ticker;
+        const name = a?.financials?.name || h.name || h.ticker;
         return `
           <details class="position">
             <summary>

@@ -14,9 +14,7 @@ Endpoints prévus pour le MVP :
 """
 
 import logging
-import os
 import re
-import secrets
 import time
 from collections import defaultdict
 from dataclasses import asdict
@@ -32,6 +30,7 @@ from .briefs import BriefNotFoundError, DriveAccessError, get_brief_html, list_b
 from .alerts import compute_alerts
 from .sheets import add_to_watchlist, get_watchlist, remove_from_watchlist
 from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
+from .users import User, access_protected, resolve
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -49,34 +48,43 @@ app.add_middleware(
     allow_headers=["X-Access-Token"],
 )
 
-# Code d'accès aux données personnelles (positions, valeurs). Tant que la variable
-# n'est pas définie sur Render, l'API reste ouverte, pour ne rien casser
-ACCESS_TOKEN = os.environ.get("APP_ACCESS_TOKEN")
-
-
-def require_access(x_access_token: str | None = Header(default=None)):
-    if ACCESS_TOKEN and not (x_access_token and secrets.compare_digest(x_access_token, ACCESS_TOKEN)):
+# Chaque code d'accès correspond à un utilisateur et à son propre Google Sheet (voir users.py)
+def require_access(x_access_token: str | None = Header(default=None)) -> User:
+    user = resolve(x_access_token)
+    if user is None:
         raise HTTPException(status_code=401, detail="Code d'accès manquant ou invalide")
+    return user
+
+
+def require_admin(user: User = Depends(require_access)) -> User:
+    if not user.admin:
+        raise HTTPException(status_code=403, detail="Réservé à l'administrateur de l'appli")
+    return user
 
 
 @app.get("/health")
 def health():
     # Indique seulement si le code d'accès est configuré, jamais sa valeur
-    return {"status": "ok", "access_protected": bool(ACCESS_TOKEN)}
+    return {"status": "ok", "access_protected": access_protected()}
 
 
-def _load_positions():
+@app.get("/me")
+def me(user: User = Depends(require_access)):
+    return {"name": user.name, "admin": user.admin, "briefs": bool(user.briefs_folder)}
+
+
+def _load_positions(user: User):
     try:
-        return get_portfolio_positions()
+        return get_portfolio_positions(user.sheet_id)
     except SheetNotConfiguredError as e:
         raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
 
 
-@app.get("/portfolio", dependencies=[Depends(require_access)])
-def get_portfolio():
-    return [p.__dict__ for p in _load_positions()]
+@app.get("/portfolio")
+def get_portfolio(user: User = Depends(require_access)):
+    return [p.__dict__ for p in _load_positions(user)]
 
 
 @app.get("/analysis/{ticker}")
@@ -95,9 +103,9 @@ def get_analysis(ticker: str):
     }
 
 
-@app.get("/portfolio/analysis", dependencies=[Depends(require_access)])
-def get_portfolio_analysis():
-    positions = _load_positions()
+@app.get("/portfolio/analysis")
+def get_portfolio_analysis(user: User = Depends(require_access)):
+    positions = _load_positions(user)
     output = []
     for pos in positions:
         cf = fetch_company_financials(pos.ticker)
@@ -126,10 +134,10 @@ def _totals(lines: list[HoldingLine]) -> dict:
     }
 
 
-@app.get("/portfolio/overview", dependencies=[Depends(require_access)])
-def get_portfolio_overview():
+@app.get("/portfolio/overview")
+def get_portfolio_overview(user: User = Depends(require_access)):
     try:
-        overview = get_overview()
+        overview = get_overview(user.sheet_id)
     except SheetNotConfiguredError as e:
         raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
     except Exception as e:
@@ -170,14 +178,18 @@ def _briefs_errors(call):
 
 
 # Les briefs parlent de ton portefeuille : même code d'accès que les positions
-@app.get("/briefs", dependencies=[Depends(require_access)])
-def get_briefs():
-    return _briefs_errors(list_briefs)
+@app.get("/briefs")
+def get_briefs(user: User = Depends(require_access)):
+    if not user.briefs_folder:
+        return []
+    return _briefs_errors(lambda: list_briefs(user.briefs_folder))
 
 
-@app.get("/briefs/{brief_id}", dependencies=[Depends(require_access)], response_class=HTMLResponse)
-def get_brief(brief_id: str):
-    return HTMLResponse(_briefs_errors(lambda: get_brief_html(brief_id)))
+@app.get("/briefs/{brief_id}", response_class=HTMLResponse)
+def get_brief(brief_id: str, user: User = Depends(require_access)):
+    if not user.briefs_folder:
+        raise HTTPException(status_code=404, detail="Pas de dossier de briefs pour cet utilisateur")
+    return HTMLResponse(_briefs_errors(lambda: get_brief_html(user.briefs_folder, brief_id)))
 
 
 # --- Watchlist et alertes ---
@@ -204,21 +216,21 @@ def _checked_ticker(ticker: str) -> str:
     return ticker
 
 
-@app.get("/watchlist", dependencies=[Depends(require_access)])
-def read_watchlist():
-    return _sheet_call(get_watchlist)
+@app.get("/watchlist")
+def read_watchlist(user: User = Depends(require_access)):
+    return _sheet_call(lambda: get_watchlist(user.sheet_id))
 
 
-@app.post("/watchlist/{ticker}", dependencies=[Depends(require_access)])
-def watch(ticker: str):
+@app.post("/watchlist/{ticker}")
+def watch(ticker: str, user: User = Depends(require_access)):
     ticker = _checked_ticker(ticker)
-    return _sheet_call(lambda: add_to_watchlist(ticker))
+    return _sheet_call(lambda: add_to_watchlist(user.sheet_id, ticker))
 
 
-@app.delete("/watchlist/{ticker}", dependencies=[Depends(require_access)])
-def unwatch(ticker: str):
+@app.delete("/watchlist/{ticker}")
+def unwatch(ticker: str, user: User = Depends(require_access)):
     ticker = _checked_ticker(ticker)
-    return _sheet_call(lambda: remove_from_watchlist(ticker))
+    return _sheet_call(lambda: remove_from_watchlist(user.sheet_id, ticker))
 
 
 # Résultats du screener nocturne, publiés sur la branche screener-data du repo
@@ -241,10 +253,10 @@ def _screener_data(name: str) -> dict | None:
     return data
 
 
-@app.get("/alerts", dependencies=[Depends(require_access)])
-def get_alerts():
-    positions = {p.ticker.upper() for p in _load_positions()}
-    watchlist = set(_sheet_call(get_watchlist))
+@app.get("/alerts")
+def get_alerts(user: User = Depends(require_access)):
+    positions = {p.ticker.upper() for p in _load_positions(user)}
+    watchlist = set(_sheet_call(lambda: get_watchlist(user.sheet_id)))
     screener = _screener_data("screener.json")
     if screener is None:
         raise HTTPException(status_code=503, detail="Résultats du screener indisponibles")
@@ -268,7 +280,7 @@ def _describe_ticker(ticker: str) -> tuple[str | None, str]:
         return None, "Action"
 
 
-@app.post("/admin/sheet/setup", dependencies=[Depends(require_access)])
+@app.post("/admin/sheet/setup", dependencies=[Depends(require_admin)])
 def setup_sheet(target: str, migrate_from: str | None = None):
     """Construit les onglets du modèle dans le Sheet `target` (vide, partagé en Éditeur avec le compte
     de service), puis y recopie les données de l'ancien Sheet `migrate_from` s'il est donné."""
