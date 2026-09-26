@@ -45,8 +45,12 @@ def get_portfolio_positions(worksheet_name: str = "Portefeuille") -> list[Positi
     client = gspread.authorize(creds)
 
     sheet = client.open_by_key(SHEET_ID)
-    ws = sheet.worksheet(worksheet_name)
-    rows = ws.get_all_records()  # liste de dicts, clés = en-têtes de colonnes
+    try:
+        ws = sheet.worksheet(worksheet_name)
+    except gspread.WorksheetNotFound:
+        raise SheetNotConfiguredError(f"onglet \"{worksheet_name}\" introuvable dans le Google Sheet")
+    # Valeurs brutes : en formaté, un Sheet en français renvoie "0,97" que float() refuse
+    rows = ws.get_all_records(value_render_option=gspread.utils.ValueRenderOption.unformatted)
 
     positions = []
     for row in rows:
