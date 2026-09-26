@@ -250,3 +250,41 @@ def get_alerts():
         raise HTTPException(status_code=503, detail="Résultats du screener indisponibles")
     result = compute_alerts(positions, watchlist, screener, _screener_data("superinvestors.json"))
     return {**result, "screener_date": screener.get("generated_at")}
+
+
+# --- Administration : construction du Sheet modèle (format v2) et migration de l'ancien ---
+SHEET_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{20,80}$")
+
+
+def _describe_ticker(ticker: str) -> tuple[str | None, str]:
+    """Nom lisible et type (Action / ETF) d'un titre, via l'API chart de Yahoo (répond même sur Render)."""
+    import yfinance as yf
+    try:
+        t = yf.Ticker(ticker)
+        t.history(period="5d")
+        meta = t.history_metadata or {}
+        return meta.get("longName") or meta.get("shortName"), "ETF" if meta.get("instrumentType") == "ETF" else "Action"
+    except Exception:
+        return None, "Action"
+
+
+@app.post("/admin/sheet/setup", dependencies=[Depends(require_access)])
+def setup_sheet(target: str, migrate_from: str | None = None):
+    """Construit les onglets du modèle dans le Sheet `target` (vide, partagé en Éditeur avec le compte
+    de service), puis y recopie les données de l'ancien Sheet `migrate_from` s'il est donné."""
+    from .workbook import build_template, migrate_from_v1, open_for_write
+
+    for sheet_id in filter(None, (target, migrate_from)):
+        if not SHEET_ID_PATTERN.match(sheet_id):
+            raise HTTPException(status_code=400, detail=f"Identifiant de Sheet invalide : {sheet_id}")
+    try:
+        new = open_for_write(target)
+        build_template(new)
+        result = {"template": "ok", "url": f"https://docs.google.com/spreadsheets/d/{target}"}
+        if migrate_from:
+            result["migration"] = migrate_from_v1(open_for_write(migrate_from), new, _describe_ticker)
+        return result
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__} : {e}")

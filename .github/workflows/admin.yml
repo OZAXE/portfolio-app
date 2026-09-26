@@ -1,0 +1,31 @@
+# Opérations d'administration ponctuelles, lancées à la main (onglet Actions de GitHub ou `gh workflow run`).
+# Le code d'accès reste dans les secrets du repo : il n'apparaît jamais dans les logs.
+name: Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Identifiant du Sheet à construire (vide, partagé en Éditeur avec le compte de service)"
+        required: true
+      migrate_from:
+        description: "Identifiant de l'ancien Sheet à migrer (laisser vide pour un modèle vierge)"
+        required: false
+
+jobs:
+  setup-sheet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Réveille l'API (Render gratuit)
+        run: |
+          for i in $(seq 1 12); do
+            curl -sf --max-time 60 https://portfolio-app-blvx.onrender.com/health && break
+            sleep 10
+          done
+      - name: Construit le Sheet modèle
+        env:
+          TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
+        run: |
+          curl -sS --fail-with-body --max-time 900 -X POST \
+            -H "X-Access-Token: $TOKEN" \
+            "https://portfolio-app-blvx.onrender.com/admin/sheet/setup?target=${{ inputs.target }}&migrate_from=${{ inputs.migrate_from }}"
