@@ -6,16 +6,19 @@ Endpoints prévus pour le MVP :
 - GET /portfolio            -> positions lues depuis le Google Sheet
 - GET /analysis/{ticker}    -> fondamentaux + score qualité + DCF pour un ticker
 - GET /portfolio/analysis   -> l'analyse complète pour toutes les positions du portefeuille
+- GET /portfolio/overview   -> valeurs, historique et répartition lus dans le Sheet (rapide, sans Yahoo)
 """
 
 import logging
+from collections import defaultdict
+from dataclasses import asdict
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
 from .valuation import evaluate_company
-from .sheets import SheetNotConfiguredError, get_portfolio_positions
+from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -83,3 +86,45 @@ def get_portfolio_analysis():
             }
         )
     return output
+
+
+def _totals(lines: list[HoldingLine]) -> dict:
+    value = sum(h.value or 0 for h in lines)
+    invested = sum(h.invested or 0 for h in lines)
+    gain = value - invested
+    return {
+        "value": round(value, 2),
+        "invested": round(invested, 2),
+        "gain": round(gain, 2),
+        "gain_pct": gain / invested if invested else None,
+    }
+
+
+@app.get("/portfolio/overview")
+def get_portfolio_overview():
+    try:
+        overview = get_overview()
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
+
+    by_envelope = defaultdict(list)
+    by_sector = defaultdict(float)
+    for h in overview.holdings:
+        by_envelope[h.envelope or "Autre"].append(h)
+        by_sector[h.sector or "Non classé"] += h.value or 0
+
+    total = _totals(overview.holdings)
+    sectors = [
+        {"sector": s, "value": round(v, 2), "weight": v / total["value"] if total["value"] else None}
+        for s, v in sorted(by_sector.items(), key=lambda kv: -kv[1])
+    ]
+    return {
+        "total": total,
+        "envelopes": {name: _totals(lines) for name, lines in by_envelope.items()},
+        "holdings": [asdict(h) for h in overview.holdings],
+        "sectors": sectors,
+        "history": [asdict(p) for p in overview.history],
+        "savings": overview.savings,
+    }
