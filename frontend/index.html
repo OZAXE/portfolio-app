@@ -274,14 +274,19 @@
       return res.json();
     }
 
-    // --- Onglets ---
-    document.getElementById("tabbar").addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-view]");
+    // --- Onglets (l'onglet courant est gardé dans l'URL : #market, #briefs...) ---
+    function showView(view) {
+      const btn = document.querySelector(`#tabbar button[data-view="${view}"]`);
       if (!btn) return;
       document.querySelectorAll("#tabbar button").forEach((b) => b.classList.toggle("active", b === btn));
-      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${btn.dataset.view}`));
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${view}`));
       window.scrollTo(0, 0);
-      if (btn.dataset.view === "market") loadMarket();
+      history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
+      if (view === "market") loadMarket();
+    }
+    document.getElementById("tabbar").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-view]");
+      if (btn) showView(btn.dataset.view);
     });
 
     // --- Portefeuille ---
@@ -657,6 +662,7 @@
     }
 
     loadPortfolio();
+    if (location.hash) showView(location.hash.slice(1));
   </script>
 </body>
 </html>
