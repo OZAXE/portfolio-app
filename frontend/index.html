@@ -6,143 +6,407 @@
   <title>Portfolio Insights</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f172a" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #0f172a;
       --card: #1e293b;
+      --card-2: #273449;
+      --line: #334155;
       --text: #e2e8f0;
       --muted: #94a3b8;
       --accent: #22c55e;
       --accent-neg: #ef4444;
+      --series-total: #e2e8f0;
+      --series-pea: #38bdf8;
+      --series-cto: #f59e0b;
+      --tabbar-h: 64px;
     }
     * { box-sizing: border-box; }
+    html, body { margin: 0; }
     body {
-      margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+      font-variant-numeric: tabular-nums;
     }
-    header {
-      padding: 20px 16px 8px;
-    }
-    header h1 {
-      font-size: 20px;
-      margin: 0;
-    }
-    #positions {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 16px;
-    }
-    .card .ticker {
-      font-weight: 600;
-      font-size: 16px;
-    }
-    .card .row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 6px;
-      font-size: 14px;
-      color: var(--muted);
-    }
+    main { max-width: 720px; margin: 0 auto; padding: 0 16px 24px; }
+    header { padding: 20px 0 8px; }
+    header h1 { font-size: 20px; margin: 0; }
+    h2 { font-size: 15px; margin: 24px 0 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+
+    .card { background: var(--card); border-radius: 14px; padding: 16px; }
     .positive { color: var(--accent); }
     .negative { color: var(--accent-neg); }
-    .unreliable { color: var(--muted); font-style: italic; }
-    .card .hypotheses {
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted);
+    .muted { color: var(--muted); }
+    .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
+
+    /* Synthèse */
+    .hero .label { font-size: 13px; color: var(--muted); }
+    .hero .value { font-size: 32px; font-weight: 700; margin-top: 4px; }
+    .hero .gain { font-size: 15px; margin-top: 4px; }
+    .envelopes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .envelope { background: var(--card-2); border-radius: 10px; padding: 10px 12px; }
+    .envelope .name { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .envelope .amount { font-size: 17px; font-weight: 600; margin-top: 2px; }
+    .envelope .perf { font-size: 13px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    /* Graphique */
+    .segmented { display: inline-flex; background: var(--card-2); border-radius: 8px; padding: 2px; }
+    .segmented button {
+      border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer;
     }
-    .card details {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
+    .segmented button.active { background: var(--line); color: var(--text); }
+    .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .chart-box { position: relative; height: 220px; margin-top: 12px; }
+
+    /* Répartition */
+    .bar-row { margin-top: 10px; font-size: 13px; }
+    .bar-row:first-child { margin-top: 0; }
+    .bar-label { display: flex; justify-content: space-between; gap: 8px; }
+    .bar-track { height: 6px; background: var(--card-2); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--series-pea); border-radius: 3px; }
+
+    /* Positions */
+    .positions { display: flex; flex-direction: column; gap: 8px; }
+    .position { background: var(--card); border-radius: 12px; padding: 12px 14px; }
+    .position summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+    .position summary::-webkit-details-marker { display: none; }
+    .position .title { font-weight: 600; font-size: 15px; }
+    .position .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .position .right { text-align: right; white-space: nowrap; }
+    .position .right .amount { font-weight: 600; }
+    .position .right .perf { font-size: 13px; }
+    .analysis { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+    .analysis .row { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); gap: 8px; }
+    .analysis .row span:last-child { color: var(--text); text-align: right; }
+    .analysis .unreliable { color: var(--muted) !important; font-style: italic; }
+    .analysis .hypotheses { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .analysis ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+    .analysis li { margin-top: 4px; }
+
+    /* Épargne */
+    .saving { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; }
+    .saving:first-child { margin-top: 0; }
+    .saving.total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; font-weight: 600; }
+
+    /* Onglets */
+    .view[hidden] { display: none; }
+    .placeholder { text-align: center; padding: 48px 16px; color: var(--muted); }
+    .placeholder .big { font-size: 17px; color: var(--text); margin-bottom: 6px; }
+    nav.tabbar {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: rgba(15, 23, 42, 0.96); border-top: 1px solid var(--line);
+      display: grid; grid-template-columns: repeat(4, 1fr);
     }
-    .card details summary { cursor: pointer; }
-    .card details ul { margin: 6px 0 0; padding-left: 18px; }
-    .card details li { margin-top: 4px; }
-    #status {
-      padding: 16px;
-      color: var(--muted);
-      font-size: 14px;
+    nav.tabbar button {
+      border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
     }
+    nav.tabbar button.active { color: var(--accent); }
+    nav.tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Mon portefeuille</h1>
-  </header>
-  <div id="status">Chargement des analyses…</div>
-  <div id="positions"></div>
+  <main>
+    <!-- Portefeuille -->
+    <section class="view" id="view-portfolio">
+      <header><h1>Mon portefeuille</h1></header>
+      <div class="status" id="portfolio-status">Chargement…</div>
+      <div id="portfolio-content" hidden>
+        <div class="card hero">
+          <div class="label">Valeur des placements</div>
+          <div class="value" id="total-value"></div>
+          <div class="gain" id="total-gain"></div>
+          <div class="envelopes" id="envelopes"></div>
+        </div>
+
+        <h2>Évolution</h2>
+        <div class="card">
+          <div class="chart-head">
+            <div class="segmented" id="chart-mode">
+              <button data-mode="value" class="active">Valeur</button>
+              <button data-mode="pct">Performance</button>
+            </div>
+            <div class="legend">
+              <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
+              <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
+              <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>
+            </div>
+          </div>
+          <div class="chart-box"><canvas id="history-chart"></canvas></div>
+        </div>
+
+        <h2>Positions</h2>
+        <div class="positions" id="positions"></div>
+        <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
+
+        <h2>Répartition par secteur</h2>
+        <div class="card" id="sectors"></div>
+
+        <div id="savings-block" hidden>
+          <h2>Épargne et patrimoine</h2>
+          <div class="card" id="savings"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Marché -->
+    <section class="view" id="view-market" hidden>
+      <header><h1>Marché</h1></header>
+      <div class="placeholder"><div class="big">Screener en préparation</div>Un large panel d'actions Europe, US et Asie, analysé chaque nuit.</div>
+    </section>
+
+    <!-- Briefs -->
+    <section class="view" id="view-briefs" hidden>
+      <header><h1>Briefs hebdo</h1></header>
+      <div class="placeholder"><div class="big">Bientôt ici</div>Tes briefs marchés du samedi, lisibles depuis l'appli.</div>
+    </section>
+
+    <!-- Réglages -->
+    <section class="view" id="view-settings" hidden>
+      <header><h1>Réglages</h1></header>
+      <div class="placeholder"><div class="big">Bientôt ici</div>Tes propres hypothèses de DCF (croissance, actualisation).</div>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-view="portfolio" class="active">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Portefeuille
+    </button>
+    <button data-view="market">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Marché
+    </button>
+    <button data-view="briefs">
+      <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Briefs
+    </button>
+    <button data-view="settings">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages
+    </button>
+  </nav>
 
   <script>
-    // À adapter avec l'URL de ton backend une fois déployé sur Render
     const API_BASE_URL = "https://portfolio-app-blvx.onrender.com";
 
+    const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+    const pctFmt = new Intl.NumberFormat("fr-FR", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
+    const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+    const signClass = (x) => (x == null ? "" : x >= 0 ? "positive" : "negative");
+    const signedEur = (x) => (x >= 0 ? "+" : "") + eur.format(x);
+    const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    async function api(path) {
+      const res = await fetch(`${API_BASE_URL}${path}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Erreur API : ${res.status}`);
+      }
+      return res.json();
+    }
+
+    // --- Onglets ---
+    document.getElementById("tabbar").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-view]");
+      if (!btn) return;
+      document.querySelectorAll("#tabbar button").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${btn.dataset.view}`));
+      window.scrollTo(0, 0);
+    });
+
+    // --- Portefeuille ---
+    let overview = null;
+    let chart = null;
+    let chartMode = "value";
+
+    function renderSummary() {
+      const t = overview.total;
+      document.getElementById("total-value").textContent = eur.format(t.value);
+      const gainEl = document.getElementById("total-gain");
+      gainEl.className = `gain ${signClass(t.gain)}`;
+      gainEl.textContent = `${signedEur(t.gain)} (${pctFmt.format(t.gain_pct)}) sur ${eur.format(t.invested)} investis`;
+
+      const colors = { PEA: "var(--series-pea)", CTO: "var(--series-cto)" };
+      document.getElementById("envelopes").innerHTML = Object.entries(overview.envelopes)
+        .map(([name, e]) => `
+          <div class="envelope">
+            <div class="name"><i class="dot" style="background:${colors[name] || "var(--muted)"}"></i>${escapeHtml(name)}</div>
+            <div class="amount">${eur.format(e.value)}</div>
+            <div class="perf ${signClass(e.gain)}">${signedEur(e.gain)} · ${pctFmt.format(e.gain_pct)}</div>
+          </div>`)
+        .join("");
+    }
+
+    function renderChart() {
+      const points = overview.history;
+      const x = (p) => new Date(p.date).getTime();
+      const series = chartMode === "value"
+        ? [["Total", "total_value", "--series-total"], ["PEA", "pea_value", "--series-pea"], ["CTO", "cto_value", "--series-cto"]]
+        : [["Total", "total_pct", "--series-total"], ["PEA", "pea_pct", "--series-pea"], ["CTO", "cto_pct", "--series-cto"]];
+      const datasets = series.map(([label, key, color]) => ({
+        label,
+        data: points.filter((p) => p[key] != null).map((p) => ({ x: x(p), y: p[key] })),
+        borderColor: cssVar(color),
+        backgroundColor: cssVar(color),
+        borderWidth: label === "Total" ? 2.5 : 1.8,
+        pointRadius: 2.5,
+        pointHoverRadius: 5,
+        tension: 0.25,
+      }));
+      const fmt = chartMode === "value" ? (v) => eur.format(v) : (v) => pctFmt.format(v);
+
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("history-chart"), {
+        type: "line",
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => dateFmt.format(new Date(items[0].parsed.x)),
+                label: (item) => ` ${item.dataset.label} : ${fmt(item.parsed.y)}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              type: "linear",
+              ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => dateFmt.format(new Date(v)) },
+              grid: { display: false },
+            },
+            y: {
+              ticks: {
+                color: cssVar("--muted"),
+                maxTicksLimit: 5,
+                callback: chartMode === "value" ? (v) => `${Math.round(v / 100) / 10} k€` : (v) => pctFmt.format(v),
+              },
+              grid: { color: cssVar("--line") },
+            },
+          },
+        },
+      });
+    }
+
+    document.getElementById("chart-mode").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-mode]");
+      if (!btn || btn.dataset.mode === chartMode) return;
+      chartMode = btn.dataset.mode;
+      document.querySelectorAll("#chart-mode button").forEach((b) => b.classList.toggle("active", b === btn));
+      renderChart();
+    });
+
+    function renderPositions(analyses = {}) {
+      const sorted = [...overview.holdings].sort((a, b) => (b.value || 0) - (a.value || 0));
+      document.getElementById("positions").innerHTML = sorted.map((h) => {
+        const a = analyses[h.yahoo_ticker];
+        const name = a?.financials?.name || h.ticker;
+        return `
+          <details class="position">
+            <summary>
+              <div>
+                <div class="title">${escapeHtml(name)}</div>
+                <div class="sub">${escapeHtml(h.ticker)} · ${escapeHtml(h.envelope)} · ${escapeHtml(h.sector)}</div>
+              </div>
+              <div class="right">
+                <div class="amount">${h.value != null ? eur.format(h.value) : "N/A"}</div>
+                <div class="perf ${signClass(h.gain)}">${h.gain != null ? signedEur(h.gain) : ""} · ${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</div>
+              </div>
+            </summary>
+            ${renderAnalysis(h, a)}
+          </details>`;
+      }).join("");
+    }
+
+    function renderAnalysis(h, a) {
+      const investedRow = `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`;
+      if (!a) {
+        return `<div class="analysis">${investedRow}<div class="hypotheses">Analyse en cours de chargement ou indisponible.</div></div>`;
+      }
+      const v = a.valuation;
+      const cur = a.financials.currency || "";
+      const iv = v.intrinsic_value_per_share;
+      let ivText = "N/A", mosText = "N/A", mosClass = "";
+      if (iv != null && v.dcf_reliable) {
+        ivText = `${iv} ${cur}`;
+        mosText = `${v.margin_of_safety_pct} %`;
+        mosClass = signClass(v.margin_of_safety_pct);
+      } else if (iv != null) {
+        // Chiffre gardé pour info, sans couleur ni marge : il ne veut rien dire en l'état
+        ivText = `<span class="unreliable">${iv} ${cur} (indicatif)</span>`;
+        mosText = `<span class="unreliable">non pertinente</span>`;
+      }
+      const hypotheses = v.growth_rate_used != null
+        ? `<div class="hypotheses">Hypothèses DCF : croissance ${pctFmt.format(v.growth_rate_used)} décroissante, actualisation ${pctFmt.format(v.discount_rate_used).replace("+", "")}</div>`
+        : "";
+      const notes = v.notes.length ? `<ul>${v.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
+      return `
+        <div class="analysis">
+          ${investedRow}
+          <div class="row"><span>Quantité</span><span>${a.quantity}</span></div>
+          <div class="row"><span>Cours</span><span>${a.financials.current_price ?? "N/A"} ${cur}</span></div>
+          <div class="row"><span>Score qualité</span><span>${v.quality_score != null ? v.quality_score + " / 20" : "N/A"}</span></div>
+          <div class="row"><span>Valeur intrinsèque</span><span>${ivText}</span></div>
+          <div class="row"><span>Marge de sécurité</span><span class="${mosClass}">${mosText}</span></div>
+          ${hypotheses}
+          ${notes}
+        </div>`;
+    }
+
+    function renderSectors() {
+      const max = Math.max(...overview.sectors.map((s) => s.value));
+      document.getElementById("sectors").innerHTML = overview.sectors.map((s) => `
+        <div class="bar-row">
+          <div class="bar-label"><span>${escapeHtml(s.sector)}</span><span>${eur.format(s.value)} · ${Math.round(s.weight * 100)} %</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(s.value / max) * 100}%"></div></div>
+        </div>`).join("");
+    }
+
+    function renderSavings() {
+      if (!overview.savings.length) return;
+      const savingsTotal = overview.savings.reduce((sum, s) => sum + s.amount, 0);
+      document.getElementById("savings").innerHTML = `
+        ${overview.savings.map((s) => `<div class="saving"><span>${escapeHtml(s.name)}</span><span>${eur.format(s.amount)}</span></div>`).join("")}
+        <div class="saving"><span>Placements (PEA + CTO)</span><span>${eur.format(overview.total.value)}</span></div>
+        <div class="saving total"><span>Patrimoine financier</span><span>${eur.format(savingsTotal + overview.total.value)}</span></div>`;
+      document.getElementById("savings-block").hidden = false;
+    }
+
     async function loadPortfolio() {
-      const statusEl = document.getElementById("status");
-      const container = document.getElementById("positions");
+      const statusEl = document.getElementById("portfolio-status");
       try {
-        const res = await fetch(`${API_BASE_URL}/portfolio/analysis`);
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.detail || `Erreur API : ${res.status}`);
-        }
-        const data = await res.json();
-        statusEl.style.display = "none";
-
-        const pct = (x) => (x * 100).toFixed(1).replace(".", ",") + " %";
-
-        data.forEach((item) => {
-          const v = item.valuation;
-          const currency = item.financials.currency || "";
-          const iv = v.intrinsic_value_per_share;
-          const mos = v.margin_of_safety_pct;
-
-          let ivText = "N/A";
-          let mosText = "N/A";
-          let mosClass = "";
-          if (iv != null && v.dcf_reliable) {
-            ivText = `${iv} ${currency}`;
-            mosText = `${mos} %`;
-            mosClass = mos >= 0 ? "positive" : "negative";
-          } else if (iv != null) {
-            // Chiffre gardé pour info, mais sans couleur ni marge : il ne veut rien dire en l'état
-            ivText = `<span class="unreliable">${iv} ${currency} (indicatif)</span>`;
-            mosText = `<span class="unreliable">non pertinente</span>`;
-          }
-
-          const hypotheses = v.growth_rate_used != null
-            ? `<div class="hypotheses">Hypothèses DCF : croissance ${pct(v.growth_rate_used)} décroissante, actualisation ${pct(v.discount_rate_used)}</div>`
-            : "";
-          const notes = v.notes.length
-            ? `<details><summary>${v.notes.length} remarque${v.notes.length > 1 ? "s" : ""}</summary><ul>${v.notes.map((n) => `<li>${n}</li>`).join("")}</ul></details>`
-            : "";
-
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
-            <div class="ticker">${item.financials.name || item.ticker}</div>
-            <div class="row"><span>${item.ticker} · ${item.envelope ?? ""}</span><span>${item.quantity} titres</span></div>
-            <div class="row"><span>Cours</span><span>${item.financials.current_price ?? "N/A"} ${currency}</span></div>
-            <div class="row"><span>Score qualité</span><span>${v.quality_score != null ? v.quality_score + " / 20" : "N/A"}</span></div>
-            <div class="row"><span>Valeur intrinsèque</span><span>${ivText}</span></div>
-            <div class="row"><span>Marge de sécurité</span><span class="${mosClass}">${mosText}</span></div>
-            ${hypotheses}
-            ${notes}
-          `;
-          container.appendChild(card);
-        });
+        overview = await api("/portfolio/overview");
       } catch (e) {
         statusEl.textContent = "Erreur de chargement : " + e.message;
+        return;
+      }
+      statusEl.hidden = true;
+      document.getElementById("portfolio-content").hidden = false;
+      renderSummary();
+      renderChart();
+      renderPositions();
+      renderSectors();
+      renderSavings();
+
+      // Les analyses interrogent Yahoo pour chaque ligne : plus lentes, chargées ensuite
+      const analysisStatus = document.getElementById("analysis-status");
+      try {
+        const analyses = await api("/portfolio/analysis");
+        renderPositions(Object.fromEntries(analyses.map((a) => [a.ticker, a])));
+        analysisStatus.hidden = true;
+      } catch (e) {
+        analysisStatus.textContent = "Analyses indisponibles : " + e.message;
       }
     }
 
