@@ -11,6 +11,7 @@ d'actualisation) et voir l'impact direct sur le résultat.
 
 from dataclasses import dataclass
 from .data import STATEMENTS_SOURCE, CompanyFinancials
+from .sectors import DEFAULT_PROFILE, is_balance_sheet_business, score_profile
 
 
 @dataclass
@@ -43,12 +44,6 @@ RISK_FREE_RATE = 0.04
 EQUITY_RISK_PREMIUM = 0.05
 MIN_DISCOUNT_RATE = 0.07
 MAX_DISCOUNT_RATE = 0.11
-
-# Industries Yahoo pour lesquelles un DCF sur cash-flow libre n'a pas de sens
-# (Visa / Mastercard sont en "Credit Services" et gardent leur DCF)
-FINANCIAL_INDUSTRIES_WITHOUT_DCF = (
-    "bank", "insurance", "capital markets", "asset management", "mortgage", "financial conglomerates",
-)
 
 # Nombre d'exercices moyennés pour le FCF de départ (lisse une année de gros investissements)
 NORMALIZATION_YEARS = 3
@@ -143,69 +138,52 @@ def equity_value_per_share(
     return equity_value / shares_outstanding
 
 
+def _tier_points(value: float, tiers: tuple[float, float, float], higher_is_better: bool) -> float:
+    """5 / 3,5 / 2 / 0 points selon le palier atteint."""
+    for points, threshold in zip((5, 3.5, 2), tiers):
+        if (value > threshold) if higher_is_better else (value < threshold):
+            return points
+    return 0
+
+
 def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str]]:
     """
-    Score composite sur 20, construit à partir de 4 piliers à 5 points chacun :
-    rentabilité, marges, endettement, valorisation relative.
-    C'est une base de départ simple, à affiner avec le temps (secteur par
-    secteur par exemple, un ROE de 15% n'a pas le même sens en banque
-    qu'en tech).
+    Score composite sur 20 : rentabilité (ROE), marges, endettement, valorisation
+    (PER, et cours / valeur comptable pour les banques). Chaque pilier vaut 5 points,
+    avec des paliers propres au secteur (voir sectors.py). Ramené sur 20 même si
+    certains piliers sont indisponibles.
     """
     if cf.quote_type == "ETF":
         return None, ["Score qualité non pertinent pour un ETF, pas de fondamentaux d'entreprise"]
 
+    profile = score_profile(cf.sector, cf.industry)
     notes = []
     points = 0.0
     pillars_scored = 0
 
-    if cf.return_on_equity is not None:
+    pillars = [
+        (cf.return_on_equity, profile.roe, True, "ROE faible : rentabilité des capitaux propres à surveiller"),
+        (cf.operating_margin, profile.operating_margin, True, "Marge opérationnelle faible pour le secteur"),
+        (cf.debt_to_equity, profile.debt_to_equity, False, "Endettement élevé pour le secteur"),
+        (cf.trailing_pe if cf.trailing_pe and cf.trailing_pe > 0 else None, profile.pe, False,
+         "Valorisation élevée sur le PER pour le secteur (à mettre en regard de la croissance attendue)"),
+        (cf.price_to_book if cf.price_to_book and cf.price_to_book > 0 else None, profile.price_to_book, False,
+         "Cours élevé par rapport à la valeur comptable"),
+    ]
+    for value, tiers, higher_is_better, weak_note in pillars:
+        if value is None or tiers is None:
+            continue
         pillars_scored += 1
-        if cf.return_on_equity > 0.20:
-            points += 5
-        elif cf.return_on_equity > 0.12:
-            points += 3.5
-        elif cf.return_on_equity > 0.05:
-            points += 2
-        else:
-            notes.append("ROE faible : rentabilité des capitaux propres à surveiller")
-
-    if cf.operating_margin is not None:
-        pillars_scored += 1
-        if cf.operating_margin > 0.20:
-            points += 5
-        elif cf.operating_margin > 0.10:
-            points += 3.5
-        elif cf.operating_margin > 0.03:
-            points += 2
-        else:
-            notes.append("Marge opérationnelle faible")
-
-    if cf.debt_to_equity is not None:
-        pillars_scored += 1
-        if cf.debt_to_equity < 50:
-            points += 5
-        elif cf.debt_to_equity < 100:
-            points += 3.5
-        elif cf.debt_to_equity < 200:
-            points += 2
-        else:
-            notes.append("Endettement élevé par rapport aux capitaux propres")
-
-    if cf.trailing_pe is not None and cf.trailing_pe > 0:
-        pillars_scored += 1
-        if cf.trailing_pe < 15:
-            points += 5
-        elif cf.trailing_pe < 25:
-            points += 3.5
-        elif cf.trailing_pe < 40:
-            points += 2
-        else:
-            notes.append("Valorisation élevée sur le PER (à mettre en regard de la croissance attendue)")
+        earned = _tier_points(value, tiers, higher_is_better)
+        points += earned
+        if earned == 0:
+            notes.append(weak_note)
 
     if pillars_scored == 0:
         return None, ["Données insuffisantes pour calculer un score"]
 
-    # Ramené sur 20 même si tous les piliers ne sont pas disponibles
+    if profile is not DEFAULT_PROFILE:
+        notes.append(f"Score calibré sur les standards du secteur : {profile.label}")
     score_on_20 = (points / (pillars_scored * 5)) * 20
     return round(score_on_20, 1), notes
 
@@ -235,8 +213,7 @@ def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
         )
         return result
 
-    industry = (cf.industry or "").lower()
-    if any(k in industry for k in FINANCIAL_INDUSTRIES_WITHOUT_DCF):
+    if is_balance_sheet_business(cf.industry):
         notes.append(
             "Banque, assurance ou gestion d'actifs : le cash-flow libre ne mesure pas leur "
             "rentabilité (l'argent est leur matière première), DCF non calculé. "

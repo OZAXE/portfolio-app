@@ -32,6 +32,7 @@ import yfinance as yf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.data import SOURCE_UNAVAILABLE_ERROR, fetch_company_financials  # noqa: E402
+from app.sectors import normalize_sector  # noqa: E402
 from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, evaluate_company  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
@@ -47,34 +48,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 log = logging.getLogger("screener")
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 logging.getLogger("app.data").setLevel(logging.WARNING)
-
-# Secteurs GICS / ICB / Yahoo -> familles lisibles (premier mot-clé trouvé gagne, d'où l'ordre)
-SECTOR_KEYWORDS = [
-    ("Immobilier", ("real estate", "reit", "property", "properties")),
-    ("Services publics", ("utilit", "electricity", "gas, water", "water")),
-    ("Santé", ("health", "pharma", "biotech", "medical")),
-    ("Technologie", ("technology", "software", "semiconductor", "information tech", "electronic")),
-    ("Communication", ("communication", "telecom", "media", "entertainment")),
-    ("Finance", ("financ", "bank", "insurance", "investment", "asset management", "capital market")),
-    ("Énergie", ("energy", "oil", "gas", "coal", "renewable")),
-    ("Matériaux", ("material", "basic resource", "chemical", "mining", "metal", "construction material", "steel", "paper")),
-    ("Consommation", ("consumer", "retail", "food", "beverage", "personal", "household", "travel",
-                      "leisure", "hospitality", "automobile", "auto", "tobacco", "apparel", "luxury")),
-    ("Industrie", ("industrial", "aerospace", "defense", "construction", "engineering", "transport",
-                   "capital goods", "machinery", "logistics", "commerce")),
-]
-
-
-def normalize_sector(*candidates: str | None) -> str:
-    for raw in candidates:
-        if not raw:
-            continue
-        text = raw.lower()
-        for family, keywords in SECTOR_KEYWORDS:
-            if any(k in text for k in keywords):
-                return family
-    return "Non classé"
-
 
 def load_universe() -> list[dict]:
     with UNIVERSE.open(encoding="utf-8") as f:
