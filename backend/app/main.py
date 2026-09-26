@@ -7,6 +7,8 @@ Endpoints prévus pour le MVP :
 - GET /analysis/{ticker}    -> fondamentaux + score qualité + DCF pour un ticker
 - GET /portfolio/analysis   -> l'analyse complète pour toutes les positions du portefeuille
 - GET /portfolio/overview   -> valeurs, historique et répartition lus dans le Sheet (rapide, sans Yahoo)
+- GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
+- GET /briefs/{id}          -> contenu HTML d'un brief
 """
 
 import logging
@@ -17,9 +19,11 @@ from dataclasses import asdict
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
 from .valuation import evaluate_company
+from .briefs import BriefNotFoundError, DriveAccessError, get_brief_html, list_briefs
 from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
@@ -142,3 +146,27 @@ def get_portfolio_overview():
         "history": [asdict(p) for p in overview.history],
         "savings": overview.savings,
     }
+
+
+def _briefs_errors(call):
+    try:
+        return call()
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=f"Compte de service non configuré : {e}")
+    except DriveAccessError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except BriefNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Erreur de lecture du dossier Briefs : {e}")
+
+
+# Les briefs parlent de ton portefeuille : même code d'accès que les positions
+@app.get("/briefs", dependencies=[Depends(require_access)])
+def get_briefs():
+    return _briefs_errors(list_briefs)
+
+
+@app.get("/briefs/{brief_id}", dependencies=[Depends(require_access)], response_class=HTMLResponse)
+def get_brief(brief_id: str):
+    return HTMLResponse(_briefs_errors(lambda: get_brief_html(brief_id)))

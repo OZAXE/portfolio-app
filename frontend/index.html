@@ -131,6 +131,15 @@
     }
     .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
 
+    /* Briefs */
+    .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
+    .brief-item .title { font-weight: 600; font-size: 15px; }
+    .brief-item .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .brief-item .chev { color: var(--muted); font-size: 20px; }
+    .reader-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 0; }
+    .reader-head .btn { margin-top: 0; }
+    #brief-frame { width: 100%; border: 0; border-radius: 12px; background: #fff; min-height: 60vh; display: block; }
+
     /* Réglages */
     .help { font-size: 13px; color: var(--muted); margin: 0 0 4px; line-height: 1.45; }
     .field { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; }
@@ -237,8 +246,18 @@
 
     <!-- Briefs -->
     <section class="view" id="view-briefs" hidden>
-      <header><h1>Briefs hebdo</h1></header>
-      <div class="placeholder"><div class="big">Bientôt ici</div>Tes briefs marchés du samedi, lisibles depuis l'appli.</div>
+      <div id="briefs-list-view">
+        <header><h1>Briefs hebdo</h1></header>
+        <div class="status" id="briefs-status">Chargement…</div>
+        <div class="positions" id="briefs-list"></div>
+      </div>
+      <div id="briefs-reader" hidden>
+        <header class="reader-head">
+          <button class="btn" id="briefs-back">← Tous les briefs</button>
+          <span class="muted" id="briefs-reader-date"></span>
+        </header>
+        <iframe id="brief-frame" title="Brief hebdo" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+      </div>
     </section>
 
     <!-- Réglages -->
@@ -366,6 +385,7 @@
       window.scrollTo(0, 0);
       history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
       if (view === "market") loadMarket();
+      if (view === "briefs") loadBriefs();
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-view]");
@@ -711,6 +731,64 @@
       } else if (e.target.id === "market-live-btn") {
         analyzeLive(e.target.dataset.ticker);
       }
+    });
+
+    // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
+    const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    let briefs = null;
+
+    async function loadBriefs() {
+      if (briefs) return;
+      const status = document.getElementById("briefs-status");
+      try {
+        briefs = await api("/briefs");
+      } catch (e) {
+        status.textContent = "Briefs indisponibles : " + e.message;
+        return;
+      }
+      status.hidden = !!briefs.length;
+      status.textContent = "Aucun brief dans le dossier Drive pour l'instant.";
+      document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => `
+        <button class="card brief-item" data-id="${escapeHtml(b.id)}">
+          <div>
+            <div class="title">Brief du ${escapeHtml(longDate.format(new Date(b.date + "T12:00:00")))}</div>
+            <div class="sub">${i === 0 ? "Le plus récent" : escapeHtml(b.name)}</div>
+          </div>
+          <span class="chev">›</span>
+        </button>`).join("");
+    }
+
+    async function openBrief(id) {
+      const brief = briefs.find((b) => b.id === id);
+      document.getElementById("briefs-list-view").hidden = true;
+      document.getElementById("briefs-reader").hidden = false;
+      document.getElementById("briefs-reader-date").textContent = longDate.format(new Date(brief.date + "T12:00:00"));
+      const frame = document.getElementById("brief-frame");
+      frame.srcdoc = `<p style="font-family:sans-serif;padding:16px;color:#666">Chargement du brief…</p>`;
+      window.scrollTo(0, 0);
+      try {
+        const headers = settings.token ? { "X-Access-Token": settings.token } : {};
+        const res = await fetch(`${API_BASE_URL}/briefs/${encodeURIComponent(id)}`, { headers });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Erreur ${res.status}`);
+        // Les liens du brief s'ouvrent hors de l'appli ; ses scripts éventuels ne s'exécutent pas (sandbox)
+        frame.srcdoc = (await res.text()).replace(/<head([^>]*)>/i, '<head$1><base target="_blank">');
+      } catch (e) {
+        frame.srcdoc = `<p style="font-family:sans-serif;padding:16px">Brief indisponible : ${escapeHtml(e.message)}</p>`;
+      }
+    }
+
+    // Hauteur de l'iframe ajustée à celle du brief, pour un seul défilement (celui de la page)
+    document.getElementById("brief-frame").addEventListener("load", (e) => {
+      const doc = e.target.contentDocument;
+      if (doc) e.target.style.height = doc.documentElement.scrollHeight + "px";
+    });
+    document.getElementById("briefs-list").addEventListener("click", (e) => {
+      const item = e.target.closest(".brief-item");
+      if (item) openBrief(item.dataset.id);
+    });
+    document.getElementById("briefs-back").addEventListener("click", () => {
+      document.getElementById("briefs-reader").hidden = true;
+      document.getElementById("briefs-list-view").hidden = false;
     });
 
     // --- Réglages ---

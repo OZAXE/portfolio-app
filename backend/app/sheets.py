@@ -100,15 +100,19 @@ class Overview:
     savings: list[dict] = field(default_factory=list)
 
 
-def _open_sheet() -> gspread.Spreadsheet:
+def google_credentials(scopes: list[str]) -> Credentials:
+    """Identifiants du compte de service, partagés par le Sheet et le dossier Drive des briefs."""
     creds_path = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
     if not creds_path:
         raise SheetNotConfiguredError(
             "Variable d'environnement GOOGLE_SERVICE_ACCOUNT_JSON manquante "
             "(chemin vers le fichier de credentials du compte de service)."
         )
-    creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-    return gspread.authorize(creds).open_by_key(SHEET_ID)
+    return Credentials.from_service_account_file(creds_path, scopes=scopes)
+
+
+def _open_sheet() -> gspread.Spreadsheet:
+    return gspread.authorize(google_credentials(SCOPES)).open_by_key(SHEET_ID)
 
 
 def _worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet:
