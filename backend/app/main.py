@@ -54,7 +54,8 @@ def require_access(x_access_token: str | None = Header(default=None)):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # Indique seulement si le code d'accès est configuré, jamais sa valeur
+    return {"status": "ok", "access_protected": bool(ACCESS_TOKEN)}
 
 
 def _load_positions():
