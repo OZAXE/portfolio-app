@@ -115,11 +115,17 @@ def _open_sheet() -> gspread.Spreadsheet:
     return gspread.authorize(google_credentials(SCOPES)).open_by_key(SHEET_ID)
 
 
+def _find_worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet | None:
+    """Tolère les espaces et la casse autour du nom d'onglet (" Livret" au lieu de "Livret")."""
+    wanted = name.strip().lower()
+    return next((ws for ws in sheet.worksheets() if ws.title.strip().lower() == wanted), None)
+
+
 def _worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet:
-    try:
-        return sheet.worksheet(name)
-    except gspread.WorksheetNotFound:
+    ws = _find_worksheet(sheet, name)
+    if ws is None:
         raise SheetNotConfiguredError(f"onglet \"{name}\" introuvable dans le Google Sheet")
+    return ws
 
 
 def get_portfolio_positions(worksheet_name: str = "Portefeuille") -> list[Position]:
@@ -226,10 +232,9 @@ def get_overview() -> Overview:
     courbe = _worksheet(sheet, "Courbe").get_values(value_render_option=UNFORMATTED)
     historique = _worksheet(sheet, "Historique").get_values(value_render_option=UNFORMATTED)
     overview = Overview(holdings=parse_holdings(courbe), history=parse_history(historique))
-    try:
-        overview.savings = parse_savings(sheet.worksheet("Livret").get_values(value_render_option=UNFORMATTED))
-    except gspread.WorksheetNotFound:
-        pass  # onglet facultatif
+    livret = _find_worksheet(sheet, "Livret")  # onglet facultatif
+    if livret is not None:
+        overview.savings = parse_savings(livret.get_values(value_render_option=UNFORMATTED))
     return overview
 
 
