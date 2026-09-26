@@ -1,0 +1,20 @@
+# Vérifie que le secret APP_ACCESS_TOKEN est bien reconnu par l'API (n'affiche que le nom d'utilisateur :
+# les logs d'un repo public sont visibles de tous, aucune donnée personnelle ne doit y apparaître)
+name: Vérifie le code d'accès
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appelle /me avec le secret
+        env:
+          TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "Secret APP_ACCESS_TOKEN vide"; exit 1; fi
+          for i in $(seq 1 12); do curl -sf --max-time 60 https://portfolio-app-blvx.onrender.com/health >/dev/null && break; sleep 10; done
+          code=$(curl -s -o me.json -w "%{http_code}" --max-time 60 -H "X-Access-Token: $TOKEN" https://portfolio-app-blvx.onrender.com/me)
+          if [ "$code" != "200" ]; then echo "Code refusé par l'API (HTTP $code)"; exit 1; fi
+          python3 -c "import json; print('Code valide, utilisateur :', json.load(open('me.json'))['name'])"
