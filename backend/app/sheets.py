@@ -81,6 +81,10 @@ class HoldingLine:
     gain_pct: float | None
     sector: str | None
     name: str | None = None
+    zone: str | None = None
+    currency: str | None = None
+    kind: str | None = None  # Action / ETF
+    pocket: str | None = None  # poche d'allocation (colonne Poche de l'onglet Titres)
 
 
 @dataclass
@@ -99,6 +103,7 @@ class Overview:
     holdings: list[HoldingLine] = field(default_factory=list)
     history: list[HistoryPoint] = field(default_factory=list)
     savings: list[dict] = field(default_factory=list)
+    targets: list[dict] = field(default_factory=list)  # [{"pocket": ..., "target": 0.6}]
 
 
 def google_credentials(scopes: list[str]) -> Credentials:
@@ -253,6 +258,7 @@ def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
             value=_number(_cell(rows, r, 10)), invested=_number(_cell(rows, r, 6)),
             gain=_number(_cell(rows, r, 11)), gain_pct=_number(_cell(rows, r, 12)),
             sector=_cell(rows, r, 13), name=_cell(rows, r, 1),
+            zone=_cell(rows, r, 14), currency=_cell(rows, r, 8),
         ), quantity))
     return lines
 
@@ -272,12 +278,38 @@ def parse_history_v2(rows: list[list]) -> list[HistoryPoint]:
     return sorted(points, key=lambda p: p.date)
 
 
+def apply_titres(holdings: list[HoldingLine], titres: list[list]) -> None:
+    """Type (Action / ETF) et poche d'allocation de chaque position, lus dans l'onglet Titres.
+    Sans poche renseignée, la position est rangée par type ("Actions" ou "ETF")."""
+    by_ticker = {str(r[0]).strip().upper(): r for r in titres[1:] if r and r[0]}
+    for h in holdings:
+        row = by_ticker.get((h.yahoo_ticker or "").upper(), [])
+        h.kind = _cell([row], 0, 6) or h.kind
+        pocket = _cell([row], 0, 7)
+        h.pocket = str(pocket).strip() if pocket else ("ETF" if h.kind == "ETF" else "Actions")
+
+
+def parse_targets(rows: list[list]) -> list[dict]:
+    """Onglet Allocation : poche et cible (accepte 0,6 comme 60 %, ou 60 pour 60 %)."""
+    targets = []
+    for r in range(1, len(rows)):
+        pocket, target = _cell(rows, r, 0), _number(_cell(rows, r, 1))
+        if pocket and target is not None:
+            targets.append({"pocket": str(pocket).strip(), "target": target / 100 if target > 1 else target})
+    return targets
+
+
 def get_overview(sheet_id: str) -> Overview:
     sheet = _open_sheet(sheet_id)
     historique = _worksheet(sheet, "Historique").get_values(value_render_option=UNFORMATTED)
     if is_v2(sheet):
         positions = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
         overview = Overview(holdings=[h for h, _ in parse_positions_v2(positions)], history=parse_history_v2(historique))
+        titres = _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)
+        apply_titres(overview.holdings, titres)
+        allocation = _find_worksheet(sheet, "Allocation")
+        if allocation is not None:
+            overview.targets = parse_targets(allocation.get_values(value_render_option=UNFORMATTED))
     else:
         courbe = _worksheet(sheet, "Courbe").get_values(value_render_option=UNFORMATTED)
         overview = Overview(holdings=parse_holdings(courbe), history=parse_history(historique))

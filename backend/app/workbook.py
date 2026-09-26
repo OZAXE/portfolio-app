@@ -28,7 +28,8 @@ OPERATIONS_HEADERS = [
 ]
 OPERATION_TYPES = ["Achat", "Vente", "Dividende"]
 ORDER_TYPES = ["Ordre", "Plan d'investissement"]
-TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type"]
+TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche"]
+ALLOCATION_HEADERS = ["Poche", "Cible %"]
 COMPTES_HEADERS = ["Compte", "Enveloppe", "Courtier"]
 FRAIS_HEADERS = ["Courtier", "Type d'ordre", "Fixe €", "Pourcentage", "Minimum €", "Frais de change", "Note"]
 HISTORY_HEADERS = ["Date", "Valeur PEA", "Investi PEA", "Valeur CTO", "Investi CTO", "Valeur totale", "Investi total", "Performance"]
@@ -79,6 +80,7 @@ NUMBER_FORMATS = {
     "Historique": [("A", "dd/mm/yyyy"), ("B:G", EUR), ("H", "0.00%")],
     "Frais": [("C", EUR), ("D", "0.00%"), ("E", EUR), ("F", "0.00%")],
     "Livret": [("B", EUR)],
+    "Allocation": [("B", "0.0%")],
 }
 
 
@@ -99,6 +101,7 @@ TABS = [
     TabSpec("Frais", FRAIS_HEADERS, rows=30),
     TabSpec("Livret", ["Nom", "Montant"], rows=30),
     TabSpec("Watchlist", ["TICKER", "AJOUTÉ LE"], rows=300),
+    TabSpec("Allocation", ALLOCATION_HEADERS, rows=50),
 ]
 
 
@@ -166,8 +169,12 @@ def build_template(sheet: gspread.Spreadsheet) -> None:
         if ws.title not in {t.title for t in TABS} and not ws.get_all_values():
             sheet.del_worksheet(ws)
 
-    sheet.worksheet("Comptes").update(range_name="A2", values=DEFAULT_ACCOUNTS)
-    sheet.worksheet("Frais").update(range_name="A2", values=DEFAULT_FEES)
+    # Exemples de comptes et de barèmes seulement si les onglets sont vides : relancer la
+    # construction (nouvelle version du modèle) ne doit pas écraser les réglages de l'utilisateur
+    for tab, defaults in (("Comptes", DEFAULT_ACCOUNTS), ("Frais", DEFAULT_FEES)):
+        ws = sheet.worksheet(tab)
+        if len(ws.col_values(1)) <= 1:
+            ws.update(range_name="A2", values=defaults)
     positions = sheet.worksheet("Positions")
     positions.batch_update([{"range": cell, "values": [[formula]]} for cell, formula in POSITION_FORMULAS.items()],
                            value_input_option="USER_ENTERED")

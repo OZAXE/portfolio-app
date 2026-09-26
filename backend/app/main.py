@@ -145,21 +145,32 @@ def get_portfolio_overview(user: User = Depends(require_access)):
         raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
 
     by_envelope = defaultdict(list)
-    by_sector = defaultdict(float)
     for h in overview.holdings:
         by_envelope[h.envelope or "Autre"].append(h)
-        by_sector[h.sector or "Non classé"] += h.value or 0
-
     total = _totals(overview.holdings)
-    sectors = [
-        {"sector": s, "value": round(v, 2), "weight": v / total["value"] if total["value"] else None}
-        for s, v in sorted(by_sector.items(), key=lambda kv: -kv[1])
-    ]
+
+    def breakdown(key) -> list[dict]:
+        groups = defaultdict(float)
+        for h in overview.holdings:
+            groups[key(h) or "Non classé"] += h.value or 0
+        return [{"label": label, "value": round(v, 2), "weight": v / total["value"] if total["value"] else None}
+                for label, v in sorted(groups.items(), key=lambda kv: -kv[1])]
+
+    # "États-Unis (indice S&P 500)" et "États-Unis" dans le même groupe
+    zone_group = lambda h: str(h.zone).split("(")[0].strip() if h.zone else None
+    sectors = [{"sector": b["label"], **b} for b in breakdown(lambda h: h.sector)]
     return {
         "total": total,
         "envelopes": {name: _totals(lines) for name, lines in by_envelope.items()},
         "holdings": [asdict(h) for h in overview.holdings],
         "sectors": sectors,
+        "breakdowns": {
+            "sector": breakdown(lambda h: h.sector),
+            "zone": breakdown(zone_group),
+            "currency": breakdown(lambda h: h.currency),
+            "pocket": breakdown(lambda h: h.pocket),
+        },
+        "targets": overview.targets,
         "history": [asdict(p) for p in overview.history],
         "savings": overview.savings,
     }

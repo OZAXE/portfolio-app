@@ -83,3 +83,24 @@ def test_operation_validation_errors_are_400(two_users, monkeypatch):
     client = TestClient(main.app)
     r = client.post("/operations", json={"type": "Achat"}, headers={"X-Access-Token": "code-paul"})
     assert r.status_code == 400 and "Quantité" in r.json()["detail"]
+
+
+def test_pockets_from_titres_with_type_fallback():
+    from app.sheets import HoldingLine, apply_titres
+
+    holdings = [HoldingLine("ESE.PA", "ESE.PA", "PEA", 580, 500, 80, 0.16, "Multi"),
+                HoldingLine("AI.PA", "AI.PA", "PEA", 1170, 1190, -20, -0.02, "Industrie"),
+                HoldingLine("NVDA", "NVDA", "CTO", 190, 150, 40, 0.25, "Tech")]
+    titres = [["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche"],
+              ["ESE.PA", "EPA:ESE", "S&P 500", "", "", "EUR", "ETF", ""],
+              ["AI.PA", "EPA:AI", "Air Liquide", "", "", "EUR", "Action", "Actions France"],
+              ["NVDA", "NASDAQ:NVDA", "Nvidia", "", "", "USD", "Action"]]
+    apply_titres(holdings, titres)
+    assert [h.pocket for h in holdings] == ["ETF", "Actions France", "Actions"]
+
+
+def test_targets_accept_percent_or_fraction():
+    from app.sheets import parse_targets
+
+    rows = [["Poche", "Cible %"], ["ETF Monde", 0.6], ["Actions France", 25], ["", 10], ["Vide", ""]]
+    assert parse_targets(rows) == [{"pocket": "ETF Monde", "target": 0.6}, {"pocket": "Actions France", "target": 0.25}]

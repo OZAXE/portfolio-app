@@ -152,6 +152,14 @@
     }
     .op-grid input.auto { border-style: dashed; }
 
+    /* Allocation cible */
+    .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .alloc-table th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0 6px; }
+    .alloc-table th:first-child, .alloc-table td:first-child { text-align: left; }
+    .alloc-table td { text-align: right; padding: 6px 0; border-top: 1px solid var(--line); }
+    .alloc-input { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: 14px; }
+    .alloc-input input { width: 120px; background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; padding: 8px; text-align: right; }
+
     /* Plus-values réalisées et dividendes */
     .realized-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
     .realized-grid .envelope .perf { color: var(--muted); }
@@ -294,8 +302,20 @@
           <div id="watchlist"></div>
         </div>
 
-        <h2>Répartition par secteur</h2>
-        <div class="card" id="sectors"></div>
+        <h2>Répartition</h2>
+        <div class="card">
+          <div class="segmented" id="breakdown-mode">
+            <button data-dim="sector" class="active">Secteur</button>
+            <button data-dim="zone">Zone</button>
+            <button data-dim="currency">Devise</button>
+            <button data-dim="pocket">Poche</button>
+          </div>
+          <div id="sectors" style="margin-top:12px"></div>
+          <p class="help" id="breakdown-note" style="margin-top:10px"></p>
+        </div>
+
+        <h2>Allocation cible</h2>
+        <div class="card" id="allocation"></div>
 
         <div id="savings-block" hidden>
           <h2>Épargne et patrimoine</h2>
@@ -697,14 +717,82 @@
       return renderStockDetail(analysisToRecord(a, a.ticker), extra, false);
     }
 
+    let breakdownDim = "sector";
+    const BREAKDOWN_NOTES = {
+      zone: "Zone renseignée dans l'onglet Titres du Sheet (un ETF monde compte en entier dans sa zone).",
+      currency: "Devise de cotation : un ETF S&P 500 coté en euros reste exposé au dollar.",
+      pocket: "Poches de la colonne Poche de l'onglet Titres ; sans poche, rangement par type (Actions / ETF).",
+    };
+
     function renderSectors() {
-      const max = Math.max(...overview.sectors.map((s) => s.value));
-      document.getElementById("sectors").innerHTML = overview.sectors.map((s) => `
+      // Ancien format de Sheet : seule la répartition par secteur existe
+      const rows = overview.breakdowns?.[breakdownDim] || overview.sectors.map((x) => ({ label: x.sector, ...x }));
+      const max = Math.max(...rows.map((r) => r.value));
+      document.getElementById("sectors").innerHTML = rows.map((r) => `
         <div class="bar-row">
-          <div class="bar-label"><span>${escapeHtml(s.sector)}</span><span>${eur.format(s.value)} · ${Math.round(s.weight * 100)} %</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${(s.value / max) * 100}%"></div></div>
+          <div class="bar-label"><span>${escapeHtml(r.label)}</span><span>${eur.format(r.value)} · ${Math.round(r.weight * 100)} %</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(r.value / max) * 100}%"></div></div>
         </div>`).join("");
+      document.getElementById("breakdown-note").textContent = BREAKDOWN_NOTES[breakdownDim] || "";
     }
+
+    // Répartition d'un nouvel apport : d'abord combler les poches sous leur cible (au prorata des écarts),
+    // le reste selon les cibles. Rien n'est vendu.
+    function splitContribution(pockets, amount) {
+      const total = pockets.reduce((sum, p) => sum + p.value, 0) + amount;
+      const deficits = pockets.map((p) => Math.max(0, p.target * total - p.value));
+      const missing = deficits.reduce((a, b) => a + b, 0);
+      if (missing >= amount) return deficits.map((d) => (missing ? (amount * d) / missing : 0));
+      const rest = amount - missing;
+      const targetSum = pockets.reduce((sum, p) => sum + p.target, 0) || 1;
+      return deficits.map((d, i) => d + (rest * pockets[i].target) / targetSum);
+    }
+
+    function renderAllocation() {
+      const el = document.getElementById("allocation");
+      const targets = overview.targets || [];
+      if (!overview.breakdowns) { el.innerHTML = `<p class="help">Disponible avec le Sheet modèle.</p>`; return; }
+      if (!targets.length) {
+        el.innerHTML = `<p class="help">Définis tes objectifs dans l'onglet <b>Allocation</b> du Sheet : une ligne par poche avec sa cible en % (par exemple « ETF Monde » 60 %, « Actions France » 20 %, « Actions US » 20 %), et indique la poche de chaque titre dans la colonne <b>Poche</b> de l'onglet Titres. L'appli comparera ta répartition réelle à ces cibles et te dira où placer tes prochains versements.</p>`;
+        return;
+      }
+      const current = Object.fromEntries(overview.breakdowns.pocket.map((r) => [r.label, r.value]));
+      const total = overview.total.value;
+      const sumTargets = targets.reduce((s, t) => s + t.target, 0);
+      const pockets = targets.map((t) => ({ label: t.pocket, target: t.target / (sumTargets || 1), value: current[t.pocket] || 0 }));
+      const untargeted = overview.breakdowns.pocket.filter((r) => !targets.some((t) => t.pocket === r.label));
+      el.innerHTML = `
+        <table class="alloc-table">
+          <tr><th>Poche</th><th>Actuel</th><th>Cible</th><th>Écart</th></tr>
+          ${pockets.map((p) => {
+            const gap = p.value - p.target * total;
+            return `<tr><td>${escapeHtml(p.label)}</td><td>${pctPlain(p.value / total)}</td><td>${pctPlain(p.target)}</td>
+              <td class="${Math.abs(gap) < total * 0.02 ? "" : gap > 0 ? "positive" : "negative"}">${signedEur(gap)}</td></tr>`;
+          }).join("")}
+          ${untargeted.map((r) => `<tr><td>${escapeHtml(r.label)} <span class="muted">(sans cible)</span></td><td>${pctPlain(r.weight)}</td><td>—</td><td></td></tr>`).join("")}
+        </table>
+        ${Math.abs(sumTargets - 1) > 0.005 ? `<p class="help" style="margin-top:8px">Tes cibles font ${pctPlain(sumTargets)} au total : elles sont ramenées à 100 % pour le calcul.</p>` : ""}
+        <div class="alloc-input">Je vais investir <input id="alloc-amount" type="number" min="0" step="10" inputmode="decimal" placeholder="500" /> €</div>
+        <div id="alloc-split" class="realized-list"></div>`;
+      const input = document.getElementById("alloc-amount");
+      input.addEventListener("input", () => {
+        const amount = parseFloat(input.value.replace(",", ".")) || 0;
+        const out = document.getElementById("alloc-split");
+        if (!amount) { out.innerHTML = ""; return; }
+        const split = splitContribution(pockets, amount);
+        out.innerHTML = pockets.map((p, i) => split[i] >= 0.5
+          ? `<div class="rank-row"><div>${escapeHtml(p.label)}</div><div class="right">${eur.format(split[i])}</div></div>` : "").join("")
+          + `<p class="help" style="margin-top:8px">Pour te rapprocher de tes cibles sans rien vendre.</p>`;
+      });
+    }
+
+    document.getElementById("breakdown-mode").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-dim]");
+      if (!btn) return;
+      breakdownDim = btn.dataset.dim;
+      document.querySelectorAll("#breakdown-mode button").forEach((b) => b.classList.toggle("active", b === btn));
+      renderSectors();
+    });
 
     function renderSavings() {
       if (!overview.savings.length) return;
@@ -730,6 +818,7 @@
       renderChart();
       renderPositions();
       renderSectors();
+      renderAllocation();
       renderSavings();
 
       loadWatchlist();
