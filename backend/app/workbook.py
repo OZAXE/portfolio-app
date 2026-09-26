@@ -48,7 +48,8 @@ DEFAULT_FEES = [
 
 # Positions : une formule par colonne sur toute la hauteur (MAP / LAMBDA), rien à recopier à la main
 POSITION_FORMULAS = {
-    "A2": '=SORT(UNIQUE(FILTER(Opérations!D2:D; Opérations!D2:D<>""; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente"))))',
+    # IFERROR : Sheet vide (aucune opération) -> rien plutôt qu'une ligne de #N/A
+    "A2": '=IFERROR(SORT(UNIQUE(FILTER(Opérations!D2:D; Opérations!D2:D<>""; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")))); "")',
     "B2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:C; 3; FALSE); t))))',
     "C2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; INDEX(FILTER(Opérations!B2:B; Opérations!D2:D=t); 1))))',
     "D2": '=MAP(C2:C; LAMBDA(c; IF(c=""; ""; IFERROR(VLOOKUP(c; Comptes!A:B; 2; FALSE); ""))))',
