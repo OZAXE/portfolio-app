@@ -231,6 +231,7 @@ ticker,name,sector,region,country,indices
 1929.HK,Chow Tai Fook,Commerce & Industry,Asie,Hong Kong,Hang Seng
 1963.T,日揮ホールディングス,,Asie,Japon,Nikkei 225
 1997.HK,Wharf Real Estate Investment Company Limited,Properties,Asie,Hong Kong,Hang Seng
+1AE.DE,Argenx,,Europe,Allemagne,STOXX Europe 600
 2002.T,日清製粉グループ本社,,Asie,Japon,Nikkei 225
 2002.TW,中鋼,,Asie,Taïwan,Taiwan 50
 2015.HK,Li Auto,Commerce & Industry,Asie,Hong Kong,Hang Seng
@@ -522,6 +523,7 @@ ticker,name,sector,region,country,indices
 8802.T,三菱地所,,Asie,Japon,Nikkei 225
 8804.T,東京建物,,Asie,Japon,Nikkei 225
 8830.T,住友不動産,,Asie,Japon,Nikkei 225
+8ZQ.DE,Ferrovial Nv,,Europe,Allemagne,STOXX Europe 600
 9001.T,東武鉄道,,Asie,Japon,Nikkei 225
 9005.T,東急,,Asie,Japon,Nikkei 225
 9007.T,小田急電鉄,,Asie,Japon,Nikkei 225
@@ -559,71 +561,88 @@ ticker,name,sector,region,country,indices
 9992.HK,Pop Mart,Commerce & Industry,Asie,Hong Kong,Hang Seng
 9999.HK,NetEase,Commerce & Industry,Asie,Hong Kong,Hang Seng
 A,Agilent Technologies,Health Care,US,États-Unis,S&P 500
-A2A.MI,A2A,Utilities,Europe,Italie,FTSE MIB
+A2A.MI,A2A,Utilities,Europe,Italie,FTSE MIB|STOXX Europe 600
 A5G.IR,AIB Group,,Europe,Irlande,ISEQ 20
-AAF.L,Airtel Africa,Telecommunications services,Europe,Royaume-Uni,FTSE 100
-AAL.L,Anglo American plc,Mining,Europe,Royaume-Uni,FTSE 100
+AAF.L,Airtel Africa,Telecommunications services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+AAK.ST,Aak,,Europe,Suède,STOXX Europe 600
+AAL.L,Anglo American plc,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+AALB.AS,Aalberts,,Europe,Pays-Bas,STOXX Europe 600
 AAPL,Apple Inc.,Information Technology,US,États-Unis,S&P 500
 AAS.L,Aberdeen Asia Focus,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 ABB.ST,ABB Ltd,Industrials,Europe,Suède,OMX Stockholm 30
-ABBN.SW,ABB Ltd,Industrials,Europe,Suisse,SMI
+ABBN.SW,ABB Ltd,Industrials,Europe,Suisse,SMI|STOXX Europe 600
 ABBV,AbbVie,Health Care,US,États-Unis,S&P 500
-ABDN.L,Aberdeen Group,Financial Services,Europe,Royaume-Uni,FTSE 100
-ABF.L,Associated British Foods,Food & tobacco,Europe,Royaume-Uni,FTSE 100
-ABI.BR,Anheuser-Busch InBev,Consumer Staples,Europe,Belgique,EURO STOXX 50|BEL 20
-ABN.AS,ABN AMRO,Financials,Europe,Pays-Bas,AEX
+ABDN.L,Aberdeen Group,Financial Services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+ABF.L,Associated British Foods,Food & tobacco,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+ABI.BR,Anheuser-Busch InBev,Consumer Staples,Europe,Belgique,EURO STOXX 50|BEL 20|STOXX Europe 600
+ABN.AS,ABN AMRO,Financials,Europe,Pays-Bas,AEX|STOXX Europe 600
 ABNB,Airbnb,Consumer Discretionary,US,États-Unis,S&P 500
 ABT,Abbott Laboratories,Health Care,US,États-Unis,S&P 500
-AC.PA,Accor,Consumer Services,Europe,France,CAC 40|CAC Next 20
-ACA.PA,Crédit Agricole,Financial Services,Europe,France,CAC 40
+ABVX.PA,Abivax Sa,,Europe,France,STOXX Europe 600
+AC.PA,Accor,Consumer Services,Europe,France,CAC 40|CAC Next 20|STOXX Europe 600
+ACA.PA,Crédit Agricole,Financial Services,Europe,France,CAC 40|STOXX Europe 600
 ACGL,Arch Capital Group,Financials,US,États-Unis,S&P 500
-ACKB.BR,Ackermans & van Haaren,Industrials,Europe,Belgique,BEL 20
+ACKB.BR,Ackermans & van Haaren,Industrials,Europe,Belgique,BEL 20|STOXX Europe 600
+ACLN.SW,Accelleron N Ag,,Europe,Suisse,STOXX Europe 600
 ACN,Accenture,Information Technology,US,États-Unis,S&P 500
-ACS.MC,ACS,Construction,Europe,Espagne,IBEX 35
-ACX.MC,Acerinox,Steel,Europe,Espagne,IBEX 35
-AD.AS,Ahold Delhaize,Consumer Staples,Europe,Pays-Bas,EURO STOXX 50|AEX
+ACP.WA,Asseco Poland Sa,,Europe,Pologne,STOXX Europe 600
+ACS.MC,ACS,Construction,Europe,Espagne,IBEX 35|STOXX Europe 600
+ACX.MC,Acerinox,Steel,Europe,Espagne,IBEX 35|STOXX Europe 600
+AD.AS,Ahold Delhaize,Consumer Staples,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
 ADBE,Adobe Inc.,Information Technology,US,États-Unis,S&P 500
-ADDT-B.ST,Addtech B,Industrials,Europe,Suède,OMX Stockholm 30
+ADDT-B.ST,Addtech B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+ADEN.SW,Adecco Group Ag,,Europe,Suisse,STOXX Europe 600
 ADI,Analog Devices,Information Technology,US,États-Unis,S&P 500
 ADM,Archer Daniels Midland,Consumer Staples,US,États-Unis,S&P 500
-ADM.L,Admiral Group,Insurance,Europe,Royaume-Uni,FTSE 100
+ADM.L,Admiral Group,Insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 ADP,Automatic Data Processing,Industrials,US,États-Unis,S&P 500
-ADS.DE,Adidas,Apparel,Europe,Allemagne,DAX|EURO STOXX 50
+ADP.PA,Aeroports De Paris Sa,,Europe,France,STOXX Europe 600
+ADS.DE,Adidas,Apparel,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
 ADSK,Autodesk,Information Technology,US,États-Unis,S&P 500
-ADYEN.AS,Adyen,Financials,Europe,Pays-Bas,EURO STOXX 50|AEX
-AED.BR,Aedifica,Real Estate,Europe,Belgique,BEL 20
+ADYEN.AS,Adyen,Financials,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
+AED.BR,Aedifica,Real Estate,Europe,Belgique,BEL 20|STOXX Europe 600
 AEE,Ameren,Utilities,US,États-Unis,S&P 500
-AENA.MC,AENA,Aviation,Europe,Espagne,IBEX 35
+AENA.MC,AENA,Aviation,Europe,Espagne,IBEX 35|STOXX Europe 600
 AEP,American Electric Power,Utilities,US,États-Unis,S&P 500
 AEP.L,AEP Plantations,Food Producers,Europe,Royaume-Uni,FTSE 250
 AES,AES Corporation,Utilities,US,États-Unis,S&P 500
 AF.PA,Air France–KLM,consumer discretionary,Europe,France,CAC Next 20
 AFL,Aflac,Financials,US,États-Unis,S&P 500
-AGN.AS,Aegon,Financials,Europe,Pays-Bas,AEX
-AGS.BR,Ageas,Financials,Europe,Belgique,BEL 20
+AG1.DE,Auto1 Group,,Europe,Allemagne,STOXX Europe 600
+AGN.AS,Aegon,Financials,Europe,Pays-Bas,AEX|STOXX Europe 600
+AGS.BR,Ageas,Financials,Europe,Belgique,BEL 20|STOXX Europe 600
 AGT.L,AVI Global Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-AI.PA,Air Liquide,Basic Materials,Europe,France,CAC 40|EURO STOXX 50
+AI.PA,Air Liquide,Basic Materials,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 AIE.L,Ashoka India Equity Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 AIG,American International Group,Financials,US,États-Unis,S&P 500
-AIR.PA,Airbus,Industrials,Europe,France,CAC 40|DAX|EURO STOXX 50
+AIR.PA,Airbus,Industrials,Europe,France,CAC 40|DAX|EURO STOXX 50|STOXX Europe 600
+AIXA.DE,Aixtron,,Europe,Allemagne,STOXX Europe 600
 AIZ,Assurant,Financials,US,États-Unis,S&P 500
 AJB.L,AJ Bell,Financial Services,Europe,Royaume-Uni,FTSE 250
 AJG,Arthur J. Gallagher & Co.,Financials,US,États-Unis,S&P 500
 AKAM,Akamai Technologies,Information Technology,US,États-Unis,S&P 500
-AKE.PA,Arkema,specialty chemicals,Europe,France,CAC Next 20
-AKRBP.OL,Aker BP,oil: crude producers,Europe,Norvège,OBX
-AKZA.AS,AkzoNobel,Basic Materials,Europe,Pays-Bas,AEX
+AKE.PA,Arkema,specialty chemicals,Europe,France,CAC Next 20|STOXX Europe 600
+AKER.OL,Aker,,Europe,Norvège,STOXX Europe 600
+AKRBP.OL,Aker BP,oil: crude producers,Europe,Norvège,OBX|STOXX Europe 600
+AKZA.AS,AkzoNobel,Basic Materials,Europe,Pays-Bas,AEX|STOXX Europe 600
 ALB,Albemarle Corporation,Materials,US,États-Unis,S&P 500
-ALC.SW,Alcon Inc,Health care,Europe,Suisse,SMI
+ALC.SW,Alcon Inc,Health care,Europe,Suisse,SMI|STOXX Europe 600
+ALE.WA,Allegro Sa,,Europe,Pologne,STOXX Europe 600
 ALFA.L,Alfa Financial Software,Software and Computer Services,Europe,Royaume-Uni,FTSE 250
-ALFA.ST,Alfa Laval,Industrials,Europe,Suède,OMX Stockholm 30
+ALFA.ST,Alfa Laval,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 ALGN,Align Technology,Health Care,US,États-Unis,S&P 500
+ALK-B.CO,Alk-Abello Class B,,Europe,Danemark,STOXX Europe 600
 ALL,Allstate,Financials,US,États-Unis,S&P 500
 ALLE,Allegion,Industrials,US,États-Unis,S&P 500
-ALSYDB.CO,AL Sydbank,Banks,Europe,Danemark,OMX Copenhagen 25
+ALLFG.AS,Allfunds Group Plc,,Europe,Pays-Bas,STOXX Europe 600
+ALLN.SW,Allreal Holding Ag,,Europe,Suisse,STOXX Europe 600
+ALO.PA,Alstom Sa,,Europe,France,STOXX Europe 600
+ALPHA.AT,Alpha Bank Sa,,Europe,Grèce,STOXX Europe 600
+ALSYDB.CO,AL Sydbank,Banks,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 ALTR.LS,Altri,Basic Resources,Europe,Portugal,PSI
-ALV.DE,Allianz,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50
+ALV.DE,Allianz,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
 ALW.L,Alliance Witan,Investment Trusts,Europe,Royaume-Uni,FTSE 100
+AM.PA,Dassault Aviation Sa,,Europe,France,STOXX Europe 600
 AMAT,Applied Materials,Information Technology,US,États-Unis,S&P 500
 AMBU-B.CO,Ambu,Health Care,Europe,Danemark,OMX Copenhagen 25
 AMCR,Amcor,Materials,US,États-Unis,S&P 500
@@ -633,13 +652,15 @@ AMGN,Amgen,Health Care,US,États-Unis,S&P 500
 AMP,Ameriprise Financial,Financials,US,États-Unis,S&P 500
 AMP.MI,Amplifon,Health Care,Europe,Italie,FTSE MIB
 AMRZ.SW,Amrize AG,Materials,Europe,Suisse,SMI
-AMS.MC,Amadeus IT Group,Tourism,Europe,Espagne,IBEX 35
+AMS.MC,Amadeus IT Group,Tourism,Europe,Espagne,IBEX 35|STOXX Europe 600
 AMT,American Tower,Real Estate,US,États-Unis,S&P 500
+AMUN.PA,Amundi Sa,,Europe,France,STOXX Europe 600
 AMZN,Amazon,Consumer Discretionary,US,États-Unis,S&P 500
-ANA.MC,Acciona,Construction,Europe,Espagne,IBEX 35
+ANA.MC,Acciona,Construction,Europe,Espagne,IBEX 35|STOXX Europe 600
+ANDR.VI,Andritz Ag,,Europe,Autriche,STOXX Europe 600
 ANE.MC,Acciona Energía,Energy,Europe,Espagne,IBEX 35
 ANET,Arista Networks,Information Technology,US,États-Unis,S&P 500
-ANTO.L,Antofagasta plc,Mining,Europe,Royaume-Uni,FTSE 100
+ANTO.L,Antofagasta plc,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 AO.L,AO World,Retail,Europe,Royaume-Uni,FTSE 250
 AON,Aon plc,Financials,US,États-Unis,S&P 500
 AOS,A. O. Smith,Industrials,US,États-Unis,S&P 500
@@ -651,95 +672,115 @@ APN.L,Applied Nutrition,Food Producers,Europe,Royaume-Uni,FTSE 250
 APO,Apollo Global Management,Financials,US,États-Unis,S&P 500
 APP,AppLovin,Communication Services,US,États-Unis,S&P 500
 APTV,Aptiv,Consumer Discretionary,US,États-Unis,S&P 500
+ARCAD.AS,Arcadis Nv,,Europe,Pays-Bas,STOXX Europe 600
 ARE,Alexandria Real Estate Equities,Real Estate,US,États-Unis,S&P 500
 ARES,Ares Management,Financials,US,États-Unis,S&P 500
 ARGX.BR,Argenx,Health Care,Europe,Belgique,EURO STOXX 50|BEL 20
 ASHM.L,Ashmore Group,Financial Services,Europe,Royaume-Uni,FTSE 250
 ASL.L,Aberforth Smaller Companies Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-ASM.AS,ASM International,Technology,Europe,Pays-Bas,AEX
-ASML.AS,ASML Holding,Information Technology,Europe,Pays-Bas,EURO STOXX 50|AEX
-ASRNL.AS,ASR Nederland,Financials,Europe,Pays-Bas,AEX
-ASSA-B.ST,Assa Abloy B,Industrials,Europe,Suède,OMX Stockholm 30
-ATCO-A.ST,Atlas Copco A,Industrials,Europe,Suède,OMX Stockholm 30
+ASM.AS,ASM International,Technology,Europe,Pays-Bas,AEX|STOXX Europe 600
+ASML.AS,ASML Holding,Information Technology,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
+ASRNL.AS,ASR Nederland,Financials,Europe,Pays-Bas,AEX|STOXX Europe 600
+ASSA-B.ST,Assa Abloy B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+ATCO-A.ST,Atlas Copco A,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 ATG.L,Auction Technology Group,Software and Computer Services,Europe,Royaume-Uni,FTSE 250
 ATO,Atmos Energy,Utilities,US,États-Unis,S&P 500
 ATR.L,Schroder Asian Total Return Investment Company,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+ATS.VI,At & S Austria Technologie & Syste,,Europe,Autriche,STOXX Europe 600
 ATT.L,Allianz Technology Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 ATYM.L,Atalaya Mining,Industrial Metals and Mining,Europe,Royaume-Uni,FTSE 250
-AUTO.L,Autotrader Group,Media,Europe,Royaume-Uni,FTSE 100
+AUTO.L,Autotrader Group,Media,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 AV.L,Aviva,Life insurance,Europe,Royaume-Uni,FTSE 100
 AVGO,Broadcom,Information Technology,US,États-Unis,S&P 500
 AVIO.MI,Avio,Aerospace,Europe,Italie,FTSE MIB
+AVOL.SW,Avolta Ag,,Europe,Suisse,STOXX Europe 600
 AVON.L,Avon Technologies,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250
 AVY,Avery Dennison,Materials,US,États-Unis,S&P 500
 AWK,American Water Works,Utilities,US,États-Unis,S&P 500
+AXFO.ST,Axfood,,Europe,Suède,STOXX Europe 600
 AXON,Axon Enterprise,Industrials,US,États-Unis,S&P 500
 AXP,American Express,Financials,US,États-Unis,S&P 500
+AYV.PA,Ayvens Sa,,Europe,France,STOXX Europe 600
+AZA.ST,Avanza Bank Holding,,Europe,Suède,STOXX Europe 600
 AZE.BR,Azelis Group,Industrials,Europe,Belgique,BEL 20
-AZM.MI,Azimut,Financial Services,Europe,Italie,FTSE MIB
-AZN.L,AstraZeneca,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100
+AZM.MI,Azimut,Financial Services,Europe,Italie,FTSE MIB|STOXX Europe 600
+AZN.L,AstraZeneca,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 AZN.ST,AstraZeneca,Health Care,Europe,Suède,OMX Stockholm 30
 AZO,AutoZone,Consumer Discretionary,US,États-Unis,S&P 500
 BA,Boeing,Industrials,US,États-Unis,S&P 500
 BA.L,BAE Systems,Aerospace & defence,Europe,Royaume-Uni,FTSE 100
-BAB.L,Babcock International,Aerospace & defence,Europe,Royaume-Uni,FTSE 100
+BAB.L,Babcock International,Aerospace & defence,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BAC,Bank of America,Financials,US,États-Unis,S&P 500
+BAER.SW,Julius Baer Gruppe Ag,,Europe,Suisse,STOXX Europe 600
 BAG.L,A.G. Barr,Beverages,Europe,Royaume-Uni,FTSE 250
+BALD-B.ST,Fastighets Balder Class B,,Europe,Suède,STOXX Europe 600
 BALL,Ball Corporation,Materials,US,États-Unis,S&P 500
-BAMI.MI,Banco BPM,Banks,Europe,Italie,FTSE MIB
-BARC.L,Barclays,Banks,Europe,Royaume-Uni,FTSE 100
-BAS.DE,BASF,Chemicals,Europe,Allemagne,DAX|EURO STOXX 50
-BATS.L,British American Tobacco,Tobacco,Europe,Royaume-Uni,FTSE 100
+BAMI.MI,Banco BPM,Banks,Europe,Italie,FTSE MIB|STOXX Europe 600
+BAMNB.AS,Bam Groep Koninklijke Nv,,Europe,Pays-Bas,STOXX Europe 600
+BARC.L,Barclays,Banks,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+BARN.SW,Barry Callebaut Ag,,Europe,Suisse,STOXX Europe 600
+BAS.DE,BASF,Chemicals,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+BATS.L,British American Tobacco,Tobacco,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BAX,Baxter International,Health Care,US,États-Unis,S&P 500
-BAYN.DE,Bayer,Pharmaceuticals,Europe,Allemagne,DAX|EURO STOXX 50
-BBOX.L,Tritax Big Box REIT,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 100
-BBVA.MC,BBVA,Financials,Europe,Espagne,EURO STOXX 50|IBEX 35
+BAYN.DE,Bayer,Pharmaceuticals,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+BBOX.L,Tritax Big Box REIT,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+BBVA.MC,BBVA,Financials,Europe,Espagne,EURO STOXX 50|IBEX 35|STOXX Europe 600
 BBY,Best Buy,Consumer Discretionary,US,États-Unis,S&P 500
-BBY.L,Balfour Beatty,Construction & Materials,Europe,Royaume-Uni,FTSE 250
-BC.MI,Brunello Cucinelli,Consumer Products and Services,Europe,Italie,FTSE MIB
+BBY.L,Balfour Beatty,Construction & Materials,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+BC.MI,Brunello Cucinelli,Consumer Products and Services,Europe,Italie,FTSE MIB|STOXX Europe 600
+BC8.DE,Bechtle Ag,,Europe,Allemagne,STOXX Europe 600
 BCG.L,Baltic Classifieds,Consumer Digital Services,Europe,Royaume-Uni,FTSE 250
-BCP.LS,Banco Comercial Português,Banks,Europe,Portugal,PSI
+BCP.LS,Banco Comercial Português,Banks,Europe,Portugal,PSI|STOXX Europe 600
+BCVN.SW,Bc Vaud N,,Europe,Suisse,STOXX Europe 600
 BDX,Becton Dickinson,Health Care,US,États-Unis,S&P 500
 BE,Bloom Energy,Industrials,US,États-Unis,S&P 500
-BEI.DE,Beiersdorf,Consumer goods,Europe,Allemagne,DAX
+BEAN.SW,Belimo N Ag,,Europe,Suisse,STOXX Europe 600
+BEI.DE,Beiersdorf,Consumer goods,Europe,Allemagne,DAX|STOXX Europe 600
+BEIJ-B.ST,Beijer Ref Class B,,Europe,Suède,STOXX Europe 600
+BELA.AT,Jumbo,,Europe,Grèce,STOXX Europe 600
 BEN,Franklin Resources,Financials,US,États-Unis,S&P 500
-BESI.AS,BE Semiconductors,Technology,Europe,Pays-Bas,AEX
-BEZ.L,Beazley,Insurance,Europe,Royaume-Uni,FTSE 100
+BESI.AS,BE Semiconductors,Technology,Europe,Pays-Bas,AEX|STOXX Europe 600
+BEZ.L,Beazley,Insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BF-B,Brown–Forman,Consumer Staples,US,États-Unis,S&P 500
+BFT.WA,Benefit Systems,,Europe,Pologne,STOXX Europe 600
 BG,Bunge Global,Consumer Staples,US,États-Unis,S&P 500
-BGEO.L,Lion Finance Group,Banking Services,Europe,Royaume-Uni,FTSE 100
+BG.VI,Bawag Group Ag,,Europe,Autriche,STOXX Europe 600
+BGEO.L,Lion Finance Group,Banking Services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BGFD.L,Baillie Gifford Japan Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+BGN.MI,Banca Generali,,Europe,Italie,STOXX Europe 600
 BHMG.L,BH Macro,Hedge Funds,Europe,Royaume-Uni,FTSE 250
 BIIB,Biogen,Health Care,US,États-Unis,S&P 500
-BIM.PA,BioMérieux,pharmaceuticals,Europe,France,CAC Next 20
-BIRG.IR,Bank of Ireland,,Europe,Irlande,ISEQ 20
-BKG.L,Berkeley Group Holdings,Household goods & home construction,Europe,Royaume-Uni,FTSE 250
+BIM.PA,BioMérieux,pharmaceuticals,Europe,France,CAC Next 20|STOXX Europe 600
+BIRG.IR,Bank of Ireland,,Europe,Irlande,ISEQ 20|STOXX Europe 600
+BKG.L,Berkeley Group Holdings,Household goods & home construction,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 BKNG,Booking Holdings,Consumer Discretionary,US,États-Unis,S&P 500
 BKR,Baker Hughes,Energy,US,États-Unis,S&P 500
-BKT.MC,Bankinter,Financial Services,Europe,Espagne,IBEX 35
+BKT.MC,Bankinter,Financial Services,Europe,Espagne,IBEX 35|STOXX Europe 600
+BKW.SW,Bkw N Ag,,Europe,Suisse,STOXX Europe 600
 BLK,BlackRock,Financials,US,États-Unis,S&P 500
-BLND.L,British Land,Real estate,Europe,Royaume-Uni,FTSE 100
+BLND.L,British Land,Real estate,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BME.L,B&M,Retailers,Europe,Royaume-Uni,FTSE 250
-BMED.MI,Banca Mediolanum,Financial Services,Europe,Italie,FTSE MIB
-BMPS.MI,Banca Monte dei Paschi di Siena,Banks,Europe,Italie,FTSE MIB
-BMW.DE,BMW,Automotive,Europe,Allemagne,DAX|EURO STOXX 50
+BMED.MI,Banca Mediolanum,Financial Services,Europe,Italie,FTSE MIB|STOXX Europe 600
+BMPS.MI,Banca Monte dei Paschi di Siena,Banks,Europe,Italie,FTSE MIB|STOXX Europe 600
+BMW.DE,BMW,Automotive,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
 BMY,Bristol Myers Squibb,Health Care,US,États-Unis,S&P 500
 BMY.L,Bloomsbury Publishing,Media,Europe,Royaume-Uni,FTSE 250
-BN.PA,Danone,Consumer Defensive,Europe,France,CAC 40|EURO STOXX 50
+BN.PA,Danone,Consumer Defensive,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 BNKR.L,Bankers Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-BNP.PA,BNP Paribas,Financial Services,Europe,France,CAC 40|EURO STOXX 50
-BNR.DE,Brenntag,Distribution,Europe,Allemagne,DAX
+BNP.PA,BNP Paribas,Financial Services,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+BNR.DE,Brenntag,Distribution,Europe,Allemagne,DAX|STOXX Europe 600
 BNY,BNY Mellon,Financials,US,États-Unis,S&P 500
-BNZL.L,Bunzl,Support services,Europe,Royaume-Uni,FTSE 100
-BOL.ST,Boliden,Materials,Europe,Suède,OMX Stockholm 30
+BNZL.L,Bunzl,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+BOL.PA,Bollore,,Europe,France,STOXX Europe 600
+BOL.ST,Boliden,Materials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 BOWL.L,Hollywood Bowl Group,Travel and leisure,Europe,Royaume-Uni,FTSE 250
 BOY.L,Bodycote,Industrial Engineering,Europe,Royaume-Uni,FTSE 250
 BP.L,BP,Oil & gas producers,Europe,Royaume-Uni,FTSE 100
 BPCR.L,Biopharma Credit,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-BPE.MI,BPER Banca,Banks,Europe,Italie,FTSE MIB
-BPT.L,Bridgepoint Group,Financial Services,Europe,Royaume-Uni,FTSE 250
+BPE.MI,BPER Banca,Banks,Europe,Italie,FTSE MIB|STOXX Europe 600
+BPT.L,Bridgepoint Group,Financial Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 BR,Broadridge Financial Solutions,Industrials,US,États-Unis,S&P 500
-BRBY.L,Burberry Group,Personal goods,Europe,Royaume-Uni,FTSE 100
+BRBY.L,Burberry Group,Personal goods,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BREE.L,Breedon Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
 BRGE.L,BlackRock Greater Europe Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 BRK-B,Berkshire Hathaway,Financials,US,États-Unis,S&P 500
@@ -747,43 +788,45 @@ BRO,Brown & Brown,Financials,US,États-Unis,S&P 500
 BRSC.L,BlackRock Smaller Companies Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 BRWM.L,BlackRock World Mining Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 BSX,Boston Scientific,Health Care,US,États-Unis,S&P 500
-BT-A.L,BT Group,Telecommunications services,Europe,Royaume-Uni,FTSE 100
-BTRW.L,Barratt Redrow,Household goods & home construction,Europe,Royaume-Uni,FTSE 100
+BT-A.L,BT Group,Telecommunications services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+BTRW.L,Barratt Redrow,Household goods & home construction,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 BUT.L,Brunner Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-BVI.PA,Bureau Veritas,Inspection and certification,Europe,France,CAC 40|CAC Next 20
+BVI.PA,Bureau Veritas,Inspection and certification,Europe,France,CAC 40|CAC Next 20|STOXX Europe 600
 BWLPG.OL,BW LPG,marine transportation,Europe,Norvège,OBX
-BWY.L,Bellway,Home Construction,Europe,Royaume-Uni,FTSE 250
+BWY.L,Bellway,Home Construction,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 BX,Blackstone Inc.,Financials,US,États-Unis,S&P 500
 BXP,"BXP, Inc.",Real Estate,US,États-Unis,S&P 500
 BYG.L,Big Yellow Group,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
 BYIT.L,Bytes Technology Group,Aerospace & Defence,Europe,Royaume-Uni,FTSE 250
-BZU.MI,Buzzi,Construction and Materials,Europe,Italie,FTSE MIB
+BZU.MI,Buzzi,Construction and Materials,Europe,Italie,FTSE MIB|STOXX Europe 600
 C,Citigroup,Financials,US,États-Unis,S&P 500
 C5H.IR,Cairn Homes,,Europe,Irlande,ISEQ 20
-CA.PA,Carrefour,Consumer Defensive,Europe,France,CAC 40
-CABK.MC,CaixaBank,Financial Services,Europe,Espagne,IBEX 35
+CA.PA,Carrefour,Consumer Defensive,Europe,France,CAC 40|STOXX Europe 600
+CABK.MC,CaixaBank,Financial Services,Europe,Espagne,IBEX 35|STOXX Europe 600
 CAH,Cardinal Health,Health Care,US,États-Unis,S&P 500
-CAP.PA,Capgemini,Technology,Europe,France,CAC 40
-CARL-B.CO,Carlsberg Group,"Food, Beverage and Tobacco",Europe,Danemark,OMX Copenhagen 25
+CAP.PA,Capgemini,Technology,Europe,France,CAC 40|STOXX Europe 600
+CARL-B.CO,Carlsberg Group,"Food, Beverage and Tobacco",Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 CARR,Carrier Global,Industrials,US,États-Unis,S&P 500
+CAST.ST,Castellum,,Europe,Suède,STOXX Europe 600
 CASY,Casey's,Consumer Staples,US,États-Unis,S&P 500
 CAT,Caterpillar Inc.,Industrials,US,États-Unis,S&P 500
 CB,Chubb Limited,Financials,US,États-Unis,S&P 500
 CBG.L,Close Brothers Group,Financial Services,Europe,Royaume-Uni,FTSE 250
-CBK.DE,Commerzbank,Financial Services,Europe,Allemagne,DAX
+CBK.DE,Commerzbank,Financial Services,Europe,Allemagne,DAX|STOXX Europe 600
 CBOE,Cboe Global Markets,Financials,US,États-Unis,S&P 500
 CBRE,CBRE Group,Real Estate,US,États-Unis,S&P 500
-CCC.L,Computacenter,Software & Computer Services,Europe,Royaume-Uni,FTSE 100
+CCC.L,Computacenter,Software & Computer Services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 CCEP.L,Coca-Cola Europacific Partners,Beverages,Europe,Royaume-Uni,FTSE 100
-CCH.L,Coca-Cola HBC,Beverages,Europe,Royaume-Uni,FTSE 100
+CCH.L,Coca-Cola HBC,Beverages,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 CCI,Crown Castle,Real Estate,US,États-Unis,S&P 500
 CCL,Carnival Corporation,Consumer Discretionary,US,États-Unis,S&P 500
 CDNS,Cadence Design Systems,Information Technology,US,États-Unis,S&P 500
+CDR.WA,Cd Projekt Red,,Europe,Pologne,STOXX Europe 600
 CDW,CDW Corporation,Information Technology,US,États-Unis,S&P 500
 CEG,Constellation Energy,Utilities,US,États-Unis,S&P 500
 CF,CF Industries,Materials,US,États-Unis,S&P 500
 CFG,Citizens Financial Group,Financials,US,États-Unis,S&P 500
-CFR.SW,Compagnie Financière Richemont SA,Retail discretionary,Europe,Suisse,SMI
+CFR.SW,Compagnie Financière Richemont SA,Retail discretionary,Europe,Suisse,SMI|STOXX Europe 600
 CGT.L,Capital Gearing Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 CHD,Church & Dwight,Consumer Staples,US,États-Unis,S&P 500
 CHG.L,Chemring Group,Aerospace & Defence,Europe,Royaume-Uni,FTSE 250
@@ -795,15 +838,16 @@ CINF,Cincinnati Financial,Financials,US,États-Unis,S&P 500
 CKN.L,Clarkson,Industrial Transportation,Europe,Royaume-Uni,FTSE 250
 CL,Colgate-Palmolive,Consumer Staples,US,États-Unis,S&P 500
 CLDN.L,Caledonia Investments,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-CLNX.MC,Cellnex Telecom,Telecommunications,Europe,Espagne,IBEX 35
+CLNX.MC,Cellnex Telecom,Telecommunications,Europe,Espagne,IBEX 35|STOXX Europe 600
 CLX,Clorox,Consumer Staples,US,États-Unis,S&P 500
+CMBN.SW,Cembra Money Bank Ag,,Europe,Suisse,STOXX Europe 600
 CMCSA,Comcast,Communication Services,US,États-Unis,S&P 500
 CMCX.L,CMC Markets,Financial Services,Europe,Royaume-Uni,FTSE 250
 CME,CME Group,Financials,US,États-Unis,S&P 500
 CMG,Chipotle Mexican Grill,Consumer Discretionary,US,États-Unis,S&P 500
 CMI,Cummins,Industrials,US,États-Unis,S&P 500
 CMS,CMS Energy,Utilities,US,États-Unis,S&P 500
-CNA.L,Centrica,Multiline utilities,Europe,Royaume-Uni,FTSE 100
+CNA.L,Centrica,Multiline utilities,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 CNC,Centene Corporation,Health Care,US,États-Unis,S&P 500
 CNP,CenterPoint Energy,Utilities,US,États-Unis,S&P 500
 COA.L,Coats Group,Consumer Staples,Europe,Royaume-Uni,FTSE 250
@@ -811,8 +855,8 @@ COF,Capital One,Financials,US,États-Unis,S&P 500
 COHR,Coherent Corp.,Information Technology,US,États-Unis,S&P 500
 COIN,Coinbase,Financials,US,États-Unis,S&P 500
 COL.MC,Inmobiliaria Colonial,Real Estate,Europe,Espagne,IBEX 35
-COLO-B.CO,Coloplast,Health Care,Europe,Danemark,OMX Copenhagen 25
-CON.DE,Continental,Automotive,Europe,Allemagne,DAX
+COLO-B.CO,Coloplast,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+CON.DE,Continental,Automotive,Europe,Allemagne,DAX|STOXX Europe 600
 COO,Cooper Companies (The),Health Care,US,États-Unis,S&P 500
 COP,ConocoPhillips,Energy,US,États-Unis,S&P 500
 COR,Cencora,Health Care,US,États-Unis,S&P 500
@@ -820,158 +864,176 @@ COR.LS,Corticeira Amorim,Industrial Goods & Services,Europe,Portugal,PSI
 CORD.L,Cordiant Digital Infrastructure,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 COST,Costco,Consumer Staples,US,États-Unis,S&P 500
 COST.L,Costain Group,Engineering and Construction,Europe,Royaume-Uni,FTSE 250
+COTN.SW,Comet Holding Ag,,Europe,Suisse,STOXX Europe 600
+COV.PA,Covivio Sa,,Europe,France,STOXX Europe 600
 CPAY,Corpay,Financials,US,États-Unis,S&P 500
-CPG.L,Compass Group,Support services,Europe,Royaume-Uni,FTSE 100
-CPR.MI,Campari,"Food, Beverage and Tobacco",Europe,Italie,FTSE MIB
+CPG.L,Compass Group,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+CPR.MI,Campari,"Food, Beverage and Tobacco",Europe,Italie,FTSE MIB|STOXX Europe 600
 CPRT,Copart,Industrials,US,États-Unis,S&P 500
 CPT,Camden Property Trust,Real Estate,US,États-Unis,S&P 500
-CRDA.L,Croda International,Chemicals,Europe,Royaume-Uni,FTSE 100
+CRDA.L,Croda International,Chemicals,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 CRH,CRH plc,Materials,US,États-Unis,S&P 500
 CRL,Charles River Laboratories,Health Care,US,États-Unis,S&P 500
 CRM,Salesforce,Information Technology,US,États-Unis,S&P 500
 CRWD,CrowdStrike,Information Technology,US,États-Unis,S&P 500
-CS.PA,Axa,Financial Services,Europe,France,CAC 40|EURO STOXX 50
+CS.PA,Axa,Financial Services,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 CSCO,Cisco,Information Technology,US,États-Unis,S&P 500
+CSG.AS,Csg Class A Nv,,Europe,Pays-Bas,STOXX Europe 600
 CSGP,CoStar Group,Real Estate,US,États-Unis,S&P 500
 CSN.L,Chesnara,Life Insurance,Europe,Royaume-Uni,FTSE 250
 CSX,CSX Corporation,Industrials,US,États-Unis,S&P 500
 CTAS,Cintas,Industrials,US,États-Unis,S&P 500
-CTEC.L,Convatec,Health care equipment & supplies,Europe,Royaume-Uni,FTSE 100
+CTEC.L,Convatec,Health care equipment & supplies,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 CTSH,Cognizant,Information Technology,US,États-Unis,S&P 500
 CTT.LS,CTT Correios de Portugal,Industrial Goods & Services,Europe,Portugal,PSI
 CTVA,Corteva,Materials,US,États-Unis,S&P 500
 CTY.L,City of London Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 CURY.L,Currys,Retailers,Europe,Royaume-Uni,FTSE 250
+CVC.AS,Cvc Capital Partners Plc,,Europe,Pays-Bas,STOXX Europe 600
 CVNA,Carvana,Consumer Discretionary,US,États-Unis,S&P 500
 CVS,CVS Health,Health Care,US,États-Unis,S&P 500
 CVSG.L,CVS Group,Health Care,Europe,Royaume-Uni,FTSE 250
 CVX,Chevron Corporation,Energy,US,États-Unis,S&P 500
-CWK.L,Cranswick,Food Producers,Europe,Royaume-Uni,FTSE 250
+CWK.L,Cranswick,Food Producers,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 CWR.L,Ceres Power,Alternative Energy,Europe,Royaume-Uni,FTSE 250
 D,Dominion Energy,Utilities,US,États-Unis,S&P 500
 DAL,Delta Air Lines,Industrials,US,États-Unis,S&P 500
-DANSKE.CO,Danske Bank,Banks,Europe,Danemark,OMX Copenhagen 25
+DANSKE.CO,Danske Bank,Banks,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 DASH,DoorDash,Consumer Discretionary,US,États-Unis,S&P 500
 DATA.L,GlobalData,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250
-DB1.DE,Deutsche Börse,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50
-DBK.DE,Deutsche Bank,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50
-DCC.L,DCC Energy,Support services,Europe,Royaume-Uni,FTSE 100
+DB1.DE,Deutsche Börse,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+DBK.DE,Deutsche Bank,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+DCC.L,DCC Energy,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 DD,DuPont,Industrials,US,États-Unis,S&P 500
 DDOG,Datadog,Information Technology,US,États-Unis,S&P 500
 DE,Deere & Company,Industrials,US,États-Unis,S&P 500
 DECK,Deckers Brands,Consumer Discretionary,US,États-Unis,S&P 500
 DELL,Dell Technologies,Information Technology,US,États-Unis,S&P 500
-DEMANT.CO,Demant,Health Care,Europe,Danemark,OMX Copenhagen 25
+DEMANT.CO,Demant,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 DG,Dollar General,Consumer Staples,US,États-Unis,S&P 500
-DG.PA,Vinci,Industrials,Europe,France,CAC 40|EURO STOXX 50
-DGE.L,Diageo,Beverages,Europe,Royaume-Uni,FTSE 100
+DG.PA,Vinci,Industrials,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+DGE.L,Diageo,Beverages,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 DGX,Quest Diagnostics,Health Care,US,États-Unis,S&P 500
+DHER.DE,Delivery Hero,,Europe,Allemagne,STOXX Europe 600
 DHI,D. R. Horton,Consumer Discretionary,US,États-Unis,S&P 500
-DHL.DE,Deutsche Post,Logistics,Europe,Allemagne,DAX|EURO STOXX 50
+DHL.DE,Deutsche Post,Logistics,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
 DHR,Danaher Corporation,Health Care,US,États-Unis,S&P 500
 DIA.MI,Diasorin,Health Care,Europe,Italie,FTSE MIB
-DIE.BR,D'Ieteren,Consumer Discretionary,Europe,Belgique,BEL 20
-DIM.PA,Sartorius Stedim Biooutsource,pharmaceuticals,Europe,France,CAC Next 20
+DIE.BR,D'Ieteren,Consumer Discretionary,Europe,Belgique,BEL 20|STOXX Europe 600
+DIM.PA,Sartorius Stedim Biooutsource,pharmaceuticals,Europe,France,CAC Next 20|STOXX Europe 600
 DIS,Walt Disney Company (The),Communication Services,US,États-Unis,S&P 500
-DLN.L,Derwent London,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
+DKSH.SW,Dksh Holding Ag,,Europe,Suisse,STOXX Europe 600
+DLG.MI,Delonghi,,Europe,Italie,STOXX Europe 600
+DLN.L,Derwent London,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 DLR,Digital Realty,Real Estate,US,États-Unis,S&P 500
 DLTR,Dollar Tree,Consumer Staples,US,États-Unis,S&P 500
-DNB.OL,DNB Bank,banks,Europe,Norvège,OBX
+DNB.OL,DNB Bank,banks,Europe,Norvège,OBX|STOXX Europe 600
 DNLM.L,Dunelm Group,Retailers,Europe,Royaume-Uni,FTSE 250
+DNP.WA,Dino Polska,,Europe,Pologne,STOXX Europe 600
 DOC,Healthpeak Properties,Real Estate,US,États-Unis,S&P 500
 DOCS.L,Dr. Martens,Retailers,Europe,Royaume-Uni,FTSE 250
 DOM.L,Domino's Pizza,Travel & Leisure,Europe,Royaume-Uni,FTSE 250
 DOV,Dover Corporation,Industrials,US,États-Unis,S&P 500
 DOW,Dow Inc.,Materials,US,États-Unis,S&P 500
-DPLM.L,Diploma,Industrial Support services,Europe,Royaume-Uni,FTSE 100
+DPLM.L,Diploma,Industrial Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 DPZ,Domino's,Consumer Discretionary,US,États-Unis,S&P 500
 DQ7A.IR,Donegal investment group,,Europe,Irlande,ISEQ 20
 DRI,Darden Restaurants,Consumer Discretionary,US,États-Unis,S&P 500
-DRX.L,Drax Group,Electricity,Europe,Royaume-Uni,FTSE 250
+DRX.L,Drax Group,Electricity,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 DSCV.L,discoverIE,Support Services,Europe,Royaume-Uni,FTSE 250
 DSFIR.AS,DSM Firmenich AG,Consumer Staples,Europe,Pays-Bas,AEX
-DSV.CO,DSV,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25
-DSY.PA,Dassault Systèmes,Technology,Europe,France,CAC 40
+DSFIR.SW,Dsm Firmenich Ag,,Europe,Suisse,STOXX Europe 600
+DSV.CO,DSV,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+DSY.PA,Dassault Systèmes,Technology,Europe,France,CAC 40|STOXX Europe 600
 DTE,DTE Energy,Utilities,US,États-Unis,S&P 500
-DTE.DE,Deutsche Telekom,Telecommunication,Europe,Allemagne,DAX|EURO STOXX 50
-DTG.DE,Daimler Truck,Automotive,Europe,Allemagne,DAX
+DTE.DE,Deutsche Telekom,Telecommunication,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+DTG.DE,Daimler Truck,Automotive,Europe,Allemagne,DAX|STOXX Europe 600
 DUK,Duke Energy,Utilities,US,États-Unis,S&P 500
 DVA,DaVita,Health Care,US,États-Unis,S&P 500
 DVN,Devon Energy,Energy,US,États-Unis,S&P 500
 DXCM,Dexcom,Health Care,US,États-Unis,S&P 500
 EBAY,eBay Inc.,Consumer Discretionary,US,États-Unis,S&P 500
+EBP.WA,Erste Bank Polska Sa,,Europe,Pologne,STOXX Europe 600
+EBS.VI,Erste Group Bank Ag,,Europe,Autriche,STOXX Europe 600
 ECHO,EchoStar,Communication Services,US,États-Unis,S&P 500
 ECL,Ecolab,Materials,US,États-Unis,S&P 500
 ED,Consolidated Edison,Utilities,US,États-Unis,S&P 500
-EDEN.PA,Edenred,Industrials,Europe,France,CAC 40
+EDEN.PA,Edenred,Industrials,Europe,France,CAC 40|STOXX Europe 600
 EDIN.L,Edinburgh Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-EDP.LS,Energias de Portugal,Utilities,Europe,Portugal,PSI
+EDP.LS,Energias de Portugal,Utilities,Europe,Portugal,PSI|STOXX Europe 600
 EDPR.LS,EDP Renováveis,Utilities,Europe,Portugal,PSI
-EDV.L,Endeavour Mining,Mining,Europe,Royaume-Uni,FTSE 100
+EDV.L,Endeavour Mining,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 EFX,Equifax,Industrials,US,États-Unis,S&P 500
 EG,Everest Group,Financials,US,États-Unis,S&P 500
 EG7.IR,FBD Holdings,,Europe,Irlande,ISEQ 20
 EGL.LS,Mota-Engil,Construction & Materials,Europe,Portugal,PSI
 EIX,Edison International,Utilities,US,États-Unis,S&P 500
 EL,Estée Lauder Companies (The),Consumer Staples,US,États-Unis,S&P 500
-EL.PA,EssilorLuxottica,Healthcare,Europe,France,CAC 40|EURO STOXX 50
-ELE.MC,Endesa,Energy,Europe,Espagne,IBEX 35
-ELI.BR,Elia Group,Utilities,Europe,Belgique,BEL 20
-ELISA.HE,Elisa,Communication Services,Europe,Finlande,OMX Helsinki 25
+EL.PA,EssilorLuxottica,Healthcare,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+ELE.MC,Endesa,Energy,Europe,Espagne,IBEX 35|STOXX Europe 600
+ELI.BR,Elia Group,Utilities,Europe,Belgique,BEL 20|STOXX Europe 600
+ELIS.PA,Elis Sa,,Europe,France,STOXX Europe 600
+ELISA.HE,Elisa,Communication Services,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 ELM.L,Elementis,Chemicals,Europe,Royaume-Uni,FTSE 250
 ELV,Elevance Health,Health Care,US,États-Unis,S&P 500
 EME,Emcor,Industrials,US,États-Unis,S&P 500
-EMG.L,Man Group,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+EMG.L,Man Group,Investment Trusts,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 EMR,Emerson Electric,Industrials,US,États-Unis,S&P 500
-EN.PA,Bouygues,Industrials,Europe,France,CAC 40
-ENEL.MI,Enel,Utilities,Europe,Italie,EURO STOXX 50|FTSE MIB
-ENG.MC,Enagás,Energy,Europe,Espagne,IBEX 35
-ENGI.PA,Engie,Utilities,Europe,France,CAC 40
-ENI.MI,Eni,Energy,Europe,Italie,EURO STOXX 50|FTSE MIB
+EMSN.SW,Ems-Chemie Holding Ag,,Europe,Suisse,STOXX Europe 600
+EN.PA,Bouygues,Industrials,Europe,France,CAC 40|STOXX Europe 600
+ENEL.MI,Enel,Utilities,Europe,Italie,EURO STOXX 50|FTSE MIB|STOXX Europe 600
+ENG.MC,Enagás,Energy,Europe,Espagne,IBEX 35|STOXX Europe 600
+ENGI.PA,Engie,Utilities,Europe,France,CAC 40|STOXX Europe 600
+ENI.MI,Eni,Energy,Europe,Italie,EURO STOXX 50|FTSE MIB|STOXX Europe 600
 ENOG.L,Energean,Oil & Gas Producers,Europe,Royaume-Uni,FTSE 250
-ENR.DE,Siemens Energy,Energy technology,Europe,Allemagne,DAX|EURO STOXX 50
-ENT.L,Entain,Travel & leisure,Europe,Royaume-Uni,FTSE 250
+ENR.DE,Siemens Energy,Energy technology,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+ENT.L,Entain,Travel & leisure,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 ENX.PA,Euronext,stock exchange,Europe,France,CAC Next 20
 EO.PA,Faurecia,automotive parts,Europe,France,CAC Next 20
-EOAN.DE,E.ON,Utilities,Europe,Allemagne,DAX
+EOAN.DE,E.ON,Utilities,Europe,Allemagne,DAX|STOXX Europe 600
 EOG,EOG Resources,Energy,US,États-Unis,S&P 500
-EPI-A.ST,Epiroc A,Industrials,Europe,Suède,OMX Stockholm 30
+EPI-A.ST,Epiroc A,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 EQIX,Equinix,Real Estate,US,États-Unis,S&P 500
-EQNR.OL,Equinor,integrated oil and gas,Europe,Norvège,OBX
+EQNR.OL,Equinor,integrated oil and gas,Europe,Norvège,OBX|STOXX Europe 600
 EQT,EQT Corporation,Energy,US,États-Unis,S&P 500
-EQT.ST,EQT,Financials,Europe,Suède,OMX Stockholm 30
-ERF.PA,Eurofins Scientific,Healthcare,Europe,France,CAC 40
-ERIC-B.ST,Ericsson B,Information Technology,Europe,Suède,OMX Stockholm 30
+EQT.ST,EQT,Financials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+ERF.PA,Eurofins Scientific,Healthcare,Europe,France,CAC 40|STOXX Europe 600
+ERIC-B.ST,Ericsson B,Information Technology,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 ERIE,Erie Indemnity,Financials,US,États-Unis,S&P 500
 ES,Eversource Energy,Utilities,US,États-Unis,S&P 500
 ESCT.L,European Smaller Companies Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 ESS,Essex Property Trust,Real Estate,US,États-Unis,S&P 500
-ESSITY-B.ST,Essity B,Consumer Staples,Europe,Suède,OMX Stockholm 30
+ESSITY-B.ST,Essity B,Consumer Staples,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+ETE.AT,National Bank Of Greece,,Europe,Grèce,STOXX Europe 600
 ETN,Eaton Corporation,Industrials,US,États-Unis,S&P 500
 ETR,Entergy,Utilities,US,États-Unis,S&P 500
-EVO.ST,Evolution,Consumer Discretionary,Europe,Suède,OMX Stockholm 30
+EUROB.AT,Eurobank Sa,,Europe,Grèce,STOXX Europe 600
+EVD.DE,Cts Eventim Ag,,Europe,Allemagne,STOXX Europe 600
+EVK.DE,Evonik Industries Ag,,Europe,Allemagne,STOXX Europe 600
+EVO.ST,Evolution,Consumer Discretionary,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 EVRG,Evergy,Utilities,US,États-Unis,S&P 500
 EW,Edwards Lifesciences,Health Care,US,États-Unis,S&P 500
 EWG.L,Eurowag,Financial Services,Europe,Royaume-Uni,FTSE 250
 EWI.L,Edinburgh Worldwide Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 EXC,Exelon,Utilities,US,États-Unis,S&P 500
 EXE,Expand Energy,Energy,US,États-Unis,S&P 500
-EXO.AS,Exor,Financials,Europe,Pays-Bas,AEX
+EXO.AS,Exor,Financials,Europe,Pays-Bas,AEX|STOXX Europe 600
 EXPD,Expeditors International,Industrials,US,États-Unis,S&P 500
 EXPE,Expedia Group,Consumer Discretionary,US,États-Unis,S&P 500
-EXPN.L,Experian,Support services,Europe,Royaume-Uni,FTSE 100
+EXPN.L,Experian,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 EXR,Extra Space Storage,Real Estate,US,États-Unis,S&P 500
-EZJ.L,EasyJet,Travel and Leisure,Europe,Royaume-Uni,FTSE 100
+EZJ.L,EasyJet,Travel and Leisure,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 F,Ford Motor Company,Consumer Discretionary,US,États-Unis,S&P 500
 FAN.L,Volution Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
 FANG,Diamondback Energy,Energy,US,États-Unis,S&P 500
 FAST,Fastenal,Industrials,US,États-Unis,S&P 500
-FBK.MI,FinecoBank,Banks,Europe,Italie,FTSE MIB
+FBK.MI,FinecoBank,Banks,Europe,Italie,FTSE MIB|STOXX Europe 600
 FCH.L,Funding Circle,Financial Services,Europe,Royaume-Uni,FTSE 250
 FCIT.L,F & C Investment Trust,Collective investments,Europe,Royaume-Uni,FTSE 100
 FCSS.L,Fidelity China Special Situations,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 FCT.MI,Fincantieri,Shipbuilding,Europe,Italie,FTSE MIB
 FCX,Freeport-McMoRan,Materials,US,États-Unis,S&P 500
+FDJU.PA,Fdj United,,Europe,France,STOXX Europe 600
 FDR.MC,Fluidra,Manufacturing,Europe,Espagne,IBEX 35
 FDS,FactSet,Financials,US,États-Unis,S&P 500
 FDX,FedEx,Industrials,US,États-Unis,S&P 500
@@ -984,63 +1046,73 @@ FEV.L,Fidelity European Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 FFIV,"F5, Inc.",Information Technology,US,États-Unis,S&P 500
 FGEN.L,Foresight Environmental Infrastructure,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 FGP.L,FirstGroup,Travel & Leisure,Europe,Royaume-Uni,FTSE 250
-FGR.PA,Eiffage,construction,Europe,France,CAC Next 20
+FGR.PA,Eiffage,construction,Europe,France,CAC Next 20|STOXX Europe 600
 FGT.L,Finsbury Growth & Income Trust,Equity Investments,Europe,Royaume-Uni,FTSE 250
+FHZN.SW,Flughafen Zuerich Ag,,Europe,Suisse,STOXX Europe 600
 FICO,Fair Isaac,Information Technology,US,États-Unis,S&P 500
 FIS,Fidelity National Information Services,Financials,US,États-Unis,S&P 500
 FISV,Fiserv,Financials,US,États-Unis,S&P 500
 FITB,Fifth Third Bancorp,Financials,US,États-Unis,S&P 500
 FIX,Comfort Systems USA,Industrials,US,États-Unis,S&P 500
 FLEX,Flex Ltd.,Information Technology,US,États-Unis,S&P 500
-FLS.CO,FLSmidth & Co.,Construction and Materials,Europe,Danemark,OMX Copenhagen 25
-FME.DE,Fresenius Medical Care,Healthcare,Europe,Allemagne,DAX
-FORTUM.HE,Fortum,Utilities,Europe,Finlande,OMX Helsinki 25
+FLS.CO,FLSmidth & Co.,Construction and Materials,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+FME.DE,Fresenius Medical Care,Healthcare,Europe,Allemagne,DAX|STOXX Europe 600
+FNTN.DE,Freenet Ag,,Europe,Allemagne,STOXX Europe 600
+FORTUM.HE,Fortum,Utilities,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 FOUR.L,4imprint,Media,Europe,Royaume-Uni,FTSE 250
 FOX,Fox Corporation (Class B),Communication Services,US,États-Unis,S&P 500
 FOXA,Fox Corporation (Class A),Communication Services,US,États-Unis,S&P 500
-FR.PA,Valeo,automotive parts,Europe,France,CAC Next 20
+FPE3.DE,Fuchs Pref,,Europe,Allemagne,STOXX Europe 600
+FR.PA,Valeo,automotive parts,Europe,France,CAC Next 20|STOXX Europe 600
 FRAS.L,Frasers Group,Retailers,Europe,Royaume-Uni,FTSE 250
-FRE.DE,Fresenius,Healthcare,Europe,Allemagne,DAX
-FRES.L,Fresnillo plc,Mining,Europe,Royaume-Uni,FTSE 100
-FRO.OL,Frontline,marine transportation,Europe,Norvège,OBX
+FRE.DE,Fresenius,Healthcare,Europe,Allemagne,DAX|STOXX Europe 600
+FRES.L,Fresnillo plc,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+FRO.OL,Frontline,marine transportation,Europe,Norvège,OBX|STOXX Europe 600
 FRT,Federal Realty Investment Trust,Real Estate,US,États-Unis,S&P 500
 FSG.L,Foresight Group,Investment Banking and Brokerage Services,Europe,Royaume-Uni,FTSE 250
 FSLR,First Solar,Information Technology,US,États-Unis,S&P 500
 FSV.L,Fidelity Special Values,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+FTK.DE,Flatexdegiro N,,Europe,Allemagne,STOXX Europe 600
 FTNT,Fortinet,Information Technology,US,États-Unis,S&P 500
 FTV,Fortive,Industrials,US,États-Unis,S&P 500
-G.MI,Generali,Insurance,Europe,Italie,FTSE MIB
-G1A.DE,GEA Group,Mechanical Engineering,Europe,Allemagne,DAX
-G24.DE,Scout24,E-Commerce,Europe,Allemagne,DAX
-GALP.LS,Galp Energia,Energy,Europe,Portugal,PSI
+G.MI,Generali,Insurance,Europe,Italie,FTSE MIB|STOXX Europe 600
+G1A.DE,GEA Group,Mechanical Engineering,Europe,Allemagne,DAX|STOXX Europe 600
+G24.DE,Scout24,E-Commerce,Europe,Allemagne,DAX|STOXX Europe 600
+GALD.SW,Galderma Group N Ag,,Europe,Suisse,STOXX Europe 600
+GALE.SW,Galenica Ag,,Europe,Suisse,STOXX Europe 600
+GALP.LS,Galp Energia,Energy,Europe,Portugal,PSI|STOXX Europe 600
 GAMA.L,Gamma Communications,Telecommunications,Europe,Royaume-Uni,FTSE 250
-GAW.L,Games Workshop,Leisure Goods,Europe,Royaume-Uni,FTSE 100
-GBLB.BR,GBL,Financials,Europe,Belgique,BEL 20
+GAW.L,Games Workshop,Leisure Goods,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+GBF.DE,Bilfinger,,Europe,Allemagne,STOXX Europe 600
+GBLB.BR,GBL,Financials,Europe,Belgique,BEL 20|STOXX Europe 600
 GCP.L,GCP Infrastructure Investments,General Financial,Europe,Royaume-Uni,FTSE 250
 GD,General Dynamics,Industrials,US,États-Unis,S&P 500
 GDDY,GoDaddy,Information Technology,US,États-Unis,S&P 500
 GDWN.L,Goodwin,General Industrials,Europe,Royaume-Uni,FTSE 250
 GE,GE Aerospace,Industrials,US,États-Unis,S&P 500
-GEBN.SW,Geberit AG,Industrials,Europe,Suisse,SMI
+GEBN.SW,Geberit AG,Industrials,Europe,Suisse,SMI|STOXX Europe 600
 GEHC,GE HealthCare,Health Care,US,États-Unis,S&P 500
+GEKTERNA.AT,Gek Terna,,Europe,Grèce,STOXX Europe 600
 GEN,Gen Digital,Information Technology,US,États-Unis,S&P 500
 GEN.L,Genuit Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
-GET.PA,Getlink,rail transport,Europe,France,CAC Next 20
+GET.PA,Getlink,rail transport,Europe,France,CAC Next 20|STOXX Europe 600
+GETI-B.ST,Getinge Class B,,Europe,Suède,STOXX Europe 600
 GEV,GE Vernova,Industrials,US,États-Unis,S&P 500
-GFC.PA,Gecina,real estate,Europe,France,CAC Next 20
+GF.SW,Georg Fischer Ag,,Europe,Suisse,STOXX Europe 600
+GFC.PA,Gecina,real estate,Europe,France,CAC Next 20|STOXX Europe 600
 GFRD.L,Galliford Try,Construction,Europe,Royaume-Uni,FTSE 250
 GFTU.L,Grafton Group,Support Services,Europe,Royaume-Uni,FTSE 250
 GILD,Gilead Sciences,Health Care,US,États-Unis,S&P 500
 GIS,General Mills,Consumer Staples,US,États-Unis,S&P 500
-GIVN.SW,Givaudan SA,Materials,Europe,Suisse,SMI
-GJF.OL,Gjensidige Forsikring,full line insurance,Europe,Norvège,OBX
+GIVN.SW,Givaudan SA,Materials,Europe,Suisse,SMI|STOXX Europe 600
+GJF.OL,Gjensidige Forsikring,full line insurance,Europe,Norvège,OBX|STOXX Europe 600
 GL,Globe Life,Financials,US,États-Unis,S&P 500
 GL9.IR,Glanbia,,Europe,Irlande,ISEQ 20
-GLE.PA,Société Générale,Financial Services,Europe,France,CAC 40
-GLEN.L,Glencore,Mining,Europe,Royaume-Uni,FTSE 100
+GLE.PA,Société Générale,Financial Services,Europe,France,CAC 40|STOXX Europe 600
+GLEN.L,Glencore,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 GLW,Corning Inc.,Information Technology,US,États-Unis,S&P 500
 GM,General Motors,Consumer Discretionary,US,États-Unis,S&P 500
-GMAB.CO,Genmab,Health Care,Europe,Danemark,OMX Copenhagen 25
+GMAB.CO,Genmab,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 GN.CO,GN Store Nord,Health Care,Europe,Danemark,OMX Copenhagen 25
 GNC.L,Greencore,"Food, Beverage and Tobacco",Europe,Royaume-Uni,FTSE 250
 GNRC,Generac,Industrials,US,États-Unis,S&P 500
@@ -1051,7 +1123,7 @@ GOOGL,Alphabet Inc. (Class A),Communication Services,US,États-Unis,S&P 500
 GPC,Genuine Parts Company,Consumer Discretionary,US,États-Unis,S&P 500
 GPE.L,Great Portland Estates,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
 GPN,Global Payments,Financials,US,États-Unis,S&P 500
-GRF.MC,Grifols,Pharmaceuticals,Europe,Espagne,IBEX 35
+GRF.MC,Grifols,Pharmaceuticals,Europe,Espagne,IBEX 35|STOXX Europe 600
 GRG.L,Greggs,Food & Drug Retailers,Europe,Royaume-Uni,FTSE 250
 GRI.L,Grainger,Real Estate Investment & Services,Europe,Royaume-Uni,FTSE 250
 GRMN,Garmin,Consumer Discretionary,US,États-Unis,S&P 500
@@ -1059,118 +1131,131 @@ GROW.L,Molten Ventures,Financial Services,Europe,Royaume-Uni,FTSE 250
 GRP.IR,Greencoat Renewables,,Europe,Irlande,ISEQ 20
 GS,Goldman Sachs,Financials,US,États-Unis,S&P 500
 GSCT.L,Global Smaller Companies Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-GSK.L,GSK plc,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100
+GSK.L,GSK plc,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+GTT.PA,Gaztransport & Technigaz Sa,,Europe,France,STOXX Europe 600
 GVR.IR,Glenveagh Properties,,Europe,Irlande,ISEQ 20
 GWW,W. W. Grainger,Industrials,US,États-Unis,S&P 500
 HAFNI.OL,Hafnia Limited,marine transportation,Europe,Norvège,OBX
+HAG.DE,Hensoldt Ag,,Europe,Allemagne,STOXX Europe 600
 HAL,Halliburton,Energy,US,États-Unis,S&P 500
 HANA.L,Hansa Investment Company,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 HAS,Hasbro,Consumer Discretionary,US,États-Unis,S&P 500
 HAS.L,Hays,Support Services,Europe,Royaume-Uni,FTSE 250
 HAUTO.OL,Höegh Autoliners ASA,marine transportation,Europe,Norvège,OBX
 HBAN,Huntington Bancshares,Financials,US,États-Unis,S&P 500
+HBAN.SW,Helvetia Baloise Holding N Ag,,Europe,Suisse,STOXX Europe 600
 HBR.L,Harbour Energy,Oil & Gas Producers,Europe,Royaume-Uni,FTSE 250
 HCA,HCA Healthcare,Health Care,US,États-Unis,S&P 500
 HD,Home Depot (The),Consumer Discretionary,US,États-Unis,S&P 500
-HEI.DE,Heidelberg Materials,Construction Materials,Europe,Allemagne,DAX
-HEIA.AS,Heineken,Consumer Staples,Europe,Pays-Bas,AEX
-HEN3.DE,Henkel,Consumer Goods,Europe,Allemagne,DAX
-HER.MI,Hera,Utilities,Europe,Italie,FTSE MIB
-HEXA-B.ST,Hexagon B,Information Technology,Europe,Suède,OMX Stockholm 30
+HEI.DE,Heidelberg Materials,Construction Materials,Europe,Allemagne,DAX|STOXX Europe 600
+HEIA.AS,Heineken,Consumer Staples,Europe,Pays-Bas,AEX|STOXX Europe 600
+HEIO.AS,Heineken Holding Nv,,Europe,Pays-Bas,STOXX Europe 600
+HEN3.DE,Henkel,Consumer Goods,Europe,Allemagne,DAX|STOXX Europe 600
+HER.MI,Hera,Utilities,Europe,Italie,FTSE MIB|STOXX Europe 600
+HEXA-B.ST,Hexagon B,Information Technology,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 HFD.L,Halfords,Retailers,Europe,Royaume-Uni,FTSE 250
 HFEL.L,Henderson Far East Income,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 HFG.L,Hilton Food Group,Food Producers,Europe,Royaume-Uni,FTSE 250
 HGT.L,Hg Capital Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-HIAB.HE,Hiab,Industrials,Europe,Finlande,OMX Helsinki 25
+HIAB.HE,Hiab,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 HICL.L,HICL Infrastructure Company,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 HIG,Hartford (The),Financials,US,États-Unis,S&P 500
 HII,Huntington Ingalls Industries,Industrials,US,États-Unis,S&P 500
-HIK.L,Hikma Pharmaceuticals,Pharmaceuticals and Biotechnology,Europe,Royaume-Uni,FTSE 250
+HIK.L,Hikma Pharmaceuticals,Pharmaceuticals and Biotechnology,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 HILS.L,Hill & Smith,Industrial Engineering,Europe,Royaume-Uni,FTSE 250
-HLMA.L,Halma plc,Electronic equipment & parts,Europe,Royaume-Uni,FTSE 100
-HLN.L,Haleon,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100
+HLMA.L,Halma plc,Electronic equipment & parts,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+HLN.L,Haleon,Pharmaceuticals & biotechnology,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 HLT,Hilton Worldwide,Consumer Discretionary,US,États-Unis,S&P 500
-HM-B.ST,Hennes & Mauritz B,Consumer Discretionary,Europe,Suède,OMX Stockholm 30
+HM-B.ST,Hennes & Mauritz B,Consumer Discretionary,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 HMSO.IR,Hammerson plc,,Europe,Irlande,ISEQ 20
 HMSO.L,Hammerson,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
-HNR1.DE,Hannover Re,Insurance,Europe,Allemagne,DAX
-HO.PA,Thales,Industrials,Europe,France,CAC 40
-HOC.L,Hochschild Mining,Basic Resources,Europe,Royaume-Uni,FTSE 250
-HOLN.SW,Holcim Limited,Materials,Europe,Suisse,SMI
+HNR1.DE,Hannover Re,Insurance,Europe,Allemagne,DAX|STOXX Europe 600
+HO.PA,Thales,Industrials,Europe,France,CAC 40|STOXX Europe 600
+HOC.L,Hochschild Mining,Basic Resources,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+HOLM-B.ST,Holmen Class B,,Europe,Suède,STOXX Europe 600
+HOLN.SW,Holcim Limited,Materials,Europe,Suisse,SMI|STOXX Europe 600
 HON,Honeywell Technologies,Industrials,US,États-Unis,S&P 500
 HONA,Honeywell Aerospace,Industrials,US,États-Unis,S&P 500
 HOOD,Robinhood Markets,Financials,US,États-Unis,S&P 500
+HOT.DE,Hochtief Ag,,Europe,Allemagne,STOXX Europe 600
 HPE,Hewlett Packard Enterprise,Information Technology,US,États-Unis,S&P 500
 HPQ,HP Inc.,Information Technology,US,États-Unis,S&P 500
 HRI.L,Herald Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 HRL,Hormel Foods,Consumer Staples,US,États-Unis,S&P 500
-HSBA.L,HSBC,Banks,Europe,Royaume-Uni,FTSE 100
+HSBA.L,HSBC,Banks,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 HSIC,Henry Schein,Health Care,US,États-Unis,S&P 500
 HSL.L,Henderson Smaller Companies Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 HST,Host Hotels & Resorts,Real Estate,US,États-Unis,S&P 500
-HSX.L,Hiscox,Non-life Insurance,Europe,Royaume-Uni,FTSE 100
+HSX.L,Hiscox,Non-life Insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 HSY,Hershey Company (The),Consumer Staples,US,États-Unis,S&P 500
 HTG.L,Hunting,"Oil, Gas and Coal",Europe,Royaume-Uni,FTSE 250
 HTWS.L,Helios Towers,Telecomms,Europe,Royaume-Uni,FTSE 250
 HUBB,Hubbell Incorporated,Industrials,US,États-Unis,S&P 500
-HUH1V.HE,Huhtamäki,Industrials,Europe,Finlande,OMX Helsinki 25
+HUBN.SW,Huber & Suhner Ag,,Europe,Suisse,STOXX Europe 600
+HUH1V.HE,Huhtamäki,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 HUM,Humana,Health Care,US,États-Unis,S&P 500
 HVPE.L,HarbourVest Global Private Equity,Equity Investments,Europe,Royaume-Uni,FTSE 250
-HWDN.L,Howdens Joinery,Homebuilding & construction supplies,Europe,Royaume-Uni,FTSE 100
+HWDN.L,Howdens Joinery,Homebuilding & construction supplies,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 HWG.L,Harworth Group,Real Estate,Europe,Royaume-Uni,FTSE 250
 HWM,Howmet Aerospace,Industrials,US,États-Unis,S&P 500
 IAD.L,Invesco Asia Dragon Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-IAG.L,International Airlines Group,Travel & leisure,Europe,Royaume-Uni,FTSE 100
+IAG.L,International Airlines Group,Travel & leisure,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 IAG.MC,International Airlines Group,Aviation,Europe,Espagne,IBEX 35
-IBE.MC,Iberdrola,Utilities,Europe,Espagne,EURO STOXX 50|IBEX 35
+IBE.MC,Iberdrola,Utilities,Europe,Espagne,EURO STOXX 50|IBEX 35|STOXX Europe 600
 IBKR,Interactive Brokers,Financials,US,États-Unis,S&P 500
 IBM,IBM,Information Technology,US,États-Unis,S&P 500
 IBS.LS,Ibersol,Travel & Leisure,Europe,Portugal,PSI
 ICE,Intercontinental Exchange,Financials,US,États-Unis,S&P 500
-ICG.L,ICG,Financial services,Europe,Royaume-Uni,FTSE 100
+ICG.L,ICG,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 ICGT.L,ICG Enterprise Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-IDR.MC,Indra,Information Technology,Europe,Espagne,IBEX 35
+IDR.MC,Indra,Information Technology,Europe,Espagne,IBEX 35|STOXX Europe 600
 IDXX,Idexx Laboratories,Health Care,US,États-Unis,S&P 500
 IEX,IDEX Corporation,Industrials,US,États-Unis,S&P 500
+IFCN.SW,Inficon Holding Ag,,Europe,Suisse,STOXX Europe 600
 IFF,International Flavors & Fragrances,Materials,US,États-Unis,S&P 500
-IFX.DE,Infineon Technologies,Technology,Europe,Allemagne,DAX|EURO STOXX 50
-IG.MI,Italgas,Utilities,Europe,Italie,FTSE MIB
-IGG.L,IG Group,Financial services,Europe,Royaume-Uni,FTSE 100
-IHG.L,IHG Hotels & Resorts,Travel & leisure,Europe,Royaume-Uni,FTSE 100
+IFX.DE,Infineon Technologies,Technology,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+IG.MI,Italgas,Utilities,Europe,Italie,FTSE MIB|STOXX Europe 600
+IGG.L,IG Group,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+IHG.L,IHG Hotels & Resorts,Travel & leisure,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 IHP.L,IntegraFin Holdings,Financial Services,Europe,Royaume-Uni,FTSE 250
-III.L,3i,Financial services,Europe,Royaume-Uni,FTSE 100
+III.L,3i,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 ILMN,"Illumina, Inc.",Health Care,US,États-Unis,S&P 500
-IMB.L,Imperial Brands,Tobacco,Europe,Royaume-Uni,FTSE 100
-IMCD.AS,IMCD,Basic Materials,Europe,Pays-Bas,AEX
-IMI.L,IMI,Industrial engineering,Europe,Royaume-Uni,FTSE 100
-INCH.L,Inchcape,Retailers,Europe,Royaume-Uni,FTSE 250
+IMB.L,Imperial Brands,Tobacco,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+IMCD.AS,IMCD,Basic Materials,Europe,Pays-Bas,AEX|STOXX Europe 600
+IMI.L,IMI,Industrial engineering,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+INCH.L,Inchcape,Retailers,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 INCY,Incyte,Health Care,US,États-Unis,S&P 500
-INDU-C.ST,Industrivärden C,Financials,Europe,Suède,OMX Stockholm 30
-INF.L,Informa,Media,Europe,Royaume-Uni,FTSE 100
-INGA.AS,ING Group,Financials,Europe,Pays-Bas,EURO STOXX 50|AEX
+INDT.ST,Indutrade,,Europe,Suède,STOXX Europe 600
+INDU-C.ST,Industrivärden C,Financials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+INF.L,Informa,Media,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+ING.WA,Ing Bank Slaski Sa,,Europe,Pologne,STOXX Europe 600
+INGA.AS,ING Group,Financials,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
 INPP.L,International Public Partnerships,Financial Services,Europe,Royaume-Uni,FTSE 250
+INPT.WA,Inpost Sa,,Europe,Pologne,STOXX Europe 600
 INTC,Intel,Information Technology,US,États-Unis,S&P 500
 INTU,Intuit,Information Technology,US,États-Unis,S&P 500
-INVE-B.ST,Investor B,Financials,Europe,Suède,OMX Stockholm 30
+INVE-B.ST,Investor B,Financials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 INVH,Invitation Homes,Real Estate,US,États-Unis,S&P 500
-INVP.L,Investec,Financial Services,Europe,Royaume-Uni,FTSE 100
+INVP.L,Investec,Financial Services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 INW.MI,INWIT,Telecommunications,Europe,Italie,FTSE MIB
 IP,International Paper,Materials,US,États-Unis,S&P 500
+IP.MI,Interpump Group,,Europe,Italie,STOXX Europe 600
+IPN.PA,Ipsen Sa,,Europe,France,STOXX Europe 600
 IPO.L,IP Group,Financial Services,Europe,Royaume-Uni,FTSE 250
 IQV,IQVIA,Health Care,US,États-Unis,S&P 500
 IR,Ingersoll Rand,Industrials,US,États-Unis,S&P 500
 IR5B.IR,Irish Continental Group,,Europe,Irlande,ISEQ 20
 IRES.IR,Irish Residential Properties REIT,,Europe,Irlande,ISEQ 20
 IRM,Iron Mountain,Real Estate,US,États-Unis,S&P 500
-ISP.MI,Intesa Sanpaolo,Financials,Europe,Italie,EURO STOXX 50|FTSE MIB
+ISP.MI,Intesa Sanpaolo,Financials,Europe,Italie,EURO STOXX 50|FTSE MIB|STOXX Europe 600
 ISRG,Intuitive Surgical,Health Care,US,États-Unis,S&P 500
-ISS.CO,ISS,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25
+ISS.CO,ISS,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 IT,Gartner,Information Technology,US,États-Unis,S&P 500
 ITH.L,Ithaca Energy,Oil & Gas Producers,Europe,Royaume-Uni,FTSE 100
-ITRK.L,Intertek,Support services,Europe,Royaume-Uni,FTSE 100
-ITV.L,ITV,Media,Europe,Royaume-Uni,FTSE 250
+ITRK.L,Intertek,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+ITV.L,ITV,Media,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 ITW,Illinois Tool Works,Industrials,US,États-Unis,S&P 500
-ITX.MC,Inditex,Consumer Discretionary,Europe,Espagne,EURO STOXX 50|IBEX 35
+ITX.MC,Inditex,Consumer Discretionary,Europe,Espagne,EURO STOXX 50|IBEX 35|STOXX Europe 600
 IVG.MI,Iveco,Industrial Goods and Services,Europe,Italie,FTSE MIB
 IVZ,Invesco,Financials,US,États-Unis,S&P 500
 IWG.L,International Workplace Group,Support Services,Europe,Royaume-Uni,FTSE 250
@@ -1188,24 +1273,28 @@ JEMI.L,JPMorgan Emerging Markets Dividend Income,Investment Trusts,Europe,Royaum
 JFJ.L,JPMorgan Japanese Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 JGGI.L,JPMorgan Global Growth & Income,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 JKHY,Jack Henry & Associates,Financials,US,États-Unis,S&P 500
-JMAT.L,Johnson Matthey,Chemicals,Europe,Royaume-Uni,FTSE 250
+JMAT.L,Johnson Matthey,Chemicals,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 JMGI.L,JPMorgan Emerging Markets Growth & Income,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-JMT.LS,Jerónimo Martins,"Personal Care, Drug & Grocery Stores",Europe,Portugal,PSI
+JMT.LS,Jerónimo Martins,"Personal Care, Drug & Grocery Stores",Europe,Portugal,PSI|STOXX Europe 600
 JNJ,Johnson & Johnson,Health Care,US,États-Unis,S&P 500
 JPM,JPMorgan Chase,Financials,US,États-Unis,S&P 500
 JSG.L,Johnson Service Group,Industrial Support Services,Europe,Royaume-Uni,FTSE 250
 JUP.L,Jupiter Fund Management,Financial Services,Europe,Royaume-Uni,FTSE 250
-JYSK.CO,Jyske Bank,Banks,Europe,Danemark,OMX Copenhagen 25
+JYSK.CO,Jyske Bank,Banks,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 KALMAR.HE,Kalmar [fi] B,Industrials,Europe,Finlande,OMX Helsinki 25
-KBC.BR,KBC,Financials,Europe,Belgique,BEL 20
-KCR.HE,Konecranes,Industrials,Europe,Finlande,OMX Helsinki 25
+KBC.BR,KBC,Financials,Europe,Belgique,BEL 20|STOXX Europe 600
+KBCA.BR,Kbc Ancora Nv,,Europe,Belgique,STOXX Europe 600
+KBX.DE,Knorr Bremse Ag,,Europe,Allemagne,STOXX Europe 600
+KCR.HE,Konecranes,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 KDP,Keurig Dr Pepper,Consumer Staples,US,États-Unis,S&P 500
 KEMIRA.HE,Kemira,Materials,Europe,Finlande,OMX Helsinki 25
-KER.PA,Kering,Consumer Cyclical,Europe,France,CAC 40
+KER.PA,Kering,Consumer Cyclical,Europe,France,CAC 40|STOXX Europe 600
 KESKOB.HE,Kesko B,Consumer Staples,Europe,Finlande,OMX Helsinki 25
 KEY,KeyCorp,Financials,US,États-Unis,S&P 500
 KEYS,Keysight Technologies,Information Technology,US,États-Unis,S&P 500
-KGF.L,Kingfisher plc,Retailers,Europe,Royaume-Uni,FTSE 100
+KGF.L,Kingfisher plc,Retailers,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+KGH.WA,Kghm Polska Miedz Sa,,Europe,Pologne,STOXX Europe 600
+KGX.DE,Kion Group Ag,,Europe,Allemagne,STOXX Europe 600
 KHC,Kraft Heinz,Consumer Staples,US,États-Unis,S&P 500
 KIE.L,Kier Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
 KIM,Kimco Realty,Real Estate,US,États-Unis,S&P 500
@@ -1215,46 +1304,55 @@ KLR.L,Keller Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
 KMB,Kimberly-Clark,Consumer Staples,US,États-Unis,S&P 500
 KMI,Kinder Morgan,Energy,US,États-Unis,S&P 500
 KMR.IR,Kenmare Resources,,Europe,Irlande,ISEQ 20
-KNEBV.HE,KONE,Industrials,Europe,Finlande,OMX Helsinki 25
-KNIN.SW,Kuehne + Nagel,Industrials,Europe,Suisse,SMI
+KNEBV.HE,KONE,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+KNIN.SW,Kuehne + Nagel,Industrials,Europe,Suisse,SMI|STOXX Europe 600
 KNOS.L,Kainos,Software & Computer Services,Europe,Royaume-Uni,FTSE 250
 KO,Coca-Cola Company (The),Consumer Staples,US,États-Unis,S&P 500
-KOG.OL,Kongsberg Gruppen,diversified industrials,Europe,Norvège,OBX
+KOG.OL,Kongsberg Gruppen,diversified industrials,Europe,Norvège,OBX|STOXX Europe 600
 KOJAMO.HE,Kojamo [fi],Real Estate,Europe,Finlande,OMX Helsinki 25
-KPN.AS,KPN,Telecommunications,Europe,Pays-Bas,AEX
+KPN.AS,KPN,Telecommunications,Europe,Pays-Bas,AEX|STOXX Europe 600
 KR,Kroger,Consumer Staples,US,États-Unis,S&P 500
-KRX.IR,Kingspan Group,,Europe,Irlande,ISEQ 20
+KRX.IR,Kingspan Group,,Europe,Irlande,ISEQ 20|STOXX Europe 600
 KRZ.IR,Kerry Group,,Europe,Irlande,ISEQ 20
+KTY.WA,Grupa Kety,,Europe,Pologne,STOXX Europe 600
 KVUE,Kenvue,Consumer Staples,US,États-Unis,S&P 500
 L,Loews Corporation,Financials,US,États-Unis,S&P 500
-LAND.L,Land Securities,Real estate investment trusts,Europe,Royaume-Uni,FTSE 100
-LDO.MI,Leonardo,Industrial Goods and Services,Europe,Italie,FTSE MIB
+LAGR-B.ST,Lagercrantz Group Class B,,Europe,Suède,STOXX Europe 600
+LAND.L,Land Securities,Real estate investment trusts,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+LATO-B.ST,Latour Investment Class B,,Europe,Suède,STOXX Europe 600
+LDO.MI,Leonardo,Industrial Goods and Services,Europe,Italie,FTSE MIB|STOXX Europe 600
 LDOS,Leidos,Industrials,US,États-Unis,S&P 500
+LEG.DE,Leg Immobilien N,,Europe,Allemagne,STOXX Europe 600
 LEN,Lennar,Consumer Discretionary,US,États-Unis,S&P 500
-LGEN.L,Legal & General,Life insurance,Europe,Royaume-Uni,FTSE 100
+LGEN.L,Legal & General,Life insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 LH,Labcorp,Health Care,US,États-Unis,S&P 500
+LHA.DE,Deutsche Lufthansa Ag,,Europe,Allemagne,STOXX Europe 600
 LHX,L3Harris,Industrials,US,États-Unis,S&P 500
-LI.PA,Klépierre,real estate,Europe,France,CAC Next 20
-LIFCO-B.ST,Lifco B,Industrials,Europe,Suède,OMX Stockholm 30
+LI.PA,Klépierre,real estate,Europe,France,CAC Next 20|STOXX Europe 600
+LIFCO-B.ST,Lifco B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 LII,Lennox International,Industrials,US,États-Unis,S&P 500
 LIN,Linde plc,Materials,US,États-Unis,S&P 500
+LISP.SW,Chocoladefabriken Lindt & Spruengl,,Europe,Suisse,STOXX Europe 600
 LITE,Lumentum,Information Technology,US,États-Unis,S&P 500
-LLOY.L,Lloyds Banking Group,Banks,Europe,Royaume-Uni,FTSE 100
+LLOY.L,Lloyds Banking Group,Banks,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 LLY,Lilly (Eli),Health Care,US,États-Unis,S&P 500
-LMP.L,LondonMetric Property,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 100
+LMP.L,LondonMetric Property,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 LMT,Lockheed Martin,Industrials,US,États-Unis,S&P 500
 LNT,Alliant Energy,Utilities,US,États-Unis,S&P 500
 LOG.MC,Logista,Logistics,Europe,Espagne,IBEX 35
-LOGN.SW,Logitech International SA,Information technology,Europe,Suisse,SMI
-LONN.SW,Lonza Group AG,Materials,Europe,Suisse,SMI
-LOTB.BR,Lotus Bakeries,Consumer Staples,Europe,Belgique,BEL 20
+LOGN.SW,Logitech International SA,Information technology,Europe,Suisse,SMI|STOXX Europe 600
+LONN.SW,Lonza Group AG,Materials,Europe,Suisse,SMI|STOXX Europe 600
+LOOMIS.ST,Loomis Class B,,Europe,Suède,STOXX Europe 600
+LOTB.BR,Lotus Bakeries,Consumer Staples,Europe,Belgique,BEL 20|STOXX Europe 600
 LOW,Lowe's,Consumer Discretionary,US,États-Unis,S&P 500
-LR.PA,Legrand,Industrials,Europe,France,CAC 40
+LPP.WA,Lpp Sa,,Europe,Pologne,STOXX Europe 600
+LR.PA,Legrand,Industrials,Europe,France,CAC 40|STOXX Europe 600
 LRCX,Lam Research,Information Technology,US,États-Unis,S&P 500
 LRE.L,Lancashire Holdings,Nonlife Insurance,Europe,Royaume-Uni,FTSE 250
-LSEG.L,London Stock Exchange Group,Financial services,Europe,Royaume-Uni,FTSE 100
-LTMC.MI,Lottomatica Group,Gambling,Europe,Italie,FTSE MIB
+LSEG.L,London Stock Exchange Group,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+LTMC.MI,Lottomatica Group,Gambling,Europe,Italie,FTSE MIB|STOXX Europe 600
 LULU,Lululemon Athletica,Consumer Discretionary,US,États-Unis,S&P 500
+LUND-B.ST,Lundbergforetagen Class B,,Europe,Suède,STOXX Europe 600
 LUV,Southwest Airlines,Industrials,US,États-Unis,S&P 500
 LVS,Las Vegas Sands,Consumer Discretionary,US,États-Unis,S&P 500
 LWDB.L,Law Debenture,Investment Trusts,Europe,Royaume-Uni,FTSE 250
@@ -1264,14 +1362,15 @@ MA,Mastercard,Financials,US,États-Unis,S&P 500
 MAA,Mid-America Apartment Communities,Real Estate,US,États-Unis,S&P 500
 MAB.L,Mitchells & Butlers,Travel & Leisure,Europe,Royaume-Uni,FTSE 250
 MAERSK-A.CO,A.P. Møller-Mærsk (class A),Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25
-MAERSK-B.CO,A.P. Møller-Mærsk (class B),Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25
-MANTA.HE,Mandatum [fi],Financials,Europe,Finlande,OMX Helsinki 25
-MAP.MC,Mapfre,Insurance,Europe,Espagne,IBEX 35
+MAERSK-B.CO,A.P. Møller-Mærsk (class B),Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+MANTA.HE,Mandatum [fi],Financials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+MAP.MC,Mapfre,Insurance,Europe,Espagne,IBEX 35|STOXX Europe 600
 MAR,Marriott International,Consumer Discretionary,US,États-Unis,S&P 500
 MAS,Masco,Industrials,US,États-Unis,S&P 500
 MB.MI,Mediobanca,Banks,Europe,Italie,FTSE MIB
-MBG.DE,Mercedes-Benz Group,Automotive,Europe,Allemagne,DAX|EURO STOXX 50
-MC.PA,LVMH,Consumer Cyclical,Europe,France,CAC 40|EURO STOXX 50
+MBG.DE,Mercedes-Benz Group,Automotive,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+MBK.WA,Mbank Sa,,Europe,Pologne,STOXX Europe 600
+MC.PA,LVMH,Consumer Cyclical,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 MCD,McDonald's,Consumer Discretionary,US,États-Unis,S&P 500
 MCHP,Microchip Technology,Information Technology,US,États-Unis,S&P 500
 MCK,McKesson Corporation,Health Care,US,États-Unis,S&P 500
@@ -1282,56 +1381,61 @@ MEGP.L,ME Group International,Leisure Goods,Europe,Royaume-Uni,FTSE 250
 MELE.BR,Melexis [nl],Electronic Equipment,Europe,Belgique,BEL 20
 MET,MetLife,Financials,US,États-Unis,S&P 500
 META,Meta Platforms,Communication Services,US,États-Unis,S&P 500
-METSO.HE,Metso,Industrials,Europe,Finlande,OMX Helsinki 25
+METSO.HE,Metso,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 MGAM.L,Morgan Advanced Materials,Electronic & Electrical Equipment,Europe,Royaume-Uni,FTSE 250
 MGM,MGM Resorts,Consumer Discretionary,US,États-Unis,S&P 500
 MGNS.L,Morgan Sindall Group,Construction & Materials,Europe,Royaume-Uni,FTSE 250
+MICC.AS,Magnum Ice Cream,,Europe,Pays-Bas,STOXX Europe 600
+MIL.WA,Bank Millennium Sa,,Europe,Pologne,STOXX Europe 600
 MIO.IR,Mincon group,,Europe,Irlande,ISEQ 20
 MKC,McCormick & Company,Consumer Staples,US,États-Unis,S&P 500
-MKS.L,Marks & Spencer,Food & drug retailing,Europe,Royaume-Uni,FTSE 100
-ML.PA,Michelin,Industrials,Europe,France,CAC 40
+MKS.L,Marks & Spencer,Food & drug retailing,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+ML.PA,Michelin,Industrials,Europe,France,CAC 40|STOXX Europe 600
 MLC.IR,Malin Corp.,,Europe,Irlande,ISEQ 20
 MLM,Martin Marietta Materials,Materials,US,États-Unis,S&P 500
 MMM,3M,Industrials,US,États-Unis,S&P 500
-MNDI.L,Mondi,Containers & packaging,Europe,Royaume-Uni,FTSE 250
-MNG.L,M&G,Financial services,Europe,Royaume-Uni,FTSE 100
+MNDI.L,Mondi,Containers & packaging,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+MNG.L,M&G,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 MNKS.L,Monks Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 MNST,Monster Beverage,Consumer Staples,US,États-Unis,S&P 500
 MNTN.L,Schiehallion Fund,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 MO,Altria,Consumer Staples,US,États-Unis,S&P 500
-MONC.MI,Moncler,Consumer Products and Services,Europe,Italie,FTSE MIB
+MOBN.SW,Mobimo Holding Ag,,Europe,Suisse,STOXX Europe 600
+MOH.AT,Motor Oil (Hellas) Corinth Refiner,,Europe,Grèce,STOXX Europe 600
+MONC.MI,Moncler,Consumer Products and Services,Europe,Italie,FTSE MIB|STOXX Europe 600
 MONT.BR,Montea,Real Estate,Europe,Belgique,BEL 20
 MONY.L,MONY Group,Media,Europe,Royaume-Uni,FTSE 250
 MOON.L,Moonpig,Retailers,Europe,Royaume-Uni,FTSE 250
 MOS,Mosaic Company (The),Materials,US,États-Unis,S&P 500
-MOWI.OL,Mowi,"farming, fishing, ranching and plantations",Europe,Norvège,OBX
+MOWI.OL,Mowi,"farming, fishing, ranching and plantations",Europe,Norvège,OBX|STOXX Europe 600
 MPC,Marathon Petroleum,Energy,US,États-Unis,S&P 500
 MPCC.OL,MPC Container Ships,marine transportation,Europe,Norvège,OBX
 MPWR,Monolithic Power Systems,Information Technology,US,États-Unis,S&P 500
 MRC.L,Mercantile Investment Trust,Collective Investments,Europe,Royaume-Uni,FTSE 250
 MRCH.L,Merchants Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 MRK,Merck & Co.,Health Care,US,États-Unis,S&P 500
-MRK.DE,Merck,Pharmaceuticals,Europe,Allemagne,DAX
-MRL.MC,Merlin Properties,Real Estate,Europe,Espagne,IBEX 35
+MRK.DE,Merck,Pharmaceuticals,Europe,Allemagne,DAX|STOXX Europe 600
+MRL.MC,Merlin Properties,Real Estate,Europe,Espagne,IBEX 35|STOXX Europe 600
 MRNA,Moderna,Health Care,US,États-Unis,S&P 500
-MRO.L,Melrose Industries,Aerospace & defence,Europe,Royaume-Uni,FTSE 100
+MRO.L,Melrose Industries,Aerospace & defence,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 MRSH,Marsh McLennan,Financials,US,États-Unis,S&P 500
 MRVL,Marvell Technology,Information Technology,US,États-Unis,S&P 500
 MS,Morgan Stanley,Financials,US,États-Unis,S&P 500
 MSCI,MSCI,Financials,US,États-Unis,S&P 500
 MSFT,Microsoft,Information Technology,US,États-Unis,S&P 500
 MSI,Motorola Solutions,Information Technology,US,États-Unis,S&P 500
-MT.AS,ArcelorMittal,Basic Materials,Europe,Pays-Bas,CAC 40|AEX
+MT.AS,ArcelorMittal,Basic Materials,Europe,Pays-Bas,CAC 40|AEX|STOXX Europe 600
 MTB,M&T Bank,Financials,US,États-Unis,S&P 500
 MTD,Mettler Toledo,Health Care,US,États-Unis,S&P 500
-MTLN.L,Metlen Energy & Metals,Multiline utilities,Europe,Royaume-Uni,FTSE 100
-MTO.L,Mitie,Support Services,Europe,Royaume-Uni,FTSE 250
+MTLN.L,Metlen Energy & Metals,Multiline utilities,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+MTO.L,Mitie,Support Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 MTRO.L,Metro Bank,Banks,Europe,Royaume-Uni,FTSE 250
 MTS.MC,ArcelorMittal,Steel,Europe,Espagne,IBEX 35
-MTX.DE,MTU Aero Engines,Aerospace & Defence,Europe,Allemagne,DAX
+MTX.DE,MTU Aero Engines,Aerospace & Defence,Europe,Allemagne,DAX|STOXX Europe 600
 MU,Micron Technology,Information Technology,US,États-Unis,S&P 500
 MUT.L,Murray Income Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-MUV2.DE,Munich Re,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50
+MUV2.DE,Munich Re,Financial Services,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+MYCR.ST,Mycronic,,Europe,Suède,STOXX Europe 600
 MYI.L,Murray International Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 N91.L,Ninety One,Financial Services,Europe,Royaume-Uni,FTSE 250
 NAIT.L,North American Income Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
@@ -1344,43 +1448,47 @@ NCLH,Norwegian Cruise Line Holdings,Consumer Discretionary,US,États-Unis,S&P 50
 NDA-FI.HE,Nordea,Financials,Europe,Finlande,OMX Helsinki 25|EURO STOXX 50
 NDA-SE.ST,Nordea Bank Abp,Financials,Europe,Suède,OMX Stockholm 30
 NDA.CO,Nordea Bank Abp,Banks,Europe,Danemark,OMX Copenhagen 25
+NDA.DE,Aurubis Ag,,Europe,Allemagne,STOXX Europe 600
 NDAQ,"Nasdaq, Inc.",Financials,US,États-Unis,S&P 500
 NDSN,Nordson Corporation,Industrials,US,États-Unis,S&P 500
+NDX1.DE,Nordex,,Europe,Allemagne,STOXX Europe 600
 NEE,NextEra Energy,Utilities,US,États-Unis,S&P 500
 NEM,Newmont,Materials,US,États-Unis,S&P 500
-NESN.SW,Nestlé SA,Retail staples,Europe,Suisse,SMI
-NESTE.HE,Neste,Energy,Europe,Finlande,OMX Helsinki 25
-NEXI.MI,Nexi,Industrial Goods and Services,Europe,Italie,FTSE MIB
+NEM.DE,Nemetschek,,Europe,Allemagne,STOXX Europe 600
+NESN.SW,Nestlé SA,Retail staples,Europe,Suisse,SMI|STOXX Europe 600
+NESTE.HE,Neste,Energy,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+NEX.PA,Nexans Sa,,Europe,France,STOXX Europe 600
+NEXI.MI,Nexi,Industrial Goods and Services,Europe,Italie,FTSE MIB|STOXX Europe 600
 NFLX,Netflix,Communication Services,US,États-Unis,S&P 500
 NG.L,National Grid plc,Multiline utilities,Europe,Royaume-Uni,FTSE 100
-NHY.OL,Norsk Hydro,aluminum,Europe,Norvège,OBX
+NHY.OL,Norsk Hydro,aluminum,Europe,Norvège,OBX|STOXX Europe 600
 NI,NiSource,Utilities,US,États-Unis,S&P 500
-NIBE-B.ST,Nibe Industrier B,Industrials,Europe,Suède,OMX Stockholm 30
+NIBE-B.ST,Nibe Industrier B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 NKE,"Nike, Inc.",Consumer Discretionary,US,États-Unis,S&P 500
-NKT.CO,NKT,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25
-NN.AS,NN Group,Financials,Europe,Pays-Bas,AEX
+NKT.CO,NKT,Industrial Goods and Services,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+NN.AS,NN Group,Financials,Europe,Pays-Bas,AEX|STOXX Europe 600
 NOC,Northrop Grumman,Industrials,US,États-Unis,S&P 500
-NOD.OL,Nordic Semiconductor,semiconductors,Europe,Norvège,OBX
-NOKIA.HE,Nokia,Information Technology,Europe,Finlande,OMX Helsinki 25
+NOD.OL,Nordic Semiconductor,semiconductors,Europe,Norvège,OBX|STOXX Europe 600
+NOKIA.HE,Nokia,Information Technology,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 NOS.LS,NOS,Telecommunications,Europe,Portugal,PSI
-NOVN.SW,Novartis International AG,Health care,Europe,Suisse,SMI
-NOVO-B.CO,Novo Nordisk,Health Care,Europe,Danemark,OMX Copenhagen 25
+NOVN.SW,Novartis International AG,Health care,Europe,Suisse,SMI|STOXX Europe 600
+NOVO-B.CO,Novo Nordisk,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 NOW,ServiceNow,Information Technology,US,États-Unis,S&P 500
 NRG,NRG Energy,Utilities,US,États-Unis,S&P 500
 NSC,Norfolk Southern,Industrials,US,États-Unis,S&P 500
-NSIS-B.CO,Novonesis,Health Care,Europe,Danemark,OMX Copenhagen 25
+NSIS-B.CO,Novonesis,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 NTAP,NetApp,Information Technology,US,États-Unis,S&P 500
-NTGY.MC,Naturgy,Energy,Europe,Espagne,IBEX 35
+NTGY.MC,Naturgy,Energy,Europe,Espagne,IBEX 35|STOXX Europe 600
 NTRS,Northern Trust,Financials,US,États-Unis,S&P 500
 NUE,Nucor,Materials,US,États-Unis,S&P 500
 NVDA,Nvidia,Information Technology,US,États-Unis,S&P 500
 NVG.LS,The Navigator Company,Basic Resources,Europe,Portugal,PSI
 NVR,"NVR, Inc.",Consumer Discretionary,US,États-Unis,S&P 500
-NWG.L,NatWest Group,Banks,Europe,Royaume-Uni,FTSE 100
+NWG.L,NatWest Group,Banks,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 NWS,News Corp (Class B),Communication Services,US,États-Unis,S&P 500
 NWSA,News Corp (Class A),Communication Services,US,États-Unis,S&P 500
 NXPI,NXP Semiconductors,Information Technology,US,États-Unis,S&P 500
-NXT.L,Next plc,General retailers,Europe,Royaume-Uni,FTSE 100
+NXT.L,Next plc,General retailers,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 O,Realty Income,Real Estate,US,États-Unis,S&P 500
 OCDO.L,Ocado Group,Food & drug retailers,Europe,Royaume-Uni,FTSE 250
 OCI.L,Oakley Capital Investments,Investment Trusts,Europe,Royaume-Uni,FTSE 250
@@ -1388,15 +1496,16 @@ ODFL,Old Dominion,Industrials,US,États-Unis,S&P 500
 OIZ.IR,Origin Enterprises,,Europe,Irlande,ISEQ 20
 OKE,Oneok,Energy,US,États-Unis,S&P 500
 OMC,Omnicom Group,Communication Services,US,États-Unis,S&P 500
+OMV.VI,Omv,,Europe,Autriche,STOXX Europe 600
 ON,ON Semiconductor,Information Technology,US,États-Unis,S&P 500
 ONT.L,Oxford Nanopore Technologies,Health Care,Europe,Royaume-Uni,FTSE 250
-OR.PA,L'Oréal,Consumer Defensive,Europe,France,CAC 40|EURO STOXX 50
-ORA.PA,Orange,Communication Services,Europe,France,CAC 40
+OR.PA,L'Oréal,Consumer Defensive,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+ORA.PA,Orange,Communication Services,Europe,France,CAC 40|STOXX Europe 600
 ORCL,Oracle Corporation,Information Technology,US,États-Unis,S&P 500
-ORK.OL,Orkla,food products,Europe,Norvège,OBX
+ORK.OL,Orkla,food products,Europe,Norvège,OBX|STOXX Europe 600
 ORLY,O'Reilly Automotive,Consumer Discretionary,US,États-Unis,S&P 500
-ORNBV.HE,Orion,Health Care,Europe,Finlande,OMX Helsinki 25
-ORSTED.CO,Ørsted,Utilities,Europe,Danemark,OMX Copenhagen 25
+ORNBV.HE,Orion,Health Care,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+ORSTED.CO,Ørsted,Utilities,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 OSB.L,OSB Group,Banks,Europe,Royaume-Uni,FTSE 250
 OTIS,Otis Worldwide,Industrials,US,États-Unis,S&P 500
 OUT1V.HE,Outokumpu,Materials,Europe,Finlande,OMX Helsinki 25
@@ -1404,10 +1513,11 @@ OXB.L,Oxford Biomedica,Pharmaceuticals and Biotechnology,Europe,Royaume-Uni,FTSE
 OXIG.L,Oxford Instruments,Electronic & Electrical Equipment,Europe,Royaume-Uni,FTSE 250
 OXY,Occidental Petroleum,Energy,US,États-Unis,S&P 500
 P,Everpure,Information Technology,US,États-Unis,S&P 500
-PAF.L,Pan African Resources,Precious Metals and Mining,Europe,Royaume-Uni,FTSE 250
+P911.DE,Dr Ing Hc F Porsche Prf Ag,,Europe,Allemagne,STOXX Europe 600
+PAF.L,Pan African Resources,Precious Metals and Mining,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 PAG.L,Paragon Banking Group,Financial Services,Europe,Royaume-Uni,FTSE 250
 PAGE.L,Michael Page,Support Services,Europe,Royaume-Uni,FTSE 250
-PAH3.DE,Porsche SE,Automotive,Europe,Allemagne,DAX
+PAH3.DE,Porsche SE,Automotive,Europe,Allemagne,DAX|STOXX Europe 600
 PANW,Palo Alto Networks,Information Technology,US,États-Unis,S&P 500
 PAYX,Paychex,Industrials,US,États-Unis,S&P 500
 PCAR,Paccar,Industrials,US,États-Unis,S&P 500
@@ -1415,6 +1525,7 @@ PCG,PG&E Corporation,Utilities,US,États-Unis,S&P 500
 PCGH.L,Polar Capital Global Healthcare Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 PCT.L,Polar Capital Technology Trust,Investment trusts,Europe,Royaume-Uni,FTSE 100
 PEG,Public Service Enterprise Group,Utilities,US,États-Unis,S&P 500
+PEO.WA,Bank Pekao Sa,,Europe,Pologne,STOXX Europe 600
 PEP,PepsiCo,Consumer Staples,US,États-Unis,S&P 500
 PETS.L,Pets at Home,Retailers,Europe,Royaume-Uni,FTSE 250
 PEY.L,Partners Group Private Equity,Investment Trusts,Europe,Royaume-Uni,FTSE 250
@@ -1422,157 +1533,187 @@ PFD.L,Premier Foods,Food & Drug Retailers,Europe,Royaume-Uni,FTSE 250
 PFE,Pfizer,Health Care,US,États-Unis,S&P 500
 PFG,Principal Financial Group,Financials,US,États-Unis,S&P 500
 PG,Procter & Gamble,Consumer Staples,US,États-Unis,S&P 500
-PGHN.SW,Partners Group Holding AG,Financials,Europe,Suisse,SMI
+PGHN.SW,Partners Group Holding AG,Financials,Europe,Suisse,SMI|STOXX Europe 600
 PGR,Progressive Corporation,Financials,US,États-Unis,S&P 500
 PH,Parker Hannifin,Industrials,US,États-Unis,S&P 500
 PHI.L,Pacific Horizon Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-PHIA.AS,Philips,Health Care,Europe,Pays-Bas,AEX
+PHIA.AS,Philips,Health Care,Europe,Pays-Bas,AEX|STOXX Europe 600
 PHM,PulteGroup,Consumer Discretionary,US,États-Unis,S&P 500
-PHP.L,Primary Health Properties,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
+PHP.L,Primary Health Properties,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 PHR.LS,Pharol,Telecommunications,Europe,Portugal,PSI
 PIN.L,Pantheon International,Equity Investments,Europe,Royaume-Uni,FTSE 250
 PINE.L,Pinewood Technologies,Software and Computer Services,Europe,Royaume-Uni,FTSE 250
 PINT.L,Pantheon Infrastructure,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+PIRC.MI,Pirelli & C,,Europe,Italie,STOXX Europe 600
 PKG,Packaging Corporation of America,Materials,US,États-Unis,S&P 500
+PKN.WA,Orlen,,Europe,Pologne,STOXX Europe 600
+PKO.WA,Powszechna Kasa Oszczednosci Bank,,Europe,Pologne,STOXX Europe 600
 PLD,Prologis,Real Estate,US,États-Unis,S&P 500
 PLTR,Palantir Technologies,Information Technology,US,États-Unis,S&P 500
-PLUS.L,Plus500,Financial Services,Europe,Royaume-Uni,FTSE 250
+PLUS.L,Plus500,Financial Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 PM,Philip Morris International,Consumer Staples,US,États-Unis,S&P 500
 PNC,PNC Financial Services,Financials,US,États-Unis,S&P 500
-PNDORA.CO,Pandora,Consumer Products and Services,Europe,Danemark,OMX Copenhagen 25
+PNDORA.CO,Pandora,Consumer Products and Services,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 PNL.L,Personal Assets Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-PNN.L,Pennon Group,"Gas, Water & Multiutilities",Europe,Royaume-Uni,FTSE 250
+PNN.L,Pennon Group,"Gas, Water & Multiutilities",Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 PNR,Pentair,Industrials,US,États-Unis,S&P 500
 PNW,Pinnacle West Capital,Utilities,US,États-Unis,S&P 500
 PODD,Insulet Corporation,Health Care,US,États-Unis,S&P 500
 POLN.L,Pollen Street Group,Financial Services,Europe,Royaume-Uni,FTSE 250
+PPC.AT,Public Power Corporation Sa,,Europe,Grèce,STOXX Europe 600
 PPET.L,Patria Private Equity Trust,Financial Services,Europe,Royaume-Uni,FTSE 250
 PPG,PPG Industries,Materials,US,États-Unis,S&P 500
 PPH.L,PPHE Hotel Group,Travel and Leisure,Europe,Royaume-Uni,FTSE 250
 PPL,PPL Corporation,Utilities,US,États-Unis,S&P 500
 PRN.L,Princes Group,Food and drink,Europe,Royaume-Uni,FTSE 250
 PRU,Prudential Financial,Financials,US,États-Unis,S&P 500
-PRU.L,Prudential plc,Life insurance,Europe,Royaume-Uni,FTSE 100
-PRX.AS,Prosus,Consumer Discretionary,Europe,Pays-Bas,EURO STOXX 50|AEX
-PRY.MI,Prysmian,Industrial Goods and Services,Europe,Italie,FTSE MIB
+PRU.L,Prudential plc,Life insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+PRX.AS,Prosus,Consumer Discretionary,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
+PRY.MI,Prysmian,Industrial Goods and Services,Europe,Italie,FTSE MIB|STOXX Europe 600
 PSA,Public Storage,Real Estate,US,États-Unis,S&P 500
 PSH.L,Pershing Square Holdings,Financial services,Europe,Royaume-Uni,FTSE 100
 PSKY,Paramount Skydance Corporation,Communication Services,US,États-Unis,S&P 500
-PSN.L,Persimmon,Household goods & home construction,Europe,Royaume-Uni,FTSE 250
-PSON.L,Pearson plc,Media,Europe,Royaume-Uni,FTSE 100
-PST.MI,Poste italiane,Financial Services,Europe,Italie,FTSE MIB
+PSN.L,Persimmon,Household goods & home construction,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+PSON.L,Pearson plc,Media,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+PSPN.SW,Psp Swiss Property Ag,,Europe,Suisse,STOXX Europe 600
+PST.MI,Poste italiane,Financial Services,Europe,Italie,FTSE MIB|STOXX Europe 600
 PSX,Phillips 66,Energy,US,États-Unis,S&P 500
 PTC,PTC Inc.,Information Technology,US,États-Unis,S&P 500
 PTEC.L,Playtech,Software & Computer Services,Europe,Royaume-Uni,FTSE 250
 PTSB.IR,Permanent TSB,,Europe,Irlande,ISEQ 20
-PUB.PA,Publicis,Communication Services,Europe,France,CAC 40
-PUIG.MC,Puig,Clothes and Cosmetics,Europe,Espagne,IBEX 35
+PUB.PA,Publicis,Communication Services,Europe,France,CAC 40|STOXX Europe 600
+PUIG.MC,Puig,Clothes and Cosmetics,Europe,Espagne,IBEX 35|STOXX Europe 600
+PUM.DE,Puma,,Europe,Allemagne,STOXX Europe 600
 PWR,Quanta Services,Industrials,US,États-Unis,S&P 500
 PYPL,PayPal,Financials,US,États-Unis,S&P 500
+PZU.WA,Pzu Sa,,Europe,Pologne,STOXX Europe 600
 Q,Qnity Electronics,Information Technology,US,États-Unis,S&P 500
 QCOM,Qualcomm,Information Technology,US,États-Unis,S&P 500
-QIA.DE,Qiagen,Biotech,Europe,Allemagne,DAX
-QLT.L,Quilter,Financial Services,Europe,Royaume-Uni,FTSE 250
+QIA.DE,Qiagen,Biotech,Europe,Allemagne,DAX|STOXX Europe 600
+QLT.L,Quilter,Financial Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 QQ.L,Qinetiq,Aerospace & Defence,Europe,Royaume-Uni,FTSE 250
 QTCOM.HE,Qt Group,Information Technology,Europe,Finlande,OMX Helsinki 25
-RACE.MI,Ferrari,Consumer Discretionary,Europe,Italie,EURO STOXX 50|FTSE MIB
-RAND.AS,Randstad,Industrials,Europe,Pays-Bas,AEX
+R3D.DE,Iveco Group Nv,,Europe,Allemagne,STOXX Europe 600
+R3NK.DE,Renk Group Ag,,Europe,Allemagne,STOXX Europe 600
+RAA.DE,Rational Ag,,Europe,Allemagne,STOXX Europe 600
+RACE.MI,Ferrari,Consumer Discretionary,Europe,Italie,EURO STOXX 50|FTSE MIB|STOXX Europe 600
+RAND.AS,Randstad,Industrials,Europe,Pays-Bas,AEX|STOXX Europe 600
 RAT.L,Rathbones,Financial Services,Europe,Royaume-Uni,FTSE 250
-RBREW.CO,Royal Unibrew,"Food, Beverage and Tobacco",Europe,Danemark,OMX Copenhagen 25
+RBI.VI,Raiffeisen Bank International Ag,,Europe,Autriche,STOXX Europe 600
+RBREW.CO,Royal Unibrew,"Food, Beverage and Tobacco",Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 RCL,Royal Caribbean Group,Consumer Discretionary,US,États-Unis,S&P 500
 RCO.PA,Rémy Cointreau,consumer staples,Europe,France,CAC Next 20
 RCP.L,RIT Capital Partners,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 RDDT,Reddit,Communication Services,US,États-Unis,S&P 500
-REC.MI,Recordati,Health Care,Europe,Italie,FTSE MIB
-RED.MC,Redeia Corporación,Energy,Europe,Espagne,IBEX 35
+REC.MI,Recordati,Health Care,Europe,Italie,FTSE MIB|STOXX Europe 600
+RED.MC,Redeia Corporación,Energy,Europe,Espagne,IBEX 35|STOXX Europe 600
 REG,Regency Centers,Real Estate,US,États-Unis,S&P 500
 REGN,Regeneron Pharmaceuticals,Health Care,US,États-Unis,S&P 500
-REL.L,RELX,Media,Europe,Royaume-Uni,FTSE 100
+REL.L,RELX,Media,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 REN.AS,RELX,Consumer Discretionary,Europe,Pays-Bas,AEX
 RENE.LS,Redes Energéticas Nacionais,Utilities,Europe,Portugal,PSI
-REP.MC,Repsol,Oil and Gas,Europe,Espagne,IBEX 35
+REP.MC,Repsol,Oil and Gas,Europe,Espagne,IBEX 35|STOXX Europe 600
+REY.MI,Reply,,Europe,Italie,STOXX Europe 600
 RF,Regions Financial Corporation,Financials,US,États-Unis,S&P 500
 RHIM.L,RHI Magnesita,Support Services,Europe,Royaume-Uni,FTSE 250
-RHM.DE,Rheinmetall,Aerospace & Defence,Europe,Allemagne,DAX|EURO STOXX 50
-RI.PA,Pernod Ricard,Consumer Defensive,Europe,France,CAC 40
+RHM.DE,Rheinmetall,Aerospace & Defence,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+RI.PA,Pernod Ricard,Consumer Defensive,Europe,France,CAC 40|STOXX Europe 600
 RICA.L,Ruffer Investment Company,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-RIO.L,Rio Tinto,Mining,Europe,Royaume-Uni,FTSE 100
+RILBA.CO,Ringkjobing Landbobank,,Europe,Danemark,STOXX Europe 600
+RIO.L,Rio Tinto,Mining,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 RJF,Raymond James Financial,Financials,US,États-Unis,S&P 500
-RKT.L,Reckitt,Household goods & home construction,Europe,Royaume-Uni,FTSE 100
+RKT.L,Reckitt,Household goods & home construction,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 RL,Ralph Lauren Corporation,Consumer Discretionary,US,États-Unis,S&P 500
 RMD,ResMed|,Health Care,US,États-Unis,S&P 500
-RMS.PA,Hermès,Consumer Cyclical,Europe,France,CAC 40|EURO STOXX 50
-RMV.L,Rightmove,Media,Europe,Royaume-Uni,FTSE 250
+RMS.PA,Hermès,Consumer Cyclical,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+RMV.L,Rightmove,Media,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 RNK.L,Rank Group,Travel and Leisure,Europe,Royaume-Uni,FTSE 250
-RNO.PA,Renault,Consumer Cyclical,Europe,France,CAC 40
-ROCK-B.CO,Rockwool International,Construction and Materials,Europe,Danemark,OMX Copenhagen 25
+RNO.PA,Renault,Consumer Cyclical,Europe,France,CAC 40|STOXX Europe 600
+ROCK-B.CO,Rockwool International,Construction and Materials,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 ROK,Rockwell Automation,Industrials,US,États-Unis,S&P 500
 ROL,"Rollins, Inc.",Industrials,US,États-Unis,S&P 500
 ROP,Roper Technologies,Information Technology,US,États-Unis,S&P 500
-ROP.SW,Roche Holding AG,Health care,Europe,Suisse,SMI
-ROR.L,Rotork,Industrial Engineering,Europe,Royaume-Uni,FTSE 250
-ROSE.L,Rosebank Industries,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250
+ROP.SW,Roche Holding AG,Health care,Europe,Suisse,SMI|STOXX Europe 600
+ROR.L,Rotork,Industrial Engineering,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+ROSE.L,Rosebank Industries,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 ROST,Ross Stores,Consumer Discretionary,US,États-Unis,S&P 500
 ROVI.MC,Laboratorios Rovi [es],Pharmaceuticals,Europe,Espagne,IBEX 35
 RPI.L,Raspberry Pi Holdings,Technology,Europe,Royaume-Uni,FTSE 250
 RR.L,Rolls-Royce Holdings,Aerospace & defence,Europe,Royaume-Uni,FTSE 100
-RS1.L,RS Group,Industrials,Europe,Royaume-Uni,FTSE 250
+RS1.L,RS Group,Industrials,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 RSG,Republic Services,Industrials,US,États-Unis,S&P 500
 RSW.L,Renishaw,Electronic & Electrical Equipment,Europe,Royaume-Uni,FTSE 250
-RTO.L,Rentokil Initial,Support services,Europe,Royaume-Uni,FTSE 100
+RTO.L,Rentokil Initial,Support services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 RTW.L,RTW Biotech Opportunities,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 RTX,RTX Corporation,Industrials,US,États-Unis,S&P 500
+RUI.PA,Rubis,,Europe,France,STOXX Europe 600
 RVTY,Revvity,Health Care,US,États-Unis,S&P 500
-RWE.DE,RWE,Utilities,Europe,Allemagne,DAX
-RXL.PA,Rexel,industrials,Europe,France,CAC Next 20
+RWE.DE,RWE,Utilities,Europe,Allemagne,DAX|STOXX Europe 600
+RXL.PA,Rexel,industrials,Europe,France,CAC Next 20|STOXX Europe 600
 RY4C.IR,Ryanair Holdings,,Europe,Irlande,ISEQ 20
-SAAB-B.ST,Saab B,Industrials,Europe,Suède,OMX Stockholm 30
-SAB.MC,Banco Sabadell,Financial Services,Europe,Espagne,IBEX 35
-SAF.PA,Safran,Industrials,Europe,France,CAC 40|EURO STOXX 50
+RYA.IR,Ryanair Holdings Plc,,Europe,Irlande,STOXX Europe 600
+SAAB-B.ST,Saab B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+SAB.MC,Banco Sabadell,Financial Services,Europe,Espagne,IBEX 35|STOXX Europe 600
+SAF.PA,Safran,Industrials,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 SAFE.L,Safestore,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
+SAGA-B.ST,Sagax Class B,,Europe,Suède,STOXX Europe 600
 SAGA.L,Saga,Travel and Leisure,Europe,Royaume-Uni,FTSE 250
 SAIN.L,Scottish American Investment Company,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-SALM.OL,SalMar,"farming, fishing, ranching and plantations",Europe,Norvège,OBX
-SAMPO.HE,Sampo A,Financials,Europe,Finlande,OMX Helsinki 25
-SAN.MC,Banco Santander,Financials,Europe,Espagne,EURO STOXX 50|IBEX 35
-SAN.PA,Sanofi,Healthcare,Europe,France,CAC 40|EURO STOXX 50
-SAND.ST,Sandvik,Industrials,Europe,Suède,OMX Stockholm 30
-SAP.DE,SAP,Technology,Europe,Allemagne,DAX|EURO STOXX 50
+SALM.OL,SalMar,"farming, fishing, ranching and plantations",Europe,Norvège,OBX|STOXX Europe 600
+SAMPO.HE,Sampo A,Financials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+SAN.MC,Banco Santander,Financials,Europe,Espagne,EURO STOXX 50|IBEX 35|STOXX Europe 600
+SAN.PA,Sanofi,Healthcare,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+SAND.ST,Sandvik,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+SAP.DE,SAP,Technology,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+SAVE.ST,Nordnet,,Europe,Suède,STOXX Europe 600
+SB1NO.OL,Sparebank  Sr-Norge,,Europe,Norvège,STOXX Europe 600
 SBAC,SBA Communications,Real Estate,US,États-Unis,S&P 500
-SBRY.L,Sainsbury's,Food & drug retailing,Europe,Royaume-Uni,FTSE 100
+SBMO.AS,Sbm Offshore,,Europe,Pays-Bas,STOXX Europe 600
+SBNOR.OL,Sparebanken Norge,,Europe,Norvège,STOXX Europe 600
+SBRY.L,Sainsbury's,Food & drug retailing,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 SBUX,Starbucks,Consumer Discretionary,US,États-Unis,S&P 500
 SCA-B.ST,SCA B,Materials,Europe,Suède,OMX Stockholm 30
+SCHP.SW,Schindler Holding Par Ag,,Europe,Suisse,STOXX Europe 600
 SCHW,Charles Schwab Corporation,Financials,US,États-Unis,S&P 500
-SCMN.SW,Swisscom AG,Communication services,Europe,Suisse,SMI
-SCT.L,Softcat,Software & Computer Services,Europe,Royaume-Uni,FTSE 250
-SCYR.MC,Sacyr,Construction,Europe,Espagne,IBEX 35
-SDLF.L,Standard Life,Life insurance,Europe,Royaume-Uni,FTSE 100
+SCMN.SW,Swisscom AG,Communication services,Europe,Suisse,SMI|STOXX Europe 600
+SCR.PA,Scor,,Europe,France,STOXX Europe 600
+SCT.L,Softcat,Software & Computer Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+SCYR.MC,Sacyr,Construction,Europe,Espagne,IBEX 35|STOXX Europe 600
+SDF.DE,K+S N Ag,,Europe,Allemagne,STOXX Europe 600
+SDLF.L,Standard Life,Life insurance,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 SDP.L,Schroder AsiaPacific Fund,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-SDR.L,Schroders,Financial services,Europe,Royaume-Uni,FTSE 100
+SDR.L,Schroders,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+SDZ.SW,Sandoz Group Ag,,Europe,Suisse,STOXX Europe 600
 SEB-A.ST,SEB A,Financials,Europe,Suède,OMX Stockholm 30
+SECT-B.ST,Sectra Class B,,Europe,Suède,STOXX Europe 600
+SECU-B.ST,Securitas Class B,,Europe,Suède,STOXX Europe 600
 SEIT.L,SDCL Efficiency Income Trust,Energy,Europe,Royaume-Uni,FTSE 250
 SEM.LS,Semapa,Basic Resources,Europe,Portugal,PSI
 SEQI.L,Sequoia Economic Infrastructure Income Fund,Financial Services,Europe,Royaume-Uni,FTSE 250
-SGE.L,Sage Group,Software & computer services,Europe,Royaume-Uni,FTSE 100
-SGO.PA,Saint-Gobain,Industrials,Europe,France,CAC 40|EURO STOXX 50
-SGRO.L,Segro,Real estate investment trusts,Europe,Royaume-Uni,FTSE 100
+SFSN.SW,Sfs Group Ag,,Europe,Suisse,STOXX Europe 600
+SFZN.SW,Siegfried Holding Ag,,Europe,Suisse,STOXX Europe 600
+SGE.L,Sage Group,Software & computer services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+SGO.PA,Saint-Gobain,Industrials,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+SGRO.L,Segro,Real estate investment trusts,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+SGSN.SW,Sgs Sa,,Europe,Suisse,STOXX Europe 600
 SHAW.L,Shawbrook Bank,Banking,Europe,Royaume-Uni,FTSE 250
-SHB-A.ST,Handelsbanken A,Financials,Europe,Suède,OMX Stockholm 30
-SHC.L,Shaftesbury Capital,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
+SHB-A.ST,Handelsbanken A,Financials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+SHC.L,Shaftesbury Capital,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 SHEL.L,Shell plc,Oil & gas producers,Europe,Royaume-Uni,FTSE 100
-SHELL.AS,Shell plc,Energy,Europe,Pays-Bas,AEX
-SHL.DE,Siemens Healthineers,Medical Equipment,Europe,Allemagne,DAX
+SHELL.AS,Shell plc,Energy,Europe,Pays-Bas,AEX|STOXX Europe 600
+SHL.DE,Siemens Healthineers,Medical Equipment,Europe,Allemagne,DAX|STOXX Europe 600
 SHW,Sherwin-Williams,Materials,US,États-Unis,S&P 500
-SIE.DE,Siemens,Industrials,Europe,Allemagne,DAX|EURO STOXX 50
-SIKA.SW,Sika AG,Materials,Europe,Suisse,SMI
+SIE.DE,Siemens,Industrials,Europe,Allemagne,DAX|EURO STOXX 50|STOXX Europe 600
+SIGN.SW,Sig Group N Ag,,Europe,Suisse,STOXX Europe 600
+SIKA.SW,Sika AG,Materials,Europe,Suisse,SMI|STOXX Europe 600
 SJM,J.M. Smucker Company (The),Consumer Staples,US,États-Unis,S&P 500
-SKA-B.ST,Skanska B,Industrials,Europe,Suède,OMX Stockholm 30
-SKF-B.ST,SKF B,Industrials,Europe,Suède,OMX Stockholm 30
+SKA-B.ST,Skanska B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+SKF-B.ST,SKF B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 SLB,Schlumberger,Energy,US,États-Unis,S&P 500
-SLHN.SW,Swiss Life Holding AG,Financials,Europe,Suisse,SMI
+SLHN.SW,Swiss Life Holding AG,Financials,Europe,Suisse,SMI|STOXX Europe 600
 SLR.MC,Solaria,Solar Energy,Europe,Espagne,IBEX 35
 SMCI,Supermicro,Information Technology,US,États-Unis,S&P 500
-SMIN.L,Smiths Group,General industrials,Europe,Royaume-Uni,FTSE 100
+SMIN.L,Smiths Group,General industrials,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 SMT.L,Scottish Mortgage Investment Trust,Collective investments,Europe,Royaume-Uni,FTSE 100
 SMWH.L,WHSmith,Retailers,Europe,Royaume-Uni,FTSE 250
 SN.L,Smith & Nephew,Health care equipment & supplies,Europe,Royaume-Uni,FTSE 100
@@ -1581,108 +1722,131 @@ SNDK,Sandisk,Information Technology,US,États-Unis,S&P 500
 SNPS,Synopsys,Information Technology,US,États-Unis,S&P 500
 SNR.L,Senior,Aerospace & Defence,Europe,Royaume-Uni,FTSE 250
 SO,Southern Company,Utilities,US,États-Unis,S&P 500
-SOF.BR,Sofina,Financials,Europe,Belgique,BEL 20
+SOBI.ST,Swedish Orphan Biovitrum,,Europe,Suède,STOXX Europe 600
+SOF.BR,Sofina,Financials,Europe,Belgique,BEL 20|STOXX Europe 600
 SOI.L,Schroder Oriental Income Fund,Financial Services,Europe,Royaume-Uni,FTSE 250
-SOI.PA,Soitec,technology,Europe,France,CAC Next 20
+SOI.PA,Soitec,technology,Europe,France,CAC Next 20|STOXX Europe 600
 SOLB.BR,Solvay,Basic Materials,Europe,Belgique,BEL 20
 SOLB.PA,Solvay,chemicals,Europe,France,CAC Next 20
 SOLV,Solventum,Health Care,US,États-Unis,S&P 500
 SON.LS,Sonae,"Personal Care, Drug & Grocery Stores",Europe,Portugal,PSI
 SONC.LS,Sonae Capital,Financial Services,Europe,Portugal,PSI
+SOON.SW,Sonova Holding Ag,,Europe,Suisse,STOXX Europe 600
+SOP.PA,Sopra Steria Group Sa,,Europe,France,STOXX Europe 600
 SPG,Simon Property Group,Real Estate,US,États-Unis,S&P 500
 SPGI,S&P Global,Financials,US,États-Unis,S&P 500
 SPI.L,Spire Healthcare,Health Care Equipment & Services,Europe,Royaume-Uni,FTSE 250
-SPM.MI,Saipem,Energy,Europe,Italie,FTSE MIB
-SPX.L,Spirax Group,Industrial engineering,Europe,Royaume-Uni,FTSE 100
+SPIE.PA,Spie Sa,,Europe,France,STOXX Europe 600
+SPM.MI,Saipem,Energy,Europe,Italie,FTSE MIB|STOXX Europe 600
+SPSN.SW,Swiss Prime Site Ag,,Europe,Suisse,STOXX Europe 600
+SPX.L,Spirax Group,Industrial engineering,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+SQN.SW,Swissquote Group Holding Sa,,Europe,Suisse,STOXX Europe 600
 SRE,Sempra,Utilities,US,États-Unis,S&P 500
 SRE.L,Sirius Real Estate,Real Estate,Europe,Royaume-Uni,FTSE 250
-SREN.SW,Swiss Reinsurance Company Ltd,Financials,Europe,Suisse,SMI
-SRG.MI,Snam,Energy,Europe,Italie,FTSE MIB
-SRP.L,Serco,Support Services,Europe,Royaume-Uni,FTSE 250
-SSE.L,SSE plc,Electrical utilities & independent power producers,Europe,Royaume-Uni,FTSE 100
+SREN.SW,Swiss Reinsurance Company Ltd,Financials,Europe,Suisse,SMI|STOXX Europe 600
+SRG.MI,Snam,Energy,Europe,Italie,FTSE MIB|STOXX Europe 600
+SRP.L,Serco,Support Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+SRT3.DE,Sartorius Pref Ag,,Europe,Allemagne,STOXX Europe 600
+SSAB-B.ST,Ssab Class B,,Europe,Suède,STOXX Europe 600
+SSE.L,SSE plc,Electrical utilities & independent power producers,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 SSIT.L,Seraphim Space Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 SSPG.L,SSP Group,Retailers,Europe,Royaume-Uni,FTSE 250
-STAN.L,Standard Chartered,Banks,Europe,Royaume-Uni,FTSE 100
-STB.OL,Storebrand,life insurance,Europe,Norvège,OBX
+STAN.L,Standard Chartered,Banks,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+STB.OL,Storebrand,life insurance,Europe,Norvège,OBX|STOXX Europe 600
 STE,Steris,Health Care,US,États-Unis,S&P 500
-STERV.HE,Stora Enso R,Materials,Europe,Finlande,OMX Helsinki 25
-STJ.L,St. James's Place,Financial services,Europe,Royaume-Uni,FTSE 100
+STERV.HE,Stora Enso R,Materials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+STJ.L,St. James's Place,Financial services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 STLAM.MI,Stellantis,Automobiles and Parts,Europe,Italie,FTSE MIB
-STLAP.PA,Stellantis,Consumer Cyclical,Europe,France,CAC 40
+STLAP.PA,Stellantis,Consumer Cyclical,Europe,France,CAC 40|STOXX Europe 600
 STLD,Steel Dynamics,Materials,US,États-Unis,S&P 500
 STMMI.MI,STMicroelectronics,Technology,Europe,Italie,FTSE MIB
-STMPA.PA,STMicroelectronics,Technology,Europe,France,CAC 40
+STMN.SW,Straumann Holding Ag,,Europe,Suisse,STOXX Europe 600
+STMPA.PA,STMicroelectronics,Technology,Europe,France,CAC 40|STOXX Europe 600
 STT,State Street Corporation,Financials,US,États-Unis,S&P 500
 STX,Seagate Technology,Information Technology,US,États-Unis,S&P 500
 STZ,Constellation Brands,Consumer Staples,US,États-Unis,S&P 500
-SU.PA,Schneider Electric,Industrials,Europe,France,CAC 40|EURO STOXX 50
-SUBC.OL,Subsea 7,oil equipment and services,Europe,Norvège,OBX
+SU.PA,Schneider Electric,Industrials,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
+SUBC.OL,Subsea 7,oil equipment and services,Europe,Norvège,OBX|STOXX Europe 600
+SUN.SW,Sulzer Ag,,Europe,Suisse,STOXX Europe 600
+SUNN.SW,Sunrise N Class A Ltd,,Europe,Suisse,STOXX Europe 600
 SUPR.L,Supermarket Income REIT,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
 SVS.L,Savills,Real Estate Investment & Services,Europe,Royaume-Uni,FTSE 250
-SVT.L,Severn Trent,Multiline utilities,Europe,Royaume-Uni,FTSE 100
+SVT.L,Severn Trent,Multiline utilities,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 SW,Smurfit Westrock,Materials,US,États-Unis,S&P 500
-SW.PA,Sodexo,public facilities service,Europe,France,CAC Next 20
-SWED-A.ST,Swedbank A,Financials,Europe,Suède,OMX Stockholm 30
+SW.PA,Sodexo,public facilities service,Europe,France,CAC Next 20|STOXX Europe 600
+SWEC-B.ST,Sweco Class B,,Europe,Suède,STOXX Europe 600
+SWED-A.ST,Swedbank A,Financials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 SWK,Stanley Black & Decker,Industrials,US,États-Unis,S&P 500
 SWKS,Skyworks Solutions,Information Technology,US,États-Unis,S&P 500
-SY1.DE,Symrise,Chemicals,Europe,Allemagne,DAX
-SYENS.BR,Syensqo,Basic Materials,Europe,Belgique,BEL 20
+SY1.DE,Symrise,Chemicals,Europe,Allemagne,DAX|STOXX Europe 600
+SYENS.BR,Syensqo,Basic Materials,Europe,Belgique,BEL 20|STOXX Europe 600
 SYF,Synchrony Financial,Financials,US,États-Unis,S&P 500
 SYK,Stryker Corporation,Health Care,US,États-Unis,S&P 500
 SYNC.L,Syncona,Pharmaceuticals & Biotechnology,Europe,Royaume-Uni,FTSE 250
 SYY,Sysco,Consumer Staples,US,États-Unis,S&P 500
 T,AT&T,Communication Services,US,États-Unis,S&P 500
 TATE.L,Tate & Lyle,Food Producers,Europe,Royaume-Uni,FTSE 250
-TBCG.L,TBC Bank,Banks,Europe,Royaume-Uni,FTSE 250
-TCAP.L,TP ICAP,Support Services,Europe,Royaume-Uni,FTSE 250
+TBCG.L,TBC Bank,Banks,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
+TCAP.L,TP ICAP,Support Services,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 TDG,TransDigm Group,Industrials,US,États-Unis,S&P 500
 TDY,Teledyne Technologies,Information Technology,US,États-Unis,S&P 500
+TE.PA,Technip Energies,,Europe,France,STOXX Europe 600
 TECH,Bio-Techne,Health Care,US,États-Unis,S&P 500
-TEF.MC,Telefónica,Telecommunications,Europe,Espagne,IBEX 35
+TEF.MC,Telefónica,Telecommunications,Europe,Espagne,IBEX 35|STOXX Europe 600
+TEG.DE,Tag Immobilien Ag,,Europe,Allemagne,STOXX Europe 600
 TEL,TE Connectivity,Information Technology,US,États-Unis,S&P 500
-TEL.OL,Telenor,telecommunications services,Europe,Norvège,OBX
-TEL2-B.ST,Tele2 B,Communication Services,Europe,Suède,OMX Stockholm 30
-TELIA.ST,Telia Company,Communication Services,Europe,Suède,OMX Stockholm 30
+TEL.OL,Telenor,telecommunications services,Europe,Norvège,OBX|STOXX Europe 600
+TEL2-B.ST,Tele2 B,Communication Services,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
+TELIA.ST,Telia Company,Communication Services,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 TEM.L,Templeton Emerging Markets Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+TEMN.SW,Temenos Ag,,Europe,Suisse,STOXX Europe 600
 TEN.MI,Tenaris,Energy,Europe,Italie,FTSE MIB
 TEP.L,Telecom Plus,Telecomms,Europe,Royaume-Uni,FTSE 250
-TEP.PA,Teleperformance,Communication Services,Europe,France,CAC 40
+TEP.PA,Teleperformance,Communication Services,Europe,France,CAC 40|STOXX Europe 600
 TER,Teradyne,Information Technology,US,États-Unis,S&P 500
 TFC,Truist Financial,Financials,US,États-Unis,S&P 500
 TFIF.L,Twentyfour Income Fund,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-TGS.OL,TGS ASA,oil equipment and services,Europe,Norvège,OBX
+TGS.OL,TGS ASA,oil equipment and services,Europe,Norvège,OBX|STOXX Europe 600
 TGT,Target Corporation,Consumer Staples,US,États-Unis,S&P 500
 THG.L,THG,Personal Products,Europe,Royaume-Uni,FTSE 250
 THRL.L,Target Healthcare REIT,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
 TIETO.HE,TietoEVRY,Information Technology,Europe,Finlande,OMX Helsinki 25
-TIT.MI,Telecom Italia,Telecommunications,Europe,Italie,FTSE MIB
+TIT.MI,Telecom Italia,Telecommunications,Europe,Italie,FTSE MIB|STOXX Europe 600
 TJX,TJX Companies,Consumer Discretionary,US,États-Unis,S&P 500
+TKA.DE,Thyssenkrupp Ag,,Europe,Allemagne,STOXX Europe 600
 TKO,TKO Group Holdings,Communication Services,US,États-Unis,S&P 500
+TLX.DE,Talanx Ag,,Europe,Allemagne,STOXX Europe 600
 TMO,Thermo Fisher Scientific,Health Care,US,États-Unis,S&P 500
 TMPL.L,Temple Bar Investment Trust,Collective Investments,Europe,Royaume-Uni,FTSE 250
 TMUS,T-Mobile US,Communication Services,US,États-Unis,S&P 500
-TOM.OL,Tomra Systems,machinery: industrial,Europe,Norvège,OBX
+TOM.OL,Tomra Systems,machinery: industrial,Europe,Norvège,OBX|STOXX Europe 600
+TPEIR.AT,Piraeus Bank Sa,,Europe,Grèce,STOXX Europe 600
 TPK.L,Travis Perkins,Support Services,Europe,Royaume-Uni,FTSE 250
 TPL,Texas Pacific Land Corporation,Energy,US,États-Unis,S&P 500
 TPR,"Tapestry, Inc.",Consumer Discretionary,US,États-Unis,S&P 500
+TPRO.MI,Technoprobe Spa,,Europe,Italie,STOXX Europe 600
+TREL-B.ST,Trelleborg Class B,,Europe,Suède,STOXX Europe 600
 TRGP,Targa Resources,Energy,US,États-Unis,S&P 500
 TRIG.L,The Renewables Infrastructure Group,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 TRMB,Trimble Inc.,Information Technology,US,États-Unis,S&P 500
 TRN.L,Trainline,Industrial Transportation,Europe,Royaume-Uni,FTSE 250
-TRN.MI,Terna,Utilities,Europe,Italie,FTSE MIB
+TRN.MI,Terna,Utilities,Europe,Italie,FTSE MIB|STOXX Europe 600
 TROW,T. Rowe Price,Financials,US,États-Unis,S&P 500
 TRST.L,Trustpilot,Technology,Europe,Royaume-Uni,FTSE 250
 TRV,Travelers Companies (The),Financials,US,États-Unis,S&P 500
 TRY.L,TR Property Investment Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
-TRYG.CO,Tryg,Insurance,Europe,Danemark,OMX Copenhagen 25
+TRYG.CO,Tryg,Insurance,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 TSCO,Tractor Supply,Consumer Discretionary,US,États-Unis,S&P 500
-TSCO.L,Tesco,Food & drug retailing,Europe,Royaume-Uni,FTSE 100
+TSCO.L,Tesco,Food & drug retailing,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 TSLA,"Tesla, Inc.",Consumer Discretionary,US,États-Unis,S&P 500
 TSN,Tyson Foods,Consumer Staples,US,États-Unis,S&P 500
 TT,Trane Technologies,Industrials,US,États-Unis,S&P 500
-TTE.PA,TotalEnergies,Energy,Europe,France,CAC 40|EURO STOXX 50
+TTE.PA,TotalEnergies,Energy,Europe,France,CAC 40|EURO STOXX 50|STOXX Europe 600
 TTWO,Take-Two Interactive,Communication Services,US,États-Unis,S&P 500
+TUB.BR,Financiere De Tubize Sa,,Europe,Belgique,STOXX Europe 600
+TUI1.DE,Tui N Ag,,Europe,Allemagne,STOXX Europe 600
 TW.L,Taylor Wimpey,Household goods & home construction,Europe,Royaume-Uni,FTSE 250
+TW10.DE,Tenaris Sa,,Europe,Allemagne,STOXX Europe 600
 TXN,Texas Instruments,Information Technology,US,États-Unis,S&P 500
 TXT,Textron,Industrials,US,États-Unis,S&P 500
 TYL,Tyler Technologies,Information Technology,US,États-Unis,S&P 500
@@ -1690,87 +1854,98 @@ TYRES.HE,Nokian Tyres,Consumer Discretionary,Europe,Finlande,OMX Helsinki 25
 UAL,United Airlines Holdings,Industrials,US,États-Unis,S&P 500
 UBER,Uber,Industrials,US,États-Unis,S&P 500
 UBI.PA,Ubisoft,video games,Europe,France,CAC Next 20
-UBSG.SW,UBS Group AG,Financials,Europe,Suisse,SMI
-UCB.BR,UCB,Health Care,Europe,Belgique,BEL 20
-UCG.MI,UniCredit,Financials,Europe,Italie,EURO STOXX 50|FTSE MIB
+UBSG.SW,UBS Group AG,Financials,Europe,Suisse,SMI|STOXX Europe 600
+UCB.BR,UCB,Health Care,Europe,Belgique,BEL 20|STOXX Europe 600
+UCG.MI,UniCredit,Financials,Europe,Italie,EURO STOXX 50|FTSE MIB|STOXX Europe 600
 UDR,"UDR, Inc.",Real Estate,US,États-Unis,S&P 500
 UEM.L,Utilico Emerging Markets,Investment Trusts,Europe,Royaume-Uni,FTSE 250
+UHR.SW,The Swatch Group Ag,,Europe,Suisse,STOXX Europe 600
 UHS,Universal Health Services,Health Care,US,États-Unis,S&P 500
 UKW.L,Greencoat UK Wind,"Gas, Water & Multiutilities",Europe,Royaume-Uni,FTSE 250
 ULTA,Ulta Beauty,Consumer Discretionary,US,États-Unis,S&P 500
-ULVR.L,Unilever,Personal goods,Europe,Royaume-Uni,FTSE 100
-UMG.AS,Universal Music Group,Consumer Discretionary,Europe,Pays-Bas,AEX
-UMI.BR,Umicore,Basic Materials,Europe,Belgique,BEL 20
+ULVR.L,Unilever,Personal goods,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+UMG.AS,Universal Music Group,Consumer Discretionary,Europe,Pays-Bas,AEX|STOXX Europe 600
+UMI.BR,Umicore,Basic Materials,Europe,Belgique,BEL 20|STOXX Europe 600
 UNA.AS,Unilever,Consumer Staples,Europe,Pays-Bas,AEX
 UNH,UnitedHealth Group,Health Care,US,États-Unis,S&P 500
-UNI.MC,Unicaja,Financial Services,Europe,Espagne,IBEX 35
-UNI.MI,Unipol,Insurance,Europe,Italie,FTSE MIB
+UNI.MC,Unicaja,Financial Services,Europe,Espagne,IBEX 35|STOXX Europe 600
+UNI.MI,Unipol,Insurance,Europe,Italie,FTSE MIB|STOXX Europe 600
 UNP,Union Pacific Corporation,Industrials,US,États-Unis,S&P 500
-UPM.HE,UPM-Kymmene,Materials,Europe,Finlande,OMX Helsinki 25
+UPM.HE,UPM-Kymmene,Materials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 UPR.IR,Uniphar,,Europe,Irlande,ISEQ 20
 UPS,United Parcel Service,Industrials,US,États-Unis,S&P 500
 URI,United Rentals,Industrials,US,États-Unis,S&P 500
-URW.PA,Unibail-Rodamco-Westfield,Real Estate,Europe,France,CAC 40
+URW.PA,Unibail-Rodamco-Westfield,Real Estate,Europe,France,CAC 40|STOXX Europe 600
 USA.L,Baillie Gifford US Growth Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 USB,U.S. Bancorp,Financials,US,États-Unis,S&P 500
-UTG.L,Unite Group,Real estate investment trusts,Europe,Royaume-Uni,FTSE 250
+UTG.L,Unite Group,Real estate investment trusts,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 UU.L,United Utilities,Multiline utilities,Europe,Royaume-Uni,FTSE 100
 V,Visa Inc.,Financials,US,États-Unis,S&P 500
-VALMT.HE,Valmet,Industrials,Europe,Finlande,OMX Helsinki 25
-VAR.OL,Vår Energi ASA,offshore drilling and other services,Europe,Norvège,OBX
+VACN.SW,Vat Group Ag,,Europe,Suisse,STOXX Europe 600
+VALMT.HE,Valmet,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
+VAR.OL,Vår Energi ASA,offshore drilling and other services,Europe,Norvège,OBX|STOXX Europe 600
+VATN.SW,Valiant Holding Ag,,Europe,Suisse,STOXX Europe 600
 VCT.L,Victrex,Chemicals,Europe,Royaume-Uni,FTSE 250
 VEEV,Veeva Systems,Health Care,US,États-Unis,S&P 500
 VEIL.L,Vietnam Enterprise Investments,General Financial,Europe,Royaume-Uni,FTSE 250
+VEND.OL,Vend Marketplaces,,Europe,Norvège,STOXX Europe 600
+VER.VI,Verbund Ag,,Europe,Autriche,STOXX Europe 600
 VICI,Vici Properties,Real Estate,US,États-Unis,S&P 500
-VIE.PA,Veolia,Industrials,Europe,France,CAC 40
+VIE.PA,Veolia,Industrials,Europe,France,CAC 40|STOXX Europe 600
 VIV.PA,Vivendi,consumer discretionary,Europe,France,CAC Next 20
+VK.PA,Vallourec Sa,,Europe,France,STOXX Europe 600
 VLO,Valero Energy,Energy,US,États-Unis,S&P 500
 VLTO,Veralto,Industrials,US,États-Unis,S&P 500
 VLX.L,Volex,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250
 VMC,Vulcan Materials Company,Materials,US,États-Unis,S&P 500
 VMRK,Vivmark Residential,Real Estate,US,États-Unis,S&P 500
-VNA.DE,Vonovia,Real Estate,Europe,Allemagne,DAX
-VOD.L,Vodafone Group,Mobile telecommunications,Europe,Royaume-Uni,FTSE 100
+VNA.DE,Vonovia,Real Estate,Europe,Allemagne,DAX|STOXX Europe 600
+VOD.L,Vodafone Group,Mobile telecommunications,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
+VOE.VI,Voestalpine Ag,,Europe,Autriche,STOXX Europe 600
 VOF.L,VinaCapital Vietnam Opportunity Fund,General Financial,Europe,Royaume-Uni,FTSE 250
-VOLV-B.ST,Volvo B,Industrials,Europe,Suède,OMX Stockholm 30
+VOLV-B.ST,Volvo B,Industrials,Europe,Suède,OMX Stockholm 30|STOXX Europe 600
 VOW.DE,Volkswagen Group,Consumer Discretionary,Europe,Allemagne,EURO STOXX 50
-VOW3.DE,Volkswagen Group,Automotive,Europe,Allemagne,DAX
+VOW3.DE,Volkswagen Group,Automotive,Europe,Allemagne,DAX|STOXX Europe 600
+VPK.AS,Koninklijke Vopak,,Europe,Pays-Bas,STOXX Europe 600
 VRSK,Verisk Analytics,Industrials,US,États-Unis,S&P 500
 VRSN,Verisign,Information Technology,US,États-Unis,S&P 500
 VRT,Vertiv,Industrials,US,États-Unis,S&P 500
 VRTX,Vertex Pharmaceuticals,Health Care,US,États-Unis,S&P 500
 VST,Vistra Corp.,Utilities,US,États-Unis,S&P 500
+VSURE.ST,Verisure Plc,,Europe,Suède,STOXX Europe 600
 VSVS.L,Vesuvius,General Industrials,Europe,Royaume-Uni,FTSE 250
 VTR,Ventas,Real Estate,US,États-Unis,S&P 500
 VTRS,Viatris,Health Care,US,États-Unis,S&P 500
 VTY.L,Vistry Group,Home Construction,Europe,Royaume-Uni,FTSE 250
-VWS.CO,Vestas Wind Systems,Energy,Europe,Danemark,OMX Copenhagen 25
+VWS.CO,Vestas Wind Systems,Energy,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
 VZ,Verizon,Communication Services,US,États-Unis,S&P 500
+VZN.SW,Vz Holding Ag,,Europe,Suisse,STOXX Europe 600
 WAB,Wabtec,Industrials,US,États-Unis,S&P 500
 WAT,Waters Corporation,Health Care,US,États-Unis,S&P 500
 WAWI.OL,Wallenius Wilhelmsen,marine transportation,Europe,Norvège,OBX
 WBD,Warner Bros. Discovery,Communication Services,US,États-Unis,S&P 500
 WDAY,"Workday, Inc.",Information Technology,US,États-Unis,S&P 500
 WDC,Western Digital,Information Technology,US,États-Unis,S&P 500
-WDP.BR,WDP [nl],Real Estate,Europe,Belgique,BEL 20
+WDP.BR,WDP [nl],Real Estate,Europe,Belgique,BEL 20|STOXX Europe 600
 WEC,WEC Energy Group,Utilities,US,États-Unis,S&P 500
-WEIR.L,Weir,Industrial goods and services,Europe,Royaume-Uni,FTSE 100
+WEIR.L,Weir,Industrial goods and services,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 WELL,Welltower,Real Estate,US,États-Unis,S&P 500
 WFC,Wells Fargo,Financials,US,États-Unis,S&P 500
+WISE.L,Wise Plc Class A,,Europe,Royaume-Uni,STOXX Europe 600
 WIX.L,Wickes,Retailers,Europe,Royaume-Uni,FTSE 250
 WIZZ.L,Wizz Air,Travel & Leisure,Europe,Royaume-Uni,FTSE 250
-WKL.AS,Wolters Kluwer,Industrials,Europe,Pays-Bas,EURO STOXX 50|AEX
+WKL.AS,Wolters Kluwer,Industrials,Europe,Pays-Bas,EURO STOXX 50|AEX|STOXX Europe 600
 WKP.L,Workspace Group,Real Estate Investment Trusts,Europe,Royaume-Uni,FTSE 250
 WM,Waste Management,Industrials,US,États-Unis,S&P 500
 WMB,Williams Companies,Energy,US,États-Unis,S&P 500
 WMT,Walmart,Consumer Staples,US,États-Unis,S&P 500
 WOSG.L,Watches of Switzerland,Personal Goods,Europe,Royaume-Uni,FTSE 250
-WPP.L,WPP,Media,Europe,Royaume-Uni,FTSE 250
+WPP.L,WPP,Media,Europe,Royaume-Uni,FTSE 250|STOXX Europe 600
 WRB,W. R. Berkley Corporation,Financials,US,États-Unis,S&P 500
-WRT1V.HE,Wärtsilä,Industrials,Europe,Finlande,OMX Helsinki 25
+WRT1V.HE,Wärtsilä,Industrials,Europe,Finlande,OMX Helsinki 25|STOXX Europe 600
 WSM,"Williams-Sonoma, Inc.",Consumer Discretionary,US,États-Unis,S&P 500
 WST,West Pharmaceutical Services,Health Care,US,États-Unis,S&P 500
-WTB.L,Whitbread,Retail hospitality,Europe,Royaume-Uni,FTSE 100
+WTB.L,Whitbread,Retail hospitality,Europe,Royaume-Uni,FTSE 100|STOXX Europe 600
 WTW,Willis Towers Watson,Financials,US,États-Unis,S&P 500
 WWH.L,Worldwide Healthcare Trust,Investment Trusts,Europe,Royaume-Uni,FTSE 250
 WY,Weyerhaeuser,Real Estate,US,États-Unis,S&P 500
@@ -1779,15 +1954,17 @@ XEL,Xcel Energy,Utilities,US,États-Unis,S&P 500
 XOM,ExxonMobil,Energy,US,États-Unis,S&P 500
 XPP.L,XP Power,Industrial Goods and Services,Europe,Royaume-Uni,FTSE 250
 XPS.L,XPS Pensions,Financial Services,Europe,Royaume-Uni,FTSE 250
+XTB.WA,Xtb,,Europe,Pologne,STOXX Europe 600
 XYL,Xylem Inc.,Industrials,US,États-Unis,S&P 500
 XYZ,"Block, Inc.",Financials,US,États-Unis,S&P 500
-YAR.OL,Yara International,fertilizers,Europe,Norvège,OBX
+YAR.OL,Yara International,fertilizers,Europe,Norvège,OBX|STOXX Europe 600
 YUM,Yum! Brands,Consumer Discretionary,US,États-Unis,S&P 500
-ZAL.DE,Zalando,E-Commerce,Europe,Allemagne,DAX
+ZAL.DE,Zalando,E-Commerce,Europe,Allemagne,DAX|STOXX Europe 600
 ZBH,Zimmer Biomet,Health Care,US,États-Unis,S&P 500
 ZBRA,Zebra Technologies,Information Technology,US,États-Unis,S&P 500
-ZEAL.CO,Zealand Pharma,Health Care,Europe,Danemark,OMX Copenhagen 25
+ZEAL.CO,Zealand Pharma,Health Care,Europe,Danemark,OMX Copenhagen 25|STOXX Europe 600
+ZEG.L,Zegona Communications Plc,,Europe,Royaume-Uni,STOXX Europe 600
 ZIG.L,Zigup,Support Services,Europe,Royaume-Uni,FTSE 250
 ZTS,Zoetis,Health Care,US,États-Unis,S&P 500
-ZURN.SW,Zurich Insurance Group AG,Financials,Europe,Suisse,SMI
+ZURN.SW,Zurich Insurance Group AG,Financials,Europe,Suisse,SMI|STOXX Europe 600
 nan.SW,,,Europe,Suisse,SMI

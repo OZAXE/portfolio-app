@@ -1,0 +1,2992 @@
+{
+"AT0000606306": [
+"RBI",
+".VI",
+"Autriche"
+],
+"AT0000652011": [
+"EBS",
+".VI",
+"Autriche"
+],
+"AT0000730007": [
+"ANDR",
+".VI",
+"Autriche"
+],
+"AT0000743059": [
+"OMV",
+".VI",
+"Autriche"
+],
+"AT0000746409": [
+"VER",
+".VI",
+"Autriche"
+],
+"AT0000937503": [
+"VOE",
+".VI",
+"Autriche"
+],
+"AT0000969985": [
+"ATS",
+".VI",
+"Autriche"
+],
+"AT0000BAWAG2": [
+"BG",
+".VI",
+"Autriche"
+],
+"BE0003565737": [
+"KBC",
+".BR",
+"Belgique"
+],
+"BE0003604155": [
+"LOTB",
+".BR",
+"Belgique"
+],
+"BE0003717312": [
+"SOF",
+".BR",
+"Belgique"
+],
+"BE0003739530": [
+"UCB",
+".BR",
+"Belgique"
+],
+"BE0003764785": [
+"ACKB",
+".BR",
+"Belgique"
+],
+"BE0003797140": [
+"GBLB",
+".BR",
+"Belgique"
+],
+"BE0003822393": [
+"ELI",
+".BR",
+"Belgique"
+],
+"BE0003823409": [
+"TUB",
+".BR",
+"Belgique"
+],
+"BE0003851681": [
+"AED",
+".BR",
+"Belgique"
+],
+"BE0003867844": [
+"KBCA",
+".BR",
+"Belgique"
+],
+"BE0974259880": [
+"DIE",
+".BR",
+"Belgique"
+],
+"BE0974264930": [
+"AGS",
+".BR",
+"Belgique"
+],
+"BE0974293251": [
+"ABI",
+".BR",
+"Belgique"
+],
+"BE0974320526": [
+"UMI",
+".BR",
+"Belgique"
+],
+"BE0974349814": [
+"WDP",
+".BR",
+"Belgique"
+],
+"BE0974464977": [
+"SYENS",
+".BR",
+"Belgique"
+],
+"BMG0112X1056": [
+"AGN",
+".AS",
+"Pays-Bas"
+],
+"BMG4593F1389": [
+"HSX",
+".L",
+"Royaume-Uni"
+],
+"CH0008038389": [
+"SPSN",
+".SW",
+"Suisse"
+],
+"CH0008742519": [
+"SCMN",
+".SW",
+"Suisse"
+],
+"CH0008837566": [
+"ALLN",
+".SW",
+"Suisse"
+],
+"CH0009002962": [
+"BARN",
+".SW",
+"Suisse"
+],
+"CH0010570767": [
+"LISP",
+".SW",
+"Suisse"
+],
+"CH0010645932": [
+"GIVN",
+".SW",
+"Suisse"
+],
+"CH0011075394": [
+"ZURN",
+".SW",
+"Suisse"
+],
+"CH0011108872": [
+"MOBN",
+".SW",
+"Suisse"
+],
+"CH0012005267": [
+"NOVN",
+".SW",
+"Suisse"
+],
+"CH0012138605": [
+"ADEN",
+".SW",
+"Suisse"
+],
+"CH0012214059": [
+"HOLN",
+".SW",
+"Suisse"
+],
+"CH0012221716": [
+"ABBN",
+".SW",
+"Suisse"
+],
+"CH0012255151": [
+"UHR",
+".SW",
+"Suisse"
+],
+"CH0012453913": [
+"TEMN",
+".SW",
+"Suisse"
+],
+"CH0012549785": [
+"SOON",
+".SW",
+"Suisse"
+],
+"CH0013841017": [
+"LONN",
+".SW",
+"Suisse"
+],
+"CH0014786500": [
+"VATN",
+".SW",
+"Suisse"
+],
+"CH0014852781": [
+"SLHN",
+".SW",
+"Suisse"
+],
+"CH0016440353": [
+"EMSN",
+".SW",
+"Suisse"
+],
+"CH0018294154": [
+"PSPN",
+".SW",
+"Suisse"
+],
+"CH0023405456": [
+"AVOL",
+".SW",
+"Suisse"
+],
+"CH0024608827": [
+"PGHN",
+".SW",
+"Suisse"
+],
+"CH0024638196": [
+"SCHP",
+".SW",
+"Suisse"
+],
+"CH0025238863": [
+"KNIN",
+".SW",
+"Suisse"
+],
+"CH0025751329": [
+"LOGN",
+".SW",
+"Suisse"
+],
+"CH0030170408": [
+"GEBN",
+".SW",
+"Suisse"
+],
+"CH0030380734": [
+"HUBN",
+".SW",
+"Suisse"
+],
+"CH0038388911": [
+"SUN",
+".SW",
+"Suisse"
+],
+"CH0038863350": [
+"NESN",
+".SW",
+"Suisse"
+],
+"CH0102484968": [
+"BAER",
+".SW",
+"Suisse"
+],
+"CH0126673539": [
+"DKSH",
+".SW",
+"Suisse"
+],
+"CH0126881561": [
+"SREN",
+".SW",
+"Suisse"
+],
+"CH0130293662": [
+"BKW",
+".SW",
+"Suisse"
+],
+"CH0198251305": [
+"CCH",
+".L",
+"Royaume-Uni"
+],
+"CH0210483332": [
+"CFR",
+".SW",
+"Suisse"
+],
+"CH0225173167": [
+"CMBN",
+".SW",
+"Suisse"
+],
+"CH0239229302": [
+"SFSN",
+".SW",
+"Suisse"
+],
+"CH0244767585": [
+"UBSG",
+".SW",
+"Suisse"
+],
+"CH0311864901": [
+"VACN",
+".SW",
+"Suisse"
+],
+"CH0319416936": [
+"FHZN",
+".SW",
+"Suisse"
+],
+"CH0360674466": [
+"GALE",
+".SW",
+"Suisse"
+],
+"CH0360826991": [
+"COTN",
+".SW",
+"Suisse"
+],
+"CH0418792922": [
+"SIKA",
+".SW",
+"Suisse"
+],
+"CH0432492467": [
+"ALC",
+".SW",
+"Suisse"
+],
+"CH0435377954": [
+"SIGN",
+".SW",
+"Suisse"
+],
+"CH0466642201": [
+"HBAN",
+".SW",
+"Suisse"
+],
+"CH0528751586": [
+"VZN",
+".SW",
+"Suisse"
+],
+"CH0531751755": [
+"BCVN",
+".SW",
+"Suisse"
+],
+"CH1101098163": [
+"BEAN",
+".SW",
+"Suisse"
+],
+"CH1169151003": [
+"GF",
+".SW",
+"Suisse"
+],
+"CH1169360919": [
+"ACLN",
+".SW",
+"Suisse"
+],
+"CH1175448666": [
+"STMN",
+".SW",
+"Suisse"
+],
+"CH1216478797": [
+"DSFIR",
+".SW",
+"Suisse"
+],
+"CH1243598427": [
+"SDZ",
+".SW",
+"Suisse"
+],
+"CH1256740924": [
+"SGSN",
+".SW",
+"Suisse"
+],
+"CH1335392721": [
+"GALD",
+".SW",
+"Suisse"
+],
+"CH1386220409": [
+"SUNN",
+".SW",
+"Suisse"
+],
+"CH1429326825": [
+"SFZN",
+".SW",
+"Suisse"
+],
+"CH1431598916": [
+"IFCN",
+".SW",
+"Suisse"
+],
+"CH1499059983": [
+"ROP",
+".SW",
+"Suisse"
+],
+"CH1548235246": [
+"SQN",
+".SW",
+"Suisse"
+],
+"CY0200352116": [
+"FRO",
+".OL",
+"Norv\u00e8ge"
+],
+"DE0005140008": [
+"DBK",
+".DE",
+"Allemagne"
+],
+"DE0005158703": [
+"BC8",
+".DE",
+"Allemagne"
+],
+"DE0005190003": [
+"BMW",
+".DE",
+"Allemagne"
+],
+"DE0005200000": [
+"BEI",
+".DE",
+"Allemagne"
+],
+"DE0005439004": [
+"CON",
+".DE",
+"Allemagne"
+],
+"DE0005470306": [
+"EVD",
+".DE",
+"Allemagne"
+],
+"DE0005552004": [
+"DHL",
+".DE",
+"Allemagne"
+],
+"DE0005557508": [
+"DTE",
+".DE",
+"Allemagne"
+],
+"DE0005785802": [
+"FME",
+".DE",
+"Allemagne"
+],
+"DE0005810055": [
+"DB1",
+".DE",
+"Allemagne"
+],
+"DE0005909006": [
+"GBF",
+".DE",
+"Allemagne"
+],
+"DE0006047004": [
+"HEI",
+".DE",
+"Allemagne"
+],
+"DE0006048432": [
+"HEN3",
+".DE",
+"Allemagne"
+],
+"DE0006070006": [
+"HOT",
+".DE",
+"Allemagne"
+],
+"DE0006231004": [
+"IFX",
+".DE",
+"Allemagne"
+],
+"DE0006452907": [
+"NEM",
+".DE",
+"Allemagne"
+],
+"DE0006599905": [
+"MRK",
+".DE",
+"Allemagne"
+],
+"DE0006602006": [
+"G1A",
+".DE",
+"Allemagne"
+],
+"DE0006766504": [
+"NDA",
+".DE",
+"Allemagne"
+],
+"DE0006969603": [
+"PUM",
+".DE",
+"Allemagne"
+],
+"DE0007010803": [
+"RAA",
+".DE",
+"Allemagne"
+],
+"DE0007030009": [
+"RHM",
+".DE",
+"Allemagne"
+],
+"DE0007037129": [
+"RWE",
+".DE",
+"Allemagne"
+],
+"DE0007100000": [
+"MBG",
+".DE",
+"Allemagne"
+],
+"DE0007164600": [
+"SAP",
+".DE",
+"Allemagne"
+],
+"DE0007165631": [
+"SRT3",
+".DE",
+"Allemagne"
+],
+"DE0007236101": [
+"SIE",
+".DE",
+"Allemagne"
+],
+"DE0007500001": [
+"TKA",
+".DE",
+"Allemagne"
+],
+"DE0007664039": [
+"VOW3",
+".DE",
+"Allemagne"
+],
+"DE0008232125": [
+"LHA",
+".DE",
+"Allemagne"
+],
+"DE0008303504": [
+"TEG",
+".DE",
+"Allemagne"
+],
+"DE0008402215": [
+"HNR1",
+".DE",
+"Allemagne"
+],
+"DE0008404005": [
+"ALV",
+".DE",
+"Allemagne"
+],
+"DE0008430026": [
+"MUV2",
+".DE",
+"Allemagne"
+],
+"DE000A0D6554": [
+"NDX1",
+".DE",
+"Allemagne"
+],
+"DE000A0D9PT0": [
+"MTX",
+".DE",
+"Allemagne"
+],
+"DE000A0WMPJ6": [
+"AIXA",
+".DE",
+"Allemagne"
+],
+"DE000A0Z2ZZ5": [
+"FNTN",
+".DE",
+"Allemagne"
+],
+"DE000A12DM80": [
+"G24",
+".DE",
+"Allemagne"
+],
+"DE000A1DAHH0": [
+"BNR",
+".DE",
+"Allemagne"
+],
+"DE000A1EWWW0": [
+"ADS",
+".DE",
+"Allemagne"
+],
+"DE000A1ML7J1": [
+"VNA",
+".DE",
+"Allemagne"
+],
+"DE000A2E4K43": [
+"DHER",
+".DE",
+"Allemagne"
+],
+"DE000A2LQ884": [
+"AG1",
+".DE",
+"Allemagne"
+],
+"DE000A3E5D64": [
+"FPE3",
+".DE",
+"Allemagne"
+],
+"DE000BASF111": [
+"BAS",
+".DE",
+"Allemagne"
+],
+"DE000BAY0017": [
+"BAYN",
+".DE",
+"Allemagne"
+],
+"DE000CBK1001": [
+"CBK",
+".DE",
+"Allemagne"
+],
+"DE000DTR0CK8": [
+"DTG",
+".DE",
+"Allemagne"
+],
+"DE000ENAG999": [
+"EOAN",
+".DE",
+"Allemagne"
+],
+"DE000ENER6Y0": [
+"ENR",
+".DE",
+"Allemagne"
+],
+"DE000EVNK013": [
+"EVK",
+".DE",
+"Allemagne"
+],
+"DE000FRE5EN2": [
+"FRE",
+".DE",
+"Allemagne"
+],
+"DE000FTG1111": [
+"FTK",
+".DE",
+"Allemagne"
+],
+"DE000HAG0005": [
+"HAG",
+".DE",
+"Allemagne"
+],
+"DE000KBX1006": [
+"KBX",
+".DE",
+"Allemagne"
+],
+"DE000KGX8881": [
+"KGX",
+".DE",
+"Allemagne"
+],
+"DE000KSAG888": [
+"SDF",
+".DE",
+"Allemagne"
+],
+"DE000LEG1110": [
+"LEG",
+".DE",
+"Allemagne"
+],
+"DE000PAG9113": [
+"P911",
+".DE",
+"Allemagne"
+],
+"DE000PAH0038": [
+"PAH3",
+".DE",
+"Allemagne"
+],
+"DE000RENK730": [
+"R3NK",
+".DE",
+"Allemagne"
+],
+"DE000SHL1006": [
+"SHL",
+".DE",
+"Allemagne"
+],
+"DE000SYM9999": [
+"SY1",
+".DE",
+"Allemagne"
+],
+"DE000TLX1005": [
+"TLX",
+".DE",
+"Allemagne"
+],
+"DE000TUAG505": [
+"TUI1",
+".DE",
+"Allemagne"
+],
+"DE000ZAL1111": [
+"ZAL",
+".DE",
+"Allemagne"
+],
+"DK0010181759": [
+"CARLB",
+".CO",
+"Danemark"
+],
+"DK0010234467": [
+"FLS",
+".CO",
+"Danemark"
+],
+"DK0010244508": [
+"MAERSKB",
+".CO",
+"Danemark"
+],
+"DK0010272202": [
+"GMAB",
+".CO",
+"Danemark"
+],
+"DK0010274414": [
+"DANSKE",
+".CO",
+"Danemark"
+],
+"DK0010287663": [
+"NKT",
+".CO",
+"Danemark"
+],
+"DK0010307958": [
+"JYSK",
+".CO",
+"Danemark"
+],
+"DK0010311471": [
+"ALSYDB",
+".CO",
+"Danemark"
+],
+"DK0060079531": [
+"DSV",
+".CO",
+"Danemark"
+],
+"DK0060094928": [
+"ORSTED",
+".CO",
+"Danemark"
+],
+"DK0060252690": [
+"PNDORA",
+".CO",
+"Danemark"
+],
+"DK0060257814": [
+"ZEAL",
+".CO",
+"Danemark"
+],
+"DK0060336014": [
+"NSISB",
+".CO",
+"Danemark"
+],
+"DK0060448595": [
+"COLOB",
+".CO",
+"Danemark"
+],
+"DK0060542181": [
+"ISS",
+".CO",
+"Danemark"
+],
+"DK0060634707": [
+"RBREW",
+".CO",
+"Danemark"
+],
+"DK0060636678": [
+"TRYG",
+".CO",
+"Danemark"
+],
+"DK0060738599": [
+"DEMANT",
+".CO",
+"Danemark"
+],
+"DK0060854669": [
+"RILBA",
+".CO",
+"Danemark"
+],
+"DK0061539921": [
+"VWS",
+".CO",
+"Danemark"
+],
+"DK0061802139": [
+"ALKB",
+".CO",
+"Danemark"
+],
+"DK0062498333": [
+"NOVOB",
+".CO",
+"Danemark"
+],
+"DK0063855168": [
+"ROCKB",
+".CO",
+"Danemark"
+],
+"ES0105025003": [
+"MRL",
+".MC",
+"Espagne"
+],
+"ES0105046017": [
+"AENA",
+".MC",
+"Espagne"
+],
+"ES0105066007": [
+"CLNX",
+".MC",
+"Espagne"
+],
+"ES0105777017": [
+"PUIG",
+".MC",
+"Espagne"
+],
+"ES0109067019": [
+"AMS",
+".MC",
+"Espagne"
+],
+"ES0113211835": [
+"BBVA",
+".MC",
+"Espagne"
+],
+"ES0113679I37": [
+"BKT",
+".MC",
+"Espagne"
+],
+"ES0113860A34": [
+"SAB",
+".MC",
+"Espagne"
+],
+"ES0113900J37": [
+"SAN",
+".MC",
+"Espagne"
+],
+"ES0116870314": [
+"NTGY",
+".MC",
+"Espagne"
+],
+"ES0118594417": [
+"IDR",
+".MC",
+"Espagne"
+],
+"ES0124244E34": [
+"MAP",
+".MC",
+"Espagne"
+],
+"ES0125220311": [
+"ANA",
+".MC",
+"Espagne"
+],
+"ES0130670112": [
+"ELE",
+".MC",
+"Espagne"
+],
+"ES0130960018": [
+"ENG",
+".MC",
+"Espagne"
+],
+"ES0132105018": [
+"ACX",
+".MC",
+"Espagne"
+],
+"ES0140609019": [
+"CABK",
+".MC",
+"Espagne"
+],
+"ES0144580Y14": [
+"IBE",
+".MC",
+"Espagne"
+],
+"ES0148396007": [
+"ITX",
+".MC",
+"Espagne"
+],
+"ES0167050915": [
+"ACS",
+".MC",
+"Espagne"
+],
+"ES0171996087": [
+"GRF",
+".MC",
+"Espagne"
+],
+"ES0173093024": [
+"RED",
+".MC",
+"Espagne"
+],
+"ES0173516115": [
+"REP",
+".MC",
+"Espagne"
+],
+"ES0177542018": [
+"IAG",
+".L",
+"Royaume-Uni"
+],
+"ES0178430E18": [
+"TEF",
+".MC",
+"Espagne"
+],
+"ES0180907000": [
+"UNI",
+".MC",
+"Espagne"
+],
+"ES0182870214": [
+"SCYR",
+".MC",
+"Espagne"
+],
+"FI0009000202": [
+"KESKOB",
+".HE",
+"Finlande"
+],
+"FI0009000459": [
+"HUH1V",
+".HE",
+"Finlande"
+],
+"FI0009000681": [
+"NOKIA",
+".HE",
+"Finlande"
+],
+"FI0009003727": [
+"WRT1V",
+".HE",
+"Finlande"
+],
+"FI0009005870": [
+"KCR",
+".HE",
+"Finlande"
+],
+"FI0009005961": [
+"STERV",
+".HE",
+"Finlande"
+],
+"FI0009005987": [
+"UPM",
+".HE",
+"Finlande"
+],
+"FI0009007132": [
+"FORTUM",
+".HE",
+"Finlande"
+],
+"FI0009007884": [
+"ELISA",
+".HE",
+"Finlande"
+],
+"FI0009013296": [
+"NESTE",
+".HE",
+"Finlande"
+],
+"FI0009013403": [
+"KNEBV",
+".HE",
+"Finlande"
+],
+"FI0009014377": [
+"ORNBV",
+".HE",
+"Finlande"
+],
+"FI0009014575": [
+"METSO",
+".HE",
+"Finlande"
+],
+"FI4000074984": [
+"VALMT",
+".HE",
+"Finlande"
+],
+"FI4000297767": [
+"NDA",
+".HE",
+"Finlande"
+],
+"FI4000552500": [
+"SAMPO",
+".HE",
+"Finlande"
+],
+"FI4000552526": [
+"MANTA",
+".HE",
+"Finlande"
+],
+"FI4000571013": [
+"HIAB",
+".HE",
+"Finlande"
+],
+"FR0000039299": [
+"BOL",
+".PA",
+"France"
+],
+"FR0000044448": [
+"NEX",
+".PA",
+"France"
+],
+"FR0000045072": [
+"ACA",
+".PA",
+"France"
+],
+"FR0000050809": [
+"SOP",
+".PA",
+"France"
+],
+"FR0000051807": [
+"TEP",
+".PA",
+"France"
+],
+"FR0000052292": [
+"RMS",
+".PA",
+"France"
+],
+"FR0000064578": [
+"COV",
+".PA",
+"France"
+],
+"FR0000073272": [
+"SAF",
+".PA",
+"France"
+],
+"FR0000120073": [
+"AI",
+".PA",
+"France"
+],
+"FR0000120172": [
+"CA",
+".PA",
+"France"
+],
+"FR0000120271": [
+"TTE",
+".PA",
+"France"
+],
+"FR0000120321": [
+"OR",
+".PA",
+"France"
+],
+"FR0000120404": [
+"AC",
+".PA",
+"France"
+],
+"FR0000120503": [
+"EN",
+".PA",
+"France"
+],
+"FR0000120578": [
+"SAN",
+".PA",
+"France"
+],
+"FR0000120628": [
+"CS",
+".PA",
+"France"
+],
+"FR0000120644": [
+"BN",
+".PA",
+"France"
+],
+"FR0000120693": [
+"RI",
+".PA",
+"France"
+],
+"FR0000121014": [
+"MC",
+".PA",
+"France"
+],
+"FR0000121220": [
+"SW",
+".PA",
+"France"
+],
+"FR0000121329": [
+"HO",
+".PA",
+"France"
+],
+"FR0000121485": [
+"KER",
+".PA",
+"France"
+],
+"FR0000121667": [
+"EL",
+".PA",
+"France"
+],
+"FR0000121964": [
+"LI",
+".PA",
+"France"
+],
+"FR0000121972": [
+"SU",
+".PA",
+"France"
+],
+"FR0000124141": [
+"VIE",
+".PA",
+"France"
+],
+"FR0000125007": [
+"SGO",
+".PA",
+"France"
+],
+"FR0000125338": [
+"CAP",
+".PA",
+"France"
+],
+"FR0000125486": [
+"DG",
+".PA",
+"France"
+],
+"FR0000130452": [
+"FGR",
+".PA",
+"France"
+],
+"FR0000130577": [
+"PUB",
+".PA",
+"France"
+],
+"FR0000130809": [
+"GLE",
+".PA",
+"France"
+],
+"FR0000131104": [
+"BNP",
+".PA",
+"France"
+],
+"FR0000131906": [
+"RNO",
+".PA",
+"France"
+],
+"FR0000133308": [
+"ORA",
+".PA",
+"France"
+],
+"FR0004125920": [
+"AMUN",
+".PA",
+"France"
+],
+"FR0006174348": [
+"BVI",
+".PA",
+"France"
+],
+"FR0010040865": [
+"GFC",
+".PA",
+"France"
+],
+"FR0010208488": [
+"ENGI",
+".PA",
+"France"
+],
+"FR0010220475": [
+"ALO",
+".PA",
+"France"
+],
+"FR0010259150": [
+"IPN",
+".PA",
+"France"
+],
+"FR0010307819": [
+"LR",
+".PA",
+"France"
+],
+"FR0010313833": [
+"AKE",
+".PA",
+"France"
+],
+"FR0010340141": [
+"ADP",
+".PA",
+"France"
+],
+"FR0010411983": [
+"SCR",
+".PA",
+"France"
+],
+"FR0010451203": [
+"RXL",
+".PA",
+"France"
+],
+"FR0010533075": [
+"GET",
+".PA",
+"France"
+],
+"FR0010908533": [
+"EDEN",
+".PA",
+"France"
+],
+"FR0011726835": [
+"GTT",
+".PA",
+"France"
+],
+"FR0012333284": [
+"ABVX",
+".PA",
+"France"
+],
+"FR0012435121": [
+"ELIS",
+".PA",
+"France"
+],
+"FR0012757854": [
+"SPIE",
+".PA",
+"France"
+],
+"FR0013154002": [
+"DIM",
+".PA",
+"France"
+],
+"FR0013176526": [
+"FR",
+".PA",
+"France"
+],
+"FR0013227113": [
+"SOI",
+".PA",
+"France"
+],
+"FR0013258662": [
+"AYV",
+".PA",
+"France"
+],
+"FR0013269123": [
+"RUI",
+".PA",
+"France"
+],
+"FR0013280286": [
+"BIM",
+".PA",
+"France"
+],
+"FR0013326246": [
+"URW",
+".PA",
+"France"
+],
+"FR0013451333": [
+"FDJU",
+".PA",
+"France"
+],
+"FR0013506730": [
+"VK",
+".PA",
+"France"
+],
+"FR0014000MR3": [
+"ERF",
+".PA",
+"France"
+],
+"FR0014003TT8": [
+"DSY",
+".PA",
+"France"
+],
+"FR0014004L86": [
+"AM",
+".PA",
+"France"
+],
+"FR001400AJ45": [
+"ML",
+".PA",
+"France"
+],
+"GB0000456144": [
+"ANTO",
+".L",
+"Royaume-Uni"
+],
+"GB0000811801": [
+"BTRW",
+".L",
+"Royaume-Uni"
+],
+"GB0000904986": [
+"BWY",
+".L",
+"Royaume-Uni"
+],
+"GB0000961622": [
+"BBY",
+".L",
+"Royaume-Uni"
+],
+"GB0001367019": [
+"BLND",
+".L",
+"Royaume-Uni"
+],
+"GB0001826634": [
+"DPLM",
+".L",
+"Royaume-Uni"
+],
+"GB0002318888": [
+"CWK",
+".L",
+"Royaume-Uni"
+],
+"GB0002374006": [
+"DGE",
+".L",
+"Royaume-Uni"
+],
+"GB0002634946": [
+"BA/",
+".L",
+"Royaume-Uni"
+],
+"GB0002652740": [
+"DLN",
+".L",
+"Royaume-Uni"
+],
+"GB0002875804": [
+"BATS",
+".L",
+"Royaume-Uni"
+],
+"GB0003096442": [
+"RS1",
+".L",
+"Royaume-Uni"
+],
+"GB0003718474": [
+"GAW",
+".L",
+"Royaume-Uni"
+],
+"GB0004052071": [
+"HLMA",
+".L",
+"Royaume-Uni"
+],
+"GB0004082847": [
+"STAN",
+".L",
+"Royaume-Uni"
+],
+"GB0004300496": [
+"PAF",
+".L",
+"Royaume-Uni"
+],
+"GB0004544929": [
+"IMB",
+".L",
+"Royaume-Uni"
+],
+"GB0004657408": [
+"MTO",
+".L",
+"Royaume-Uni"
+],
+"GB0005405286": [
+"HSBA",
+".L",
+"Royaume-Uni"
+],
+"GB0005576813": [
+"HWDN",
+".L",
+"Royaume-Uni"
+],
+"GB0005603997": [
+"LGEN",
+".L",
+"Royaume-Uni"
+],
+"GB0006731235": [
+"ABF",
+".L",
+"Royaume-Uni"
+],
+"GB0006776081": [
+"PSON",
+".L",
+"Royaume-Uni"
+],
+"GB0006825383": [
+"PSN",
+".L",
+"Royaume-Uni"
+],
+"GB0006928617": [
+"UTG",
+".L",
+"Royaume-Uni"
+],
+"GB0007099541": [
+"PRU",
+".L",
+"Royaume-Uni"
+],
+"GB0007188757": [
+"RIO",
+".L",
+"Royaume-Uni"
+],
+"GB0007669376": [
+"STJ",
+".L",
+"Royaume-Uni"
+],
+"GB0007908733": [
+"SSE",
+".L",
+"Royaume-Uni"
+],
+"GB0007973794": [
+"SRP",
+".L",
+"Royaume-Uni"
+],
+"GB0007980591": [
+"BP/",
+".L",
+"Royaume-Uni"
+],
+"GB0008706128": [
+"LLOY",
+".L",
+"Royaume-Uni"
+],
+"GB0008782301": [
+"TW/",
+".L",
+"Royaume-Uni"
+],
+"GB0009223206": [
+"SN/",
+".L",
+"Royaume-Uni"
+],
+"GB0009465807": [
+"WEIR",
+".L",
+"Royaume-Uni"
+],
+"GB0009697037": [
+"BAB",
+".L",
+"Royaume-Uni"
+],
+"GB0009895292": [
+"AZN",
+".L",
+"Royaume-Uni"
+],
+"GB0030913577": [
+"BT/A",
+".L",
+"Royaume-Uni"
+],
+"GB0031274896": [
+"MKS",
+".L",
+"Royaume-Uni"
+],
+"GB0031348658": [
+"BARC",
+".L",
+"Royaume-Uni"
+],
+"GB0031638363": [
+"ITRK",
+".L",
+"Royaume-Uni"
+],
+"GB0031743007": [
+"BRBY",
+".L",
+"Royaume-Uni"
+],
+"GB0032089863": [
+"NXT",
+".L",
+"Royaume-Uni"
+],
+"GB0033195214": [
+"KGF",
+".L",
+"Royaume-Uni"
+],
+"GB0033986497": [
+"ITV",
+".L",
+"Royaume-Uni"
+],
+"GB00B019KW72": [
+"SBRY",
+".L",
+"Royaume-Uni"
+],
+"GB00B02J6398": [
+"ADM",
+".L",
+"Royaume-Uni"
+],
+"GB00B033F229": [
+"CNA",
+".L",
+"Royaume-Uni"
+],
+"GB00B06QFB75": [
+"IGG",
+".L",
+"Royaume-Uni"
+],
+"GB00B0744B38": [
+"BNZL",
+".L",
+"Royaume-Uni"
+],
+"GB00B082RF11": [
+"RTO",
+".L",
+"Royaume-Uni"
+],
+"GB00B0LCW083": [
+"HIK",
+".L",
+"Royaume-Uni"
+],
+"GB00B0SWJX34": [
+"LSEG",
+".L",
+"Royaume-Uni"
+],
+"GB00B0WMWD03": [
+"QQ/",
+".L",
+"Royaume-Uni"
+],
+"GB00B17BBQ50": [
+"INVP",
+".L",
+"Royaume-Uni"
+],
+"GB00B19NLV48": [
+"EXPN",
+".L",
+"Royaume-Uni"
+],
+"GB00B1FH8J72": [
+"SVT",
+".L",
+"Royaume-Uni"
+],
+"GB00B1FW5029": [
+"HOC",
+".L",
+"Royaume-Uni"
+],
+"GB00B1KJJ408": [
+"WTB",
+".L",
+"Royaume-Uni"
+],
+"GB00B1VNSX38": [
+"DRX",
+".L",
+"Royaume-Uni"
+],
+"GB00B1WY2338": [
+"SMIN",
+".L",
+"Royaume-Uni"
+],
+"GB00B1YW4409": [
+"III",
+".L",
+"Royaume-Uni"
+],
+"GB00B2B0DG97": [
+"REL",
+".L",
+"Royaume-Uni"
+],
+"GB00B2QPKJ12": [
+"FRES",
+".L",
+"Royaume-Uni"
+],
+"GB00B39J2M42": [
+"UU/",
+".L",
+"Royaume-Uni"
+],
+"GB00B4WFW713": [
+"LMP",
+".L",
+"Royaume-Uni"
+],
+"GB00B5ZN1N88": [
+"SGRO",
+".L",
+"Royaume-Uni"
+],
+"GB00B61TVQ02": [
+"INCH",
+".L",
+"Royaume-Uni"
+],
+"GB00B62G9D36": [
+"SHC",
+".L",
+"Royaume-Uni"
+],
+"GB00B63H8491": [
+"RR/",
+".L",
+"Royaume-Uni"
+],
+"GB00B7KR2P84": [
+"EZJ",
+".L",
+"Royaume-Uni"
+],
+"GB00B8C3BL03": [
+"SGE",
+".L",
+"Royaume-Uni"
+],
+"GB00BD3VFW73": [
+"CTEC",
+".L",
+"Royaume-Uni"
+],
+"GB00BD6K4575": [
+"CPG",
+".L",
+"Royaume-Uni"
+],
+"GB00BDR05C01": [
+"NG/",
+".L",
+"Royaume-Uni"
+],
+"GB00BF4HYT85": [
+"BGEO",
+".L",
+"Royaume-Uni"
+],
+"GB00BF8Q6K64": [
+"ABDN",
+".L",
+"Royaume-Uni"
+],
+"GB00BG49KP99": [
+"BBOX",
+".L",
+"Royaume-Uni"
+],
+"GB00BGDT3G23": [
+"RMV",
+".L",
+"Royaume-Uni"
+],
+"GB00BGLP8L22": [
+"IMI",
+".L",
+"Royaume-Uni"
+],
+"GB00BGXQNP29": [
+"SDLF",
+".L",
+"Royaume-Uni"
+],
+"GB00BH4HKS39": [
+"VOD",
+".L",
+"Royaume-Uni"
+],
+"GB00BHJYC057": [
+"IHG",
+".L",
+"Royaume-Uni"
+],
+"GB00BJFFLV09": [
+"CRDA",
+".L",
+"Royaume-Uni"
+],
+"GB00BKDRYJ47": [
+"AAF",
+".L",
+"Royaume-Uni"
+],
+"GB00BKFB1C65": [
+"MNG",
+".L",
+"Royaume-Uni"
+],
+"GB00BL6K5J42": [
+"EDV",
+".L",
+"Royaume-Uni"
+],
+"GB00BLGZ9862": [
+"TSCO",
+".L",
+"Royaume-Uni"
+],
+"GB00BM8PJY71": [
+"NWG",
+".L",
+"Royaume-Uni"
+],
+"GB00BMJ6DW54": [
+"INF",
+".L",
+"Royaume-Uni"
+],
+"GB00BMWC6P49": [
+"MNDI",
+".L",
+"Royaume-Uni"
+],
+"GB00BMX86B70": [
+"HLN",
+".L",
+"Royaume-Uni"
+],
+"GB00BN7SWP63": [
+"GSK",
+".L",
+"Royaume-Uni"
+],
+"GB00BND88V85": [
+"BPT",
+".L",
+"Royaume-Uni"
+],
+"GB00BNGDN821": [
+"MRO",
+".L",
+"Royaume-Uni"
+],
+"GB00BNHSJN34": [
+"QLT",
+".L",
+"Royaume-Uni"
+],
+"GB00BNNTLN49": [
+"PNN",
+".L",
+"Royaume-Uni"
+],
+"GB00BNTJ3546": [
+"ALLFG",
+".AS",
+"Pays-Bas"
+],
+"GB00BP0RGD03": [
+"BKG",
+".L",
+"Royaume-Uni"
+],
+"GB00BP6MXD84": [
+"SHELL",
+".AS",
+"Pays-Bas"
+],
+"GB00BP9LHF23": [
+"SDR",
+".L",
+"Royaume-Uni"
+],
+"GB00BPQY8M80": [
+"AV/",
+".L",
+"Royaume-Uni"
+],
+"GB00BSZBP530": [
+"RKT",
+".L",
+"Royaume-Uni"
+],
+"GB00BTK05J60": [
+"AAL",
+".L",
+"Royaume-Uni"
+],
+"GB00BTQGS779": [
+"MTLN",
+".L",
+"Royaume-Uni"
+],
+"GB00BTQHVY80": [
+"JMAT",
+".L",
+"Royaume-Uni"
+],
+"GB00BV9FP302": [
+"CCC",
+".L",
+"Royaume-Uni"
+],
+"GB00BVFNZH21": [
+"ROR",
+".L",
+"Royaume-Uni"
+],
+"GB00BVGBY890": [
+"ZEG",
+".L",
+"Royaume-Uni"
+],
+"GB00BVMN1558": [
+"VSURE",
+".ST",
+"Su\u00e8de"
+],
+"GB00BVYVFW23": [
+"AUTO",
+".L",
+"Royaume-Uni"
+],
+"GB00BVZK7T90": [
+"ULVR",
+".L",
+"Royaume-Uni"
+],
+"GB00BWFGQN14": [
+"SPX",
+".L",
+"Royaume-Uni"
+],
+"GB00BYQ0JC66": [
+"BEZ",
+".L",
+"Royaume-Uni"
+],
+"GB00BYRJ5J14": [
+"PHP",
+".L",
+"Royaume-Uni"
+],
+"GB00BYT18307": [
+"TBCG",
+".L",
+"Royaume-Uni"
+],
+"GB00BYT1DJ19": [
+"ICG",
+".L",
+"Royaume-Uni"
+],
+"GB00BYW0PQ60": [
+"LAND",
+".L",
+"Royaume-Uni"
+],
+"GB00BYZDVK82": [
+"SCT",
+".L",
+"Royaume-Uni"
+],
+"GRS003003035": [
+"ETE",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS145003000": [
+"GEKTERNA",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS282183003": [
+"BELA",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS426003000": [
+"MOH",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS434003000": [
+"PPC",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS829003003": [
+"EUROB",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS830003000": [
+"ALPHA",
+".AT",
+"Gr\u00e8ce"
+],
+"GRS831003009": [
+"TPEIR",
+".AT",
+"Gr\u00e8ce"
+],
+"IE0000669501": [
+"GLB",
+".IR",
+"Irlande"
+],
+"IE0002424939": [
+"DCC",
+".L",
+"Royaume-Uni"
+],
+"IE0004906560": [
+"KYGA",
+".IR",
+"Irlande"
+],
+"IE0004927939": [
+"KRX",
+".IR",
+"Irlande"
+],
+"IE00BD1RP616": [
+"BIRG",
+".IR",
+"Irlande"
+],
+"IE00BF0L3536": [
+"AIBG",
+".IR",
+"Irlande"
+],
+"IE00BYTBXV33": [
+"RYA",
+".IR",
+"Irlande"
+],
+"IL0011284465": [
+"PLUS",
+".L",
+"Royaume-Uni"
+],
+"IM00B5VQMV65": [
+"ENT",
+".L",
+"Royaume-Uni"
+],
+"IT0000062072": [
+"G",
+".MI",
+"Italie"
+],
+"IT0000066123": [
+"BPE",
+".MI",
+"Italie"
+],
+"IT0000072170": [
+"FBK",
+".MI",
+"Italie"
+],
+"IT0000072618": [
+"ISP",
+".MI",
+"Italie"
+],
+"IT0001031084": [
+"BGN",
+".MI",
+"Italie"
+],
+"IT0001078911": [
+"IP",
+".MI",
+"Italie"
+],
+"IT0001233417": [
+"A2A",
+".MI",
+"Italie"
+],
+"IT0001250932": [
+"HER",
+".MI",
+"Italie"
+],
+"IT0001347308": [
+"BZU",
+".MI",
+"Italie"
+],
+"IT0003115950": [
+"DLG",
+".MI",
+"Italie"
+],
+"IT0003128367": [
+"ENEL",
+".MI",
+"Italie"
+],
+"IT0003132476": [
+"ENI",
+".MI",
+"Italie"
+],
+"IT0003153415": [
+"SRG",
+".MI",
+"Italie"
+],
+"IT0003242622": [
+"TRN",
+".MI",
+"Italie"
+],
+"IT0003261697": [
+"AZM",
+".MI",
+"Italie"
+],
+"IT0003796171": [
+"PST",
+".MI",
+"Italie"
+],
+"IT0003828271": [
+"REC",
+".MI",
+"Italie"
+],
+"IT0003856405": [
+"LDO",
+".MI",
+"Italie"
+],
+"IT0004176001": [
+"PRY",
+".MI",
+"Italie"
+],
+"IT0004764699": [
+"BC",
+".MI",
+"Italie"
+],
+"IT0004776628": [
+"BMED",
+".MI",
+"Italie"
+],
+"IT0004810054": [
+"UNI",
+".MI",
+"Italie"
+],
+"IT0004965148": [
+"MONC",
+".MI",
+"Italie"
+],
+"IT0005211237": [
+"IG",
+".MI",
+"Italie"
+],
+"IT0005218380": [
+"BAMI",
+".MI",
+"Italie"
+],
+"IT0005239360": [
+"UCG",
+".MI",
+"Italie"
+],
+"IT0005278236": [
+"PIRC",
+".MI",
+"Italie"
+],
+"IT0005282865": [
+"REY",
+".MI",
+"Italie"
+],
+"IT0005366767": [
+"NEXI",
+".MI",
+"Italie"
+],
+"IT0005482333": [
+"TPRO",
+".MI",
+"Italie"
+],
+"IT0005495657": [
+"SPM",
+".MI",
+"Italie"
+],
+"IT0005508921": [
+"BMPS",
+".MI",
+"Italie"
+],
+"IT0005541336": [
+"LTMC",
+".MI",
+"Italie"
+],
+"IT0005712671": [
+"TIT",
+".MI",
+"Italie"
+],
+"JE00B4T3BW64": [
+"GLEN",
+".L",
+"Royaume-Uni"
+],
+"JE00B8KF9B49": [
+"WPP",
+".L",
+"Royaume-Uni"
+],
+"JE00BJ1DLW90": [
+"EMG",
+".L",
+"Royaume-Uni"
+],
+"JE00BMDZN391": [
+"TCAP",
+".L",
+"Royaume-Uni"
+],
+"JE00BQKY0816": [
+"WISE",
+".L",
+"Royaume-Uni"
+],
+"JE00BRX98089": [
+"CVC",
+".AS",
+"Pays-Bas"
+],
+"JE00BSBJ5M88": [
+"ROSE",
+".L",
+"Royaume-Uni"
+],
+"LU0075646355": [
+"SUBC",
+".OL",
+"Norv\u00e8ge"
+],
+"LU1598757687": [
+"MT",
+".AS",
+"Pays-Bas"
+],
+"LU2237380790": [
+"ALE",
+".WA",
+"Pologne"
+],
+"LU2290522684": [
+"INPT",
+".WA",
+"Pologne"
+],
+"LU2598331598": [
+"TW10",
+".DE",
+"Allemagne"
+],
+"NL0000008977": [
+"HEIO",
+".AS",
+"Pays-Bas"
+],
+"NL0000009082": [
+"KPN",
+".AS",
+"Pays-Bas"
+],
+"NL0000009165": [
+"HEIA",
+".AS",
+"Pays-Bas"
+],
+"NL0000009538": [
+"PHIA",
+".AS",
+"Pays-Bas"
+],
+"NL0000226223": [
+"STMPA",
+".PA",
+"France"
+],
+"NL0000235190": [
+"AIR",
+".PA",
+"France"
+],
+"NL0000334118": [
+"ASM",
+".AS",
+"Pays-Bas"
+],
+"NL0000337319": [
+"BAMNB",
+".AS",
+"Pays-Bas"
+],
+"NL0000360618": [
+"SBMO",
+".AS",
+"Pays-Bas"
+],
+"NL0000379121": [
+"RAND",
+".AS",
+"Pays-Bas"
+],
+"NL0000395903": [
+"WKL",
+".AS",
+"Pays-Bas"
+],
+"NL0000852564": [
+"AALB",
+".AS",
+"Pays-Bas"
+],
+"NL0006237562": [
+"ARCAD",
+".AS",
+"Pays-Bas"
+],
+"NL0006294274": [
+"ENX",
+".AS",
+"Pays-Bas"
+],
+"NL0009432491": [
+"VPK",
+".AS",
+"Pays-Bas"
+],
+"NL0010273215": [
+"ASML",
+".AS",
+"Pays-Bas"
+],
+"NL0010773842": [
+"NN",
+".AS",
+"Pays-Bas"
+],
+"NL0010801007": [
+"IMCD",
+".AS",
+"Pays-Bas"
+],
+"NL0010832176": [
+"1AE",
+".DE",
+"Allemagne"
+],
+"NL0011540547": [
+"ABN",
+".AS",
+"Pays-Bas"
+],
+"NL0011585146": [
+"RACE",
+".MI",
+"Italie"
+],
+"NL0011794037": [
+"AD",
+".AS",
+"Pays-Bas"
+],
+"NL0011821202": [
+"INGA",
+".AS",
+"Pays-Bas"
+],
+"NL0011872643": [
+"ASRNL",
+".AS",
+"Pays-Bas"
+],
+"NL0012059018": [
+"EXO",
+".AS",
+"Pays-Bas"
+],
+"NL0012866412": [
+"BESI",
+".AS",
+"Pays-Bas"
+],
+"NL0012969182": [
+"ADYEN",
+".AS",
+"Pays-Bas"
+],
+"NL0013267909": [
+"AKZA",
+".AS",
+"Pays-Bas"
+],
+"NL0013654783": [
+"PRX",
+".AS",
+"Pays-Bas"
+],
+"NL0014559478": [
+"TE",
+".PA",
+"France"
+],
+"NL00150001Q9": [
+"STLAP",
+".PA",
+"France"
+],
+"NL0015000IY2": [
+"UMG",
+".AS",
+"Pays-Bas"
+],
+"NL0015000LU4": [
+"R3D",
+".DE",
+"Allemagne"
+],
+"NL0015001FS8": [
+"8ZQ",
+".DE",
+"Allemagne"
+],
+"NL0015002MS2": [
+"MICC",
+".AS",
+"Pays-Bas"
+],
+"NL0015002SN0": [
+"QIA",
+".DE",
+"Allemagne"
+],
+"NL0015073TS8": [
+"CSG",
+".AS",
+"Pays-Bas"
+],
+"NL0015435975": [
+"CPR",
+".MI",
+"Italie"
+],
+"NO0003053605": [
+"STB",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0003054108": [
+"MOWI",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0003055501": [
+"NOD",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0003078800": [
+"TGS",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0003733800": [
+"ORK",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0005052605": [
+"NHY",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0006000900": [
+"SBNOR",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010063308": [
+"TEL",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010096985": [
+"EQNR",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010161896": [
+"DNB",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010208051": [
+"YAR",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010234552": [
+"AKER",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010310956": [
+"SALM",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010345853": [
+"AKRBP",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010582521": [
+"GJF",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010631567": [
+"SB1NO",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0010736879": [
+"VEND",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0011202772": [
+"VAR",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0012470089": [
+"TOM",
+".OL",
+"Norv\u00e8ge"
+],
+"NO0013536151": [
+"KOG",
+".OL",
+"Norv\u00e8ge"
+],
+"PLBIG0000016": [
+"MIL",
+".WA",
+"Pologne"
+],
+"PLBNFTS00018": [
+"BFT",
+".WA",
+"Pologne"
+],
+"PLBRE0000012": [
+"MBK",
+".WA",
+"Pologne"
+],
+"PLBSK0000017": [
+"ING",
+".WA",
+"Pologne"
+],
+"PLBZ00000044": [
+"EBP",
+".WA",
+"Pologne"
+],
+"PLDINPL00011": [
+"DNP",
+".WA",
+"Pologne"
+],
+"PLKETY000011": [
+"KTY",
+".WA",
+"Pologne"
+],
+"PLKGHM000017": [
+"KGH",
+".WA",
+"Pologne"
+],
+"PLLPP0000011": [
+"LPP",
+".WA",
+"Pologne"
+],
+"PLOPTTC00011": [
+"CDR",
+".WA",
+"Pologne"
+],
+"PLPEKAO00016": [
+"PEO",
+".WA",
+"Pologne"
+],
+"PLPKN0000018": [
+"PKN",
+".WA",
+"Pologne"
+],
+"PLPKO0000016": [
+"PKO",
+".WA",
+"Pologne"
+],
+"PLPZU0000011": [
+"PZU",
+".WA",
+"Pologne"
+],
+"PLSOFTB00016": [
+"ACP",
+".WA",
+"Pologne"
+],
+"PLXTRDM00011": [
+"XTB",
+".WA",
+"Pologne"
+],
+"PTBCP0AM0015": [
+"BCP",
+".LS",
+"Portugal"
+],
+"PTEDP0AM0009": [
+"EDP",
+".LS",
+"Portugal"
+],
+"PTGAL0AM0009": [
+"GALP",
+".LS",
+"Portugal"
+],
+"PTJMT0AE0001": [
+"JMT",
+".LS",
+"Portugal"
+],
+"SE0000106270": [
+"HMB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000107203": [
+"INDUC",
+".ST",
+"Su\u00e8de"
+],
+"SE0000108227": [
+"SKFB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000108656": [
+"ERICB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000108847": [
+"LUNDB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000112724": [
+"SCAB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000113250": [
+"SKAB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000114837": [
+"TRELB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000115446": [
+"VOLVB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000120669": [
+"SSABB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000148884": [
+"SEBA",
+".ST",
+"Su\u00e8de"
+],
+"SE0000163594": [
+"SECUB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000202624": [
+"GETIB",
+".ST",
+"Su\u00e8de"
+],
+"SE0000242455": [
+"SWEDA",
+".ST",
+"Su\u00e8de"
+],
+"SE0000379190": [
+"CAST",
+".ST",
+"Su\u00e8de"
+],
+"SE0000667891": [
+"SAND",
+".ST",
+"Su\u00e8de"
+],
+"SE0000667925": [
+"TELIA",
+".ST",
+"Su\u00e8de"
+],
+"SE0000695876": [
+"ALFA",
+".ST",
+"Su\u00e8de"
+],
+"SE0000872095": [
+"SOBI",
+".ST",
+"Su\u00e8de"
+],
+"SE0001515552": [
+"INDT",
+".ST",
+"Su\u00e8de"
+],
+"SE0005127818": [
+"SAGAB",
+".ST",
+"Su\u00e8de"
+],
+"SE0005190238": [
+"TEL2B",
+".ST",
+"Su\u00e8de"
+],
+"SE0006993770": [
+"AXFO",
+".ST",
+"Su\u00e8de"
+],
+"SE0007100581": [
+"ASSAB",
+".ST",
+"Su\u00e8de"
+],
+"SE0007100599": [
+"SHBA",
+".ST",
+"Su\u00e8de"
+],
+"SE0009922164": [
+"ESSITYB",
+".ST",
+"Su\u00e8de"
+],
+"SE0010100958": [
+"LATOB",
+".ST",
+"Su\u00e8de"
+],
+"SE0011090018": [
+"HOLMB",
+".ST",
+"Su\u00e8de"
+],
+"SE0011337708": [
+"AAK",
+".ST",
+"Su\u00e8de"
+],
+"SE0012454072": [
+"AZA",
+".ST",
+"Su\u00e8de"
+],
+"SE0012673267": [
+"EVO",
+".ST",
+"Su\u00e8de"
+],
+"SE0012853455": [
+"EQT",
+".ST",
+"Su\u00e8de"
+],
+"SE0014504817": [
+"LOOMIS",
+".ST",
+"Su\u00e8de"
+],
+"SE0014781795": [
+"ADDTB",
+".ST",
+"Su\u00e8de"
+],
+"SE0014960373": [
+"SWECB",
+".ST",
+"Su\u00e8de"
+],
+"SE0014990966": [
+"LAGRB",
+".ST",
+"Su\u00e8de"
+],
+"SE0015192067": [
+"SAVE",
+".ST",
+"Su\u00e8de"
+],
+"SE0015658109": [
+"EPIA",
+".ST",
+"Su\u00e8de"
+],
+"SE0015811963": [
+"INVEB",
+".ST",
+"Su\u00e8de"
+],
+"SE0015949201": [
+"LIFCOB",
+".ST",
+"Su\u00e8de"
+],
+"SE0015949748": [
+"BEIJB",
+".ST",
+"Su\u00e8de"
+],
+"SE0015961909": [
+"HEXAB",
+".ST",
+"Su\u00e8de"
+],
+"SE0015988019": [
+"NIBEB",
+".ST",
+"Su\u00e8de"
+],
+"SE0017486889": [
+"ATCOA",
+".ST",
+"Su\u00e8de"
+],
+"SE0017832488": [
+"BALDB",
+".ST",
+"Su\u00e8de"
+],
+"SE0020050417": [
+"BOL",
+".ST",
+"Su\u00e8de"
+],
+"SE0021921269": [
+"SAABB",
+".ST",
+"Su\u00e8de"
+],
+"SE0022419784": [
+"SECTB",
+".ST",
+"Su\u00e8de"
+],
+"SE0025158629": [
+"MYCR",
+".ST",
+"Su\u00e8de"
+],
+"SE0028329433": [
+"OCTVSDB",
+".ST",
+"Su\u00e8de"
+]
+}

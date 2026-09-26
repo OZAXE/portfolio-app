@@ -12,7 +12,9 @@ au format Yahoo (suffixe de place : .PA, .L, .T...).
 
 import csv
 import io
+import json
 import re
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -131,6 +133,120 @@ def _taiwan_50() -> list[dict]:
     return rows
 
 
+# Stoxx Europe 600 : composition publiée par Xtrackers (ETF LU0328475792), identifiée par ISIN.
+# Conversion ISIN -> ticker via OpenFIGI, en visant la Bourse principale du pays (codes Bloomberg).
+STOXX_600_URL = "https://etf.dws.com/etfdata/export/DEU/DEU/excel/product/constituent/LU0328475792/"
+OPENFIGI_URL = "https://api.openfigi.com/v3/mapping"
+# Pays (libellés allemands du fichier) -> (code de Bourse Bloomberg, suffixe Yahoo, pays affiché)
+COUNTRY_EXCHANGES = {
+    "Frankreich": ("FP", ".PA", "France"), "Deutschland": ("GY", ".DE", "Allemagne"),
+    "Großbritannien (UK)": ("LN", ".L", "Royaume-Uni"), "Schweiz": ("SE", ".SW", "Suisse"),
+    "Niederlande": ("NA", ".AS", "Pays-Bas"), "Italien": ("IM", ".MI", "Italie"),
+    "Spanien": ("SM", ".MC", "Espagne"), "Schweden": ("SS", ".ST", "Suède"),
+    "Dänemark": ("DC", ".CO", "Danemark"), "Norwegen": ("NO", ".OL", "Norvège"),
+    "Belgien": ("BB", ".BR", "Belgique"), "Finnland": ("FH", ".HE", "Finlande"),
+    "Österreich": ("AV", ".VI", "Autriche"), "Portugal": ("PL", ".LS", "Portugal"),
+    "Irland": ("ID", ".IR", "Irlande"), "Griechenland": ("GA", ".AT", "Grèce"),
+    "Polen": ("PW", ".WA", "Pologne"),
+}
+# Sociétés domiciliées ailleurs (Jersey, Luxembourg...) : on essaie les grandes places dans l'ordre
+FALLBACK_EXCHANGES = [("LN", ".L", "Royaume-Uni"), ("NA", ".AS", "Pays-Bas"), ("FP", ".PA", "France"),
+                      ("GY", ".DE", "Allemagne"), ("BB", ".BR", "Belgique"), ("SM", ".MC", "Espagne"),
+                      ("IM", ".MI", "Italie"), ("SE", ".SW", "Suisse"), ("SS", ".ST", "Suède"),
+                      ("DC", ".CO", "Danemark"), ("NO", ".OL", "Norvège"), ("FH", ".HE", "Finlande")]
+# Conversions ISIN -> ticker déjà faites : évite de tout redemander à OpenFIGI à chaque reconstruction
+FIGI_CACHE = Path(__file__).with_name("isin_tickers.json")
+# Bourses nordiques : Bloomberg écrit "VOLVB", Yahoo "VOLV-B"
+NORDIC_SUFFIXES = (".ST", ".CO", ".HE", ".OL")
+
+
+def _figi_batch(jobs: list[tuple[str, str]]) -> list[str | None]:
+    """Jusqu'à 10 couples (ISIN, code de Bourse) par requête. Réessaie sur coupure réseau ou limite de débit."""
+    payload = [{"idType": "ID_ISIN", "idValue": isin, "exchCode": exch} for isin, exch in jobs]
+    for attempt in range(5):
+        try:
+            response = requests.post(OPENFIGI_URL, json=payload, timeout=60)
+        except requests.RequestException:
+            time.sleep(15 * (attempt + 1))
+            continue
+        if response.status_code == 429:
+            time.sleep(30 * (attempt + 1))
+            continue
+        time.sleep(2.6)  # 25 requêtes par minute sans clé d'API
+        if not response.ok:
+            break
+        return [next((d["ticker"] for d in (r.get("data") or []) if d.get("ticker")), None) for r in response.json()]
+    return [None] * len(jobs)
+
+
+def _resolve_isins(items: list[tuple[str, list[tuple[str, str, str]]]]) -> dict[str, tuple[str, str, str]]:
+    """items : (isin, Bourses candidates dans l'ordre). Renvoie isin -> (ticker Bloomberg, suffixe Yahoo, pays).
+    On essaie la 1re Bourse de chaque titre pour tous, puis la 2e pour ceux restés sans réponse, etc."""
+    cache = json.loads(FIGI_CACHE.read_text(encoding="utf-8")) if FIGI_CACHE.exists() else {}
+    resolved = {isin: tuple(v) for isin, v in cache.items()}
+    pending = [(isin, candidates) for isin, candidates in items if isin not in resolved]
+    for rank in range(max((len(c) for _, c in pending), default=0)):
+        jobs = [(isin, candidates[rank]) for isin, candidates in pending if rank < len(candidates) and isin not in resolved]
+        for i in range(0, len(jobs), 10):
+            batch = jobs[i:i + 10]
+            for (isin, (exch, suffix, country)), ticker in zip(batch, _figi_batch([(isin, c[0]) for isin, c in batch])):
+                if ticker:
+                    resolved[isin] = (ticker, suffix, country)
+            FIGI_CACHE.write_text(json.dumps(resolved, indent=0, sort_keys=True), encoding="utf-8")
+    return resolved
+
+
+def _yahoo_symbol(bloomberg: str, suffix: str, name: str) -> str:
+    symbol = bloomberg.rstrip("/").replace("/", "-").replace(" ", "-")  # "RR/" (Rolls-Royce) -> "RR"
+    share_class = re.search(r"\b(?:CLASS|SER\.?|SERIES)\s+([A-Z])\b", name.upper())
+    if suffix in NORDIC_SUFFIXES and share_class and symbol.endswith(share_class.group(1)) and "-" not in symbol:
+        symbol = f"{symbol[:-1]}-{symbol[-1]}"
+    return symbol + suffix
+
+
+def _stoxx_600() -> list[dict]:
+    content = requests.get(STOXX_600_URL, headers=HEADERS, timeout=60).content
+    raw = pd.read_excel(io.BytesIO(content), header=None)
+    header_row = next(i for i in range(10) if "ISIN" in raw.iloc[i].tolist())
+    table = raw.iloc[header_row + 1:]
+    table.columns = raw.iloc[header_row].tolist()
+    table = table[table["Type of Security"] == "Aktien"]
+
+    items, names = [], {}
+    for _, row in table.iterrows():
+        isin = str(row["ISIN"]).strip()
+        names[isin] = str(row["Name"]).strip()
+        country = COUNTRY_EXCHANGES.get(row["Country"])
+        candidates = [country] + [c for c in FALLBACK_EXCHANGES if c != country] if country else FALLBACK_EXCHANGES
+        items.append((isin, candidates))
+
+    resolved = _resolve_isins(items)
+    rows = []
+    for isin, _ in items:
+        if isin not in resolved:
+            print(f"   ISIN non converti : {isin} {names[isin]}")
+            continue
+        ticker, suffix, country = resolved[isin]
+        rows.append({"ticker": _yahoo_symbol(ticker, suffix, names[isin]), "name": names[isin].title(), "sector": None, "country": country})
+    return rows
+
+
+def _with_price(tickers: list[str]) -> set[str]:
+    """Garde les tickers pour lesquels Yahoo connaît un cours (écarte les conversions ratées)."""
+    import yfinance as yf
+    ok = set()
+    for i in range(0, len(tickers), 150):
+        batch = tickers[i:i + 150]
+        df = yf.download(batch, period="5d", progress=False, group_by="ticker", auto_adjust=False)
+        for t in batch:
+            try:
+                if not (df[t]["Close"] if len(batch) > 1 else df["Close"]).dropna().empty:
+                    ok.add(t)
+            except KeyError:
+                pass
+    return ok
+
+
 def build() -> list[dict]:
     universe: dict[str, dict] = {}
 
@@ -164,6 +280,20 @@ def build() -> list[dict]:
         for row in rows:
             add(row["ticker"], row["name"], row["sector"], "Asie", None, index)
         print(f"{index} : {len(rows)} lignes")
+
+    try:
+        rows = _stoxx_600()
+        valid = _with_price([r["ticker"] for r in rows if r["ticker"] not in universe])
+        kept = 0
+        for row in rows:
+            if row["ticker"] in universe or row["ticker"] in valid:
+                add(row["ticker"], row["name"], row["sector"], "Europe", row["country"], "STOXX Europe 600")
+                kept += 1
+            else:
+                print(f"   sans cours chez Yahoo, écarté : {row['ticker']} {row['name']}")
+        print(f"STOXX Europe 600 : {len(rows)} lignes, {kept} gardées")
+    except Exception as e:
+        print(f"!! STOXX Europe 600 ignoré : {e}")
 
     return sorted(universe.values(), key=lambda e: e["ticker"])
 
