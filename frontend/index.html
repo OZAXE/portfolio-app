@@ -142,6 +142,16 @@
     .holders { margin-top: 8px; font-size: 13px; color: var(--muted); }
     .holders b { color: var(--text); font-weight: 600; }
 
+    /* Formulaire d'opération */
+    .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+    .op-grid .wide { grid-column: 1 / -1; }
+    .op-grid input, .op-grid select {
+      background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
+      font: inherit; font-size: 15px; padding: 8px; width: 100%;
+    }
+    .op-grid input.auto { border-style: dashed; }
+
     /* Alertes, watchlist, historique */
     .alert-row { display: flex; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
     .alert-row:first-child { border-top: 0; padding-top: 0; }
@@ -207,6 +217,31 @@
           <div class="value" id="total-value"></div>
           <div class="gain" id="total-gain"></div>
           <div class="envelopes" id="envelopes"></div>
+        </div>
+
+        <button class="btn more" id="op-open">+ Nouvelle opération</button>
+        <div class="card" id="op-form" hidden>
+          <div class="op-grid">
+            <label>Type<select id="op-type"></select></label>
+            <label>Date<input id="op-date" type="date" /></label>
+            <label>Compte<select id="op-account"></select></label>
+            <label>Type d'ordre<select id="op-order"></select></label>
+            <label class="wide">Titre (ticker Yahoo)<input id="op-ticker" list="op-tickers" placeholder="ex : MC.PA, AAPL, SAP.DE" autocomplete="off" /></label>
+            <datalist id="op-tickers"></datalist>
+            <label><span id="op-qty-label">Quantité</span><input id="op-qty" type="number" step="any" min="0" inputmode="decimal" /></label>
+            <label><span id="op-price-label">Prix unitaire</span><input id="op-price" type="number" step="any" min="0" inputmode="decimal" /></label>
+            <label>Devise du prix<select id="op-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>GBp</option><option>CHF</option><option>JPY</option><option>DKK</option><option>SEK</option><option>NOK</option><option>HKD</option></select></label>
+            <label>Taux de change<input id="op-fx" type="number" step="any" min="0" inputmode="decimal" /></label>
+            <label>Frais €<input id="op-fees" type="number" step="any" min="0" inputmode="decimal" /></label>
+            <label>Taxes €<input id="op-taxes" type="number" step="any" min="0" inputmode="decimal" /></label>
+            <label>Pourquoi<input id="op-why" placeholder="Renforcement, diversification..." /></label>
+            <label>Terme<select id="op-term"><option></option><option>Court</option><option>Moyen</option><option>Long</option></select></label>
+            <label class="wide">Note<input id="op-note" /></label>
+          </div>
+          <p class="help" id="op-summary"></p>
+          <button class="btn" id="op-submit">Enregistrer dans le Sheet</button>
+          <button class="btn" id="op-cancel">Annuler</button>
+          <p class="help" id="op-status"></p>
         </div>
 
         <div id="alerts-block" hidden>
@@ -1131,6 +1166,124 @@
       const fin = e.target.closest("button[data-financials]");
       if (fin) { e.preventDefault(); showFinancials(fin.dataset.financials); }
     });
+
+    // --- Saisie d'une opération (achat, vente, dividende) dans le Sheet ---
+    let opSettings = null;
+    const opEdited = new Set();  // champs modifiés à la main : on ne les recalcule plus
+    const opEl = (id) => document.getElementById(id);
+    const opNum = (id) => parseFloat(String(opEl(id).value).replace(",", ".")) || 0;
+
+    async function openOperationForm() {
+      const status = opEl("op-status");
+      opEl("op-form").hidden = false;
+      opEl("op-open").hidden = true;
+      if (!opSettings) {
+        status.textContent = "Chargement de tes comptes et barèmes…";
+        try {
+          opSettings = await api("/settings");
+        } catch (e) {
+          status.textContent = e.message;
+          return;
+        }
+        status.textContent = "";
+        opEl("op-type").innerHTML = opSettings.operation_types.map((t) => `<option>${escapeHtml(t)}</option>`).join("");
+        opEl("op-account").innerHTML = opSettings.accounts.map((a) => `<option>${escapeHtml(a.name)}</option>`).join("");
+        opEl("op-order").innerHTML = opSettings.order_types.map((t) => `<option>${escapeHtml(t)}</option>`).join("");
+        const known = new Map(opSettings.titres.map((t) => [t.ticker, t.name]));
+        for (const st of market?.stocks || []) if (!known.has(st.ticker)) known.set(st.ticker, st.name);
+        opEl("op-tickers").innerHTML = [...known].map(([t, n]) => `<option value="${escapeHtml(t)}">${escapeHtml(n)}</option>`).join("");
+      }
+      opEl("op-date").value = new Date().toISOString().slice(0, 10);
+      opEl("op-fx").value = 1;
+      opEdited.clear();
+      updateOperationForm();
+    }
+
+    function suggestedCosts() {
+      const type = opEl("op-type").value;
+      const amount = opNum("op-qty") * opNum("op-price") * (opNum("op-fx") || 1);
+      if (type === "Dividende" || !amount) return { fees: 0, taxes: 0, amount };
+      const account = opSettings.accounts.find((a) => a.name === opEl("op-account").value);
+      const rule = opSettings.fees.find((f) => f.broker === account?.broker && f.order_type === opEl("op-order").value);
+      let fees = 0;
+      if (rule) {
+        fees = Math.max(rule.minimum, rule.fixed + rule.percent * amount);
+        if (opEl("op-currency").value !== "EUR") fees += rule.fx_percent * amount;
+      }
+      // TTF : 0,4 % à l'achat d'actions françaises de plus d'un milliard d'euros de capitalisation
+      const ticker = opEl("op-ticker").value.trim().toUpperCase();
+      const stock = market?.stocks?.find((st) => st.ticker === ticker);
+      const titre = opSettings.titres.find((t) => t.ticker === ticker);
+      const isShare = (titre?.kind || "Action") === "Action";
+      const ttf = type === "Achat" && ticker.endsWith(".PA") && isShare && (stock?.market_cap_eur ?? 0) > 1e9;
+      return { fees: Math.round(fees * 100) / 100, taxes: ttf ? Math.round(amount * 0.004 * 100) / 100 : 0, amount, ttf };
+    }
+
+    function updateOperationForm() {
+      const type = opEl("op-type").value;
+      opEl("op-qty-label").textContent = type === "Dividende" ? "Nombre d'actions" : "Quantité";
+      opEl("op-price-label").textContent = type === "Dividende" ? "Dividende par action" : "Prix unitaire";
+      const costs = suggestedCosts();
+      for (const [id, value] of [["op-fees", costs.fees], ["op-taxes", costs.taxes]]) {
+        if (!opEdited.has(id)) { opEl(id).value = value; opEl(id).classList.add("auto"); }
+      }
+      const net = type === "Achat" ? costs.amount + opNum("op-fees") + opNum("op-taxes") : costs.amount - opNum("op-fees") - opNum("op-taxes");
+      opEl("op-summary").textContent = costs.amount
+        ? `Montant brut ${eur.format(costs.amount)} · ${type === "Achat" ? "coût total" : "montant net"} ${eur.format(net)}`
+          + (costs.ttf && !opEdited.has("op-taxes") ? " · TTF de 0,4 % incluse" : "")
+          + (type === "Dividende" ? " · indique en taxes la retenue à la source ou le prélèvement" : "")
+          + " · les champs en pointillés sont calculés, tu peux les corriger."
+        : "";
+    }
+
+    async function refreshFx() {
+      const currency = opEl("op-currency").value;
+      if (currency === "EUR") { opEl("op-fx").value = 1; updateOperationForm(); return; }
+      try {
+        const { rate } = await api(`/fx/${encodeURIComponent(currency)}`);
+        if (!opEdited.has("op-fx")) opEl("op-fx").value = +rate.toFixed(6);
+      } catch (e) {
+        opEl("op-status").textContent = "Taux de change à saisir à la main : " + e.message;
+      }
+      updateOperationForm();
+    }
+
+    async function submitOperation() {
+      const status = opEl("op-status");
+      const payload = {
+        type: opEl("op-type").value, date: opEl("op-date").value, account: opEl("op-account").value,
+        order_type: opEl("op-order").value, ticker: opEl("op-ticker").value.trim().toUpperCase(),
+        quantity: opNum("op-qty"), price: opNum("op-price"), currency: opEl("op-currency").value,
+        fx: opNum("op-fx") || 1, fees: opNum("op-fees"), taxes: opNum("op-taxes"),
+        why: opEl("op-why").value, term: opEl("op-term").value, note: opEl("op-note").value,
+      };
+      opEl("op-submit").disabled = true;
+      status.textContent = "Enregistrement…";
+      try {
+        const headers = { "Content-Type": "application/json", ...(settings.token ? { "X-Access-Token": settings.token } : {}) };
+        const res = await fetch(`${API_BASE_URL}/operations`, { method: "POST", headers, body: JSON.stringify(payload) });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
+        status.textContent = `Enregistré (ligne ${body.row} de l'onglet Opérations)${body.new_ticker ? ", nouveau titre ajouté à l'onglet Titres" : ""}. Mise à jour du portefeuille…`;
+        opSettings = null;  // titres et barèmes relus à la prochaine saisie
+        ["op-qty", "op-price", "op-why", "op-note", "op-ticker"].forEach((id) => (opEl(id).value = ""));
+        setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
+        loadPortfolio();
+      } catch (e) {
+        status.textContent = e.message;
+      }
+      opEl("op-submit").disabled = false;
+    }
+
+    opEl("op-open").addEventListener("click", openOperationForm);
+    opEl("op-cancel").addEventListener("click", () => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; });
+    opEl("op-submit").addEventListener("click", submitOperation);
+    opEl("op-currency").addEventListener("change", refreshFx);
+    opEl("op-form").addEventListener("input", (e) => {
+      if (["op-fees", "op-taxes", "op-fx"].includes(e.target.id)) { opEdited.add(e.target.id); e.target.classList.remove("auto"); }
+      updateOperationForm();
+    });
+    opEl("op-form").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") updateOperationForm(); });
 
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

@@ -19,7 +19,7 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Body, Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import requests
@@ -31,6 +31,7 @@ from .alerts import compute_alerts
 from .sheets import add_to_watchlist, get_watchlist, remove_from_watchlist
 from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
 from .users import User, access_protected, resolve
+from .operations import OperationError, add_operation, read_settings
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
@@ -199,6 +200,8 @@ TICKER_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.\-=^]{0,19}$")
 def _sheet_call(call):
     try:
         return call()
+    except HTTPException:
+        raise
     except SheetNotConfiguredError as e:
         raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
     except PermissionError:
@@ -300,3 +303,45 @@ def setup_sheet(target: str, migrate_from: str | None = None):
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{type(e).__name__} : {e}")
+
+
+# --- Saisie d'opérations (Sheet modèle v2) ---
+def _operation_call(call):
+    """Erreur de saisie -> 400 avec le message ; problème d'accès au Sheet -> comme la watchlist."""
+    def guarded():
+        try:
+            return call()
+        except OperationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    return _sheet_call(guarded)
+
+
+@app.get("/settings")
+def get_settings(user: User = Depends(require_access)):
+    """Comptes, barèmes de frais et titres du Sheet, pour pré-remplir le formulaire d'opération."""
+    return _operation_call(lambda: read_settings(user.sheet_id))
+
+
+@app.post("/operations")
+def post_operation(payload: dict = Body(...), user: User = Depends(require_access)):
+    ticker = str(payload.get("ticker") or "").strip().upper()
+    stock = next((s for s in (_screener_data("screener.json") or {}).get("stocks", []) if s["ticker"] == ticker), {})
+    return _operation_call(lambda: add_operation(user.sheet_id, payload, stock.get("sector", ""), stock.get("country", "")))
+
+
+@app.get("/fx/{currency}")
+def get_fx(currency: str):
+    """Taux de conversion vers l'euro (1 USD = x EUR), pour une opération en devise étrangère."""
+    import yfinance as yf
+
+    currency = currency.strip()
+    if currency == "EUR":
+        return {"currency": "EUR", "rate": 1.0}
+    divisor = 100 if currency == "GBp" else 1
+    base = "GBP" if currency == "GBp" else currency.upper()
+    if not re.fullmatch(r"[A-Z]{3}", base):
+        raise HTTPException(status_code=400, detail="Devise invalide")
+    history = yf.Ticker(f"{base}EUR=X").history(period="5d")
+    if history.empty:
+        raise HTTPException(status_code=404, detail=f"Taux {base}/EUR indisponible")
+    return {"currency": currency, "rate": float(history["Close"].iloc[-1]) / divisor}

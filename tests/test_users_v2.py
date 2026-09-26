@@ -71,3 +71,15 @@ def test_users_json_config(monkeypatch):
     monkeypatch.setenv("USERS_JSON", json.dumps([{"name": "A", "token": "t", "sheet_id": "s", "admin": True}]))
     loaded = users.load_users()
     assert loaded == [User("A", "t", "s", admin=True)]
+
+
+def test_operation_validation_errors_are_400(two_users, monkeypatch):
+    from app import operations
+
+    def fake_add(sheet_id, payload, sector="", zone=""):
+        raise operations.OperationError("Quantité doit être positif")
+
+    monkeypatch.setattr(main, "add_operation", fake_add)
+    client = TestClient(main.app)
+    r = client.post("/operations", json={"type": "Achat"}, headers={"X-Access-Token": "code-paul"})
+    assert r.status_code == 400 and "Quantité" in r.json()["detail"]
