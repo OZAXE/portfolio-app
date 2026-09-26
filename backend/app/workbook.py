@@ -40,7 +40,8 @@ POSITIONS_HEADERS = [
 # Barèmes indicatifs : à vérifier et ajuster dans l'onglet Frais selon l'offre de chacun
 DEFAULT_ACCOUNTS = [["PEA Boursorama", "PEA", "Boursorama"], ["CTO Trade Republic", "CTO", "Trade Republic"]]
 DEFAULT_FEES = [
-    ["Boursorama", "Ordre", 0, 0.005, 1.99, 0, "À VÉRIFIER selon ton offre (Découverte, Classic, Ultimo...)"],
+    # Offre Découverte : 1,99 € jusqu'à 500 € puis 0,6 %, mais plafonné par la loi à 0,5 % sur PEA
+    ["Boursorama", "Ordre", 0, 0.005, 0, 0, "Offre Découverte sur PEA : plafond légal de 0,5 % du montant (hors PEA : 1,99 € jusqu'à 500 €, puis 0,6 %)"],
     ["Trade Republic", "Ordre", 1, 0, 0, 0, "1 € par ordre"],
     ["Trade Republic", "Plan d'investissement", 0, 0, 0, 0, "Plans d'investissement sans frais"],
 ]
