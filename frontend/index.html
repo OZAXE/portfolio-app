@@ -283,6 +283,8 @@
           scales: {
             x: {
               type: "linear",
+              min: x(points[0]),
+              max: x(points[points.length - 1]),
               ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => dateFmt.format(new Date(v)) },
               grid: { display: false },
             },
