@@ -150,6 +150,7 @@
     .star { color: var(--series-cto); }
     .star.off { color: var(--muted); }
     .history-box { position: relative; height: 180px; margin-top: 10px; }
+    .fin-select { margin-top: 10px; background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 13px; padding: 6px 8px; }
 
     /* Dividende */
     .div-title { margin-top: 12px; font-weight: 600; color: var(--text); font-size: 13px; }
@@ -754,9 +755,11 @@
           ${holdersLine(s.ticker)}
           <div>
             <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
-            <button class="btn" data-history="${escapeHtml(s.ticker)}">Historique</button>
+            <button class="btn" data-history="${escapeHtml(s.ticker)}">Historique du screener</button>
+            <button class="btn" data-financials="${escapeHtml(s.ticker)}">Comptes annuels</button>
           </div>
           <div class="history-slot" data-history-slot="${escapeHtml(s.ticker)}"></div>
+          <div class="history-slot" data-financials-slot="${escapeHtml(s.ticker)}"></div>
           ${notes}
           ${showDates ? `<div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>` : ""}
         </div>`;
@@ -1051,12 +1054,82 @@
       });
     }
 
+    // --- Comptes annuels (SEC pour les US, Yahoo archivé pour le reste), un fichier par action ---
+    const FINANCIALS_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/financials/";
+    const FIN_METRICS = [
+      ["revenue", "Chiffre d'affaires", "amount"],
+      ["net_income", "Résultat net", "amount"],
+      ["free_cash_flow", "Cash-flow libre", "amount"],
+      ["eps", "Bénéfice par action", "unit"],
+      ["operating_margin", "Marge opérationnelle", "ratio"],
+      ["net_margin", "Marge nette", "ratio"],
+      ["roe", "ROE", "ratio"],
+      ["long_term_debt", "Dette à long terme", "amount"],
+      ["shares", "Nombre d'actions", "count"],
+    ];
+    const financialsCache = {};
+    const financialsCharts = {};
+
+    function drawFinancials(ticker, metric) {
+      const data = financialsCache[ticker];
+      const slot = document.querySelector(`[data-financials-slot="${CSS.escape(ticker)}"]`);
+      const [, label, kind] = FIN_METRICS.find((m) => m[0] === metric);
+      const years = data.years.filter((y) => y[metric] != null);
+      const cur = data.currency || "";
+      const fmt = (v) => kind === "ratio" ? pctPlain(v) : kind === "amount" ? `${compact.format(v)} ${cur}` : kind === "unit" ? money(v, cur) : compact.format(v);
+      if (financialsCharts[ticker]) financialsCharts[ticker].destroy();
+      const canvas = slot.querySelector("canvas");
+      const note = slot.querySelector(".fin-note");
+      if (!years.length) { note.textContent = `${label} : non disponible pour cette société.`; return; }
+      note.textContent = `${label} · ${years.length} exercice${years.length > 1 ? "s" : ""} · source : ${data.source}`;
+      financialsCharts[ticker] = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: years.map((y) => y.year),
+          datasets: [{ label, data: years.map((y) => y[metric]), backgroundColor: years.map((y) => (y[metric] >= 0 ? cssVar("--series-pea") : cssVar("--accent-neg"))), borderRadius: 3 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (item) => ` ${fmt(item.parsed.y)}` } } },
+          scales: {
+            x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 10 }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => fmt(v) }, grid: { color: cssVar("--line") } },
+          },
+        },
+      });
+    }
+
+    async function showFinancials(ticker) {
+      const slot = document.querySelector(`[data-financials-slot="${CSS.escape(ticker)}"]`);
+      if (!slot) return;
+      slot.innerHTML = `<div class="hypotheses">Chargement des comptes…</div>`;
+      try {
+        if (!financialsCache[ticker]) {
+          const res = await fetch(FINANCIALS_URL + encodeURIComponent(ticker) + ".json", { cache: "no-cache" });
+          if (res.status === 404) throw new Error("comptes pas encore archivés pour cette action (le calcul de nuit les ajoute par lots)");
+          if (!res.ok) throw new Error(`comptes indisponibles (${res.status})`);
+          financialsCache[ticker] = await res.json();
+        }
+      } catch (e) {
+        slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
+        return;
+      }
+      slot.innerHTML = `
+        <select class="fin-select" aria-label="Indicateur">${FIN_METRICS.map(([key, label]) => `<option value="${key}">${label}</option>`).join("")}</select>
+        <div class="history-box"><canvas></canvas></div>
+        <div class="hypotheses fin-note"></div>`;
+      slot.querySelector("select").addEventListener("change", (e) => drawFinancials(ticker, e.target.value));
+      drawFinancials(ticker, "revenue");
+    }
+
     // Boutons des fiches (portefeuille, screener, watchlist, analyse en direct)
     document.addEventListener("click", (e) => {
       const star = e.target.closest("button[data-star]");
       if (star) { e.preventDefault(); toggleWatch(star.dataset.star, star); return; }
       const hist = e.target.closest("button[data-history]");
-      if (hist) { e.preventDefault(); showHistory(hist.dataset.history); }
+      if (hist) { e.preventDefault(); showHistory(hist.dataset.history); return; }
+      const fin = e.target.closest("button[data-financials]");
+      if (fin) { e.preventDefault(); showFinancials(fin.dataset.financials); }
     });
 
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---

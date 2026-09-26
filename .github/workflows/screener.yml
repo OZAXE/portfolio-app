@@ -50,6 +50,10 @@ jobs:
       - name: Lance le screener
         run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
 
+      - name: Historique financier (SEC pour les US, Yahoo archivé pour le reste)
+        continue-on-error: true
+        run: python screener/financials.py --data-dir data --max 400 --time-budget-min 30
+
       - name: Notifications des alertes (ntfy)
         continue-on-error: true
         env:
