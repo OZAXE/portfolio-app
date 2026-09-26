@@ -11,3 +11,6 @@ venv/
 
 # OS
 .DS_Store
+
+# Résultats du screener en local (publiés sur la branche screener-data)
+data/

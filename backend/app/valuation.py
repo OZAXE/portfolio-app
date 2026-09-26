@@ -40,6 +40,12 @@ EQUITY_RISK_PREMIUM = 0.05
 MIN_DISCOUNT_RATE = 0.07
 MAX_DISCOUNT_RATE = 0.11
 
+# Industries Yahoo pour lesquelles un DCF sur cash-flow libre n'a pas de sens
+# (Visa / Mastercard sont en "Credit Services" et gardent leur DCF)
+FINANCIAL_INDUSTRIES_WITHOUT_DCF = (
+    "bank", "insurance", "capital markets", "asset management", "mortgage", "financial conglomerates",
+)
+
 # Nombre d'exercices moyennés pour le FCF de départ (lisse une année de gros investissements)
 NORMALIZATION_YEARS = 3
 
@@ -224,6 +230,21 @@ def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
             "DCF non calculé pour éviter de mélanger les devises"
         )
         return result
+
+    industry = (cf.industry or "").lower()
+    if any(k in industry for k in FINANCIAL_INDUSTRIES_WITHOUT_DCF):
+        notes.append(
+            "Banque, assurance ou gestion d'actifs : le cash-flow libre ne mesure pas leur "
+            "rentabilité (l'argent est leur matière première), DCF non calculé. "
+            "Regarder plutôt le ROE et le cours / valeur comptable"
+        )
+        return result
+
+    if cf.converted_from_currency:
+        notes.append(
+            f"Comptes publiés en {cf.converted_from_currency}, convertis en {cf.currency} "
+            "au taux de change du jour pour le DCF"
+        )
 
     base_fcf = normalized_fcf(cf.fcf_history)
     if base_fcf is None:

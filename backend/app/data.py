@@ -95,10 +95,16 @@ class CompanyFinancials:
     operating_margin: float | None = None
     debt_to_equity: float | None = None
 
+    sector: str | None = None
+    industry: str | None = None
+
     # Risque de marché (sert au taux d'actualisation du DCF)
     beta: float | None = None
-    # Devise des états financiers, parfois différente de celle de la cotation (ADR, cotations étrangères)
+    # Devise des états financiers, parfois différente de celle de la cotation (ADR, cotations étrangères).
+    # Quand un taux de change est disponible, les montants du bilan et du FCF sont convertis dans la
+    # devise de cotation : financial_currency devient alors égale à currency, et l'origine est gardée ici
     financial_currency: str | None = None
+    converted_from_currency: str | None = None
 
     # Cash flow (nécessaire pour le DCF)
     free_cash_flow: float | None = None
@@ -193,6 +199,7 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
                 return result
 
         _fill_fcf_history(result, t)
+        _convert_financials_to_quote_currency(result)
 
     except YFRateLimitError:
         result.raw_error = SOURCE_UNAVAILABLE_ERROR
@@ -202,12 +209,59 @@ def fetch_company_financials(ticker: str) -> CompanyFinancials:
     return result
 
 
+# Places qui cotent en sous-unité (Londres en pence, Johannesburg en cents, Tel-Aviv en agorot),
+# alors que les états financiers sont en unité principale
+MINOR_CURRENCIES = {"GBp": ("GBP", 100), "GBX": ("GBP", 100), "ZAc": ("ZAR", 100), "ILA": ("ILS", 100)}
+
+
+def _normalize_minor_currency(result: CompanyFinancials) -> None:
+    """Ramène le cours en unité principale (pence -> livres) pour qu'il soit comparable
+    aux comptes. À appeler dès la lecture du cours, avant tout ratio qui en dépend.
+    La capitalisation fournie par Yahoo est déjà en unité principale."""
+    minor = MINOR_CURRENCIES.get(result.currency or "")
+    if not minor:
+        return
+    major, factor = minor
+    result.currency = major
+    if result.current_price is not None:
+        result.current_price /= factor
+
+
+def _fx_rate(from_currency: str, to_currency: str) -> float | None:
+    """Dernier taux de change Yahoo (API chart, qui répond même quand quoteSummary est bloqué)."""
+    try:
+        history = yf.Ticker(f"{from_currency}{to_currency}=X").history(period="5d")
+        return float(history["Close"].iloc[-1]) if not history.empty else None
+    except Exception:
+        return None
+
+
+def _convert_financials_to_quote_currency(result: CompanyFinancials) -> None:
+    """Shell publie en USD mais cote en GBP, Novartis en USD et CHF... Sans conversion,
+    le DCF comparerait des dollars à des livres. Les ratios (ROE, marges, dette/fonds
+    propres) sont sans unité et ne bougent pas."""
+    source, target = result.financial_currency, result.currency
+    if not source or not target or source == target:
+        return
+    rate = _fx_rate(source, target)
+    if rate is None:
+        return  # laisse la différence visible : evaluate_company ne calculera pas de DCF
+    convert = lambda x: x * rate if x is not None else None
+    result.fcf_history = [convert(x) for x in result.fcf_history]
+    result.free_cash_flow = convert(result.free_cash_flow)
+    result.total_debt = convert(result.total_debt)
+    result.total_cash = convert(result.total_cash)
+    result.converted_from_currency = source
+    result.financial_currency = target
+
+
 def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
     result.data_source = QUOTE_SUMMARY_SOURCE
     result.name = info.get("longName") or info.get("shortName")
     result.quote_type = info.get("quoteType")
     result.currency = info.get("currency")
     result.current_price = info.get("currentPrice") or info.get("regularMarketPrice")
+    _normalize_minor_currency(result)
     result.market_cap = info.get("marketCap")
 
     result.trailing_pe = info.get("trailingPE")
@@ -220,6 +274,8 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
     result.operating_margin = info.get("operatingMargins")
     result.debt_to_equity = info.get("debtToEquity")
 
+    result.sector = info.get("sector")
+    result.industry = info.get("industry")
     result.beta = info.get("beta")
     result.financial_currency = info.get("financialCurrency")
 
@@ -268,6 +324,7 @@ def _fill_from_statements(result: CompanyFinancials, t: yf.Ticker) -> bool:
     result.quote_type = meta.get("instrumentType")
     result.currency = meta.get("currency")
     result.current_price = float(history["Close"].iloc[-1])
+    _normalize_minor_currency(result)
     try:
         result.shares_outstanding = t.fast_info.shares
     except Exception:

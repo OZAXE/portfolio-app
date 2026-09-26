@@ -1,0 +1,63 @@
+# Screener nocturne : analyse les actions de screener/universe.csv et publie
+# screener.json sur la branche screener-data, lue directement par l'appli.
+# Branche séparée pour ne pas redéclencher les déploiements Render à chaque nuit.
+
+name: Screener
+
+on:
+  schedule:
+    - cron: "0 1 * * *"   # 3h à Paris (été) : après la clôture US, avant l'ouverture en Asie
+  workflow_dispatch:
+    inputs:
+      max_fundamentals:
+        description: "Nombre maximum d'actions dont on rafraîchit les fondamentaux"
+        default: "2000"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screener
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: pip install -r backend/requirements.txt
+
+      - name: Récupère les résultats précédents
+        run: |
+          if git fetch origin screener-data --depth=1; then
+            git worktree add data origin/screener-data
+          else
+            mkdir -p data
+          fi
+
+      - name: Lance le screener
+        run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
+
+      - name: Publie sur la branche screener-data
+        run: |
+          cd data
+          git config --global user.name "screener-bot"
+          git config --global user.email "screener-bot@users.noreply.github.com"
+          if [ ! -d .git ] && [ ! -f .git ]; then
+            git init -b screener-data
+            git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          else
+            git checkout -B screener-data
+          fi
+          git add screener.json
+          # Un seul commit gardé : l'historique de ce gros fichier n'a pas d'intérêt et alourdirait le repo
+          git commit --amend -m "Screener du $(date -u +%F)" || git commit -m "Screener du $(date -u +%F)"
+          git push --force origin screener-data
