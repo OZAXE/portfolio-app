@@ -7,23 +7,30 @@ Endpoints prévus pour le MVP :
 - GET /analysis/{ticker}    -> fondamentaux + score qualité + DCF pour un ticker
 - GET /portfolio/analysis   -> l'analyse complète pour toutes les positions du portefeuille
 - GET /portfolio/overview   -> valeurs, historique et répartition lus dans le Sheet (rapide, sans Yahoo)
+- GET /watchlist            -> actions surveillées (onglet Watchlist du Sheet) ; POST / DELETE /watchlist/{ticker}
+- GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
 
 import logging
 import os
+import re
 import secrets
+import time
 from collections import defaultdict
 from dataclasses import asdict
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+import requests
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
 from .valuation import evaluate_company
 from .briefs import BriefNotFoundError, DriveAccessError, get_brief_html, list_briefs
+from .alerts import compute_alerts
+from .sheets import add_to_watchlist, get_watchlist, remove_from_watchlist
 from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
 
 # uvicorn ne configure que ses propres loggers : sans ça, les logs de app.data n'apparaissent pas
@@ -38,7 +45,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_ORIGINS,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",  # tests en local
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["X-Access-Token"],
 )
 
@@ -171,3 +178,75 @@ def get_briefs():
 @app.get("/briefs/{brief_id}", dependencies=[Depends(require_access)], response_class=HTMLResponse)
 def get_brief(brief_id: str):
     return HTMLResponse(_briefs_errors(lambda: get_brief_html(brief_id)))
+
+
+# --- Watchlist et alertes ---
+TICKER_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9.\-=^]{0,19}$")
+
+
+def _sheet_call(call):
+    try:
+        return call()
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Le compte de service doit être Éditeur du Google Sheet")
+    except Exception as e:
+        if "PERMISSION_DENIED" in str(e) or "403" in str(e):
+            raise HTTPException(status_code=403, detail="Le compte de service doit être Éditeur du Google Sheet pour modifier la watchlist")
+        raise HTTPException(status_code=500, detail=f"Erreur Google Sheet : {e}")
+
+
+def _checked_ticker(ticker: str) -> str:
+    ticker = ticker.strip().upper()
+    if not TICKER_PATTERN.match(ticker):
+        raise HTTPException(status_code=400, detail="Ticker invalide")
+    return ticker
+
+
+@app.get("/watchlist", dependencies=[Depends(require_access)])
+def read_watchlist():
+    return _sheet_call(get_watchlist)
+
+
+@app.post("/watchlist/{ticker}", dependencies=[Depends(require_access)])
+def watch(ticker: str):
+    ticker = _checked_ticker(ticker)
+    return _sheet_call(lambda: add_to_watchlist(ticker))
+
+
+@app.delete("/watchlist/{ticker}", dependencies=[Depends(require_access)])
+def unwatch(ticker: str):
+    ticker = _checked_ticker(ticker)
+    return _sheet_call(lambda: remove_from_watchlist(ticker))
+
+
+# Résultats du screener nocturne, publiés sur la branche screener-data du repo
+SCREENER_DATA_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/{}"
+DATA_CACHE_SECONDS = 1800
+_data_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _screener_data(name: str) -> dict | None:
+    cached = _data_cache.get(name)
+    if cached and time.monotonic() - cached[0] < DATA_CACHE_SECONDS:
+        return cached[1]
+    try:
+        response = requests.get(SCREENER_DATA_URL.format(name), timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except Exception:
+        return cached[1] if cached else None
+    _data_cache[name] = (time.monotonic(), data)
+    return data
+
+
+@app.get("/alerts", dependencies=[Depends(require_access)])
+def get_alerts():
+    positions = {p.ticker.upper() for p in _load_positions()}
+    watchlist = set(_sheet_call(get_watchlist))
+    screener = _screener_data("screener.json")
+    if screener is None:
+        raise HTTPException(status_code=503, detail="Résultats du screener indisponibles")
+    result = compute_alerts(positions, watchlist, screener, _screener_data("superinvestors.json"))
+    return {**result, "screener_date": screener.get("generated_at")}

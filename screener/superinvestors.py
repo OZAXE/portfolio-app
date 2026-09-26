@@ -207,6 +207,13 @@ def main():
     cache_path = data_dir / "cusip_tickers.json"
     cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
 
+    # Dépôts déjà connus : un fonds dont le 13F a changé depuis la veille est marqué "new_filing",
+    # c'est ce qui déclenche les alertes (une seule fois par nouveau trimestre)
+    out = data_dir / "superinvestors.json"
+    known_filings = {}
+    if out.exists():
+        known_filings = {f["id"]: f["filed"] for f in json.loads(out.read_text(encoding="utf-8")).get("funds", [])}
+
     funds = []
     for fund in FUNDS:
         try:
@@ -215,6 +222,7 @@ def main():
             log.warning("%s en erreur : %s", fund[1], e)
             continue
         if result:
+            result["new_filing"] = fund[0] in known_filings and known_filings[fund[0]] != result["filed"]
             funds.append(result)
             log.info("%s : %d positions au %s", result["name"], result["positions_count"], result["period"])
         cache_path.write_text(json.dumps(cache, sort_keys=True), encoding="utf-8")
@@ -233,7 +241,6 @@ def main():
         "funds": funds,
         "by_ticker": by_ticker,
     }
-    out = data_dir / "superinvestors.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     log.info("%d fonds écrits dans %s", len(funds), out)
 

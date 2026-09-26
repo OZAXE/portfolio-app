@@ -37,6 +37,11 @@ from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, evaluate_compa
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 OUTPUT_NAME = "screener.json"
+HISTORY_NAME = "history.json"
+HISTORY_EVERY_DAYS = 6  # un relevé par semaine (le run du samedi, après la clôture du vendredi)
+
+# Valeurs de la veille gardées sur chaque fiche : les alertes comparent avec elles
+TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score")
 
 PRICE_BATCH = 150
 DELAY_BETWEEN_TICKERS = 0.8  # secondes
@@ -175,6 +180,10 @@ def main():
     universe = load_universe()
     previous = load_previous(out_path)
     stocks = {e["ticker"]: previous.get(e["ticker"], {"ticker": e["ticker"]}) for e in universe}
+    for record in stocks.values():
+        for field in TRACKED_FIELDS:
+            if field in record:
+                record[f"prev_{field}"] = record[field]
     log.info("univers : %d actions, %d déjà analysées", len(universe), sum("fundamentals_updated" in s for s in stocks.values()))
 
     prices = fetch_prices(list(stocks))
@@ -221,7 +230,34 @@ def main():
 
     add_market_cap_eur(stocks)
     save(out_path, stocks)
+    update_history(Path(args.data_dir) / HISTORY_NAME, stocks)
     log.info("terminé : %d fondamentaux mis à jour en %.0f min", done, (time.monotonic() - started) / 60)
+
+
+def update_history(path: Path, stocks: dict[str, dict]) -> None:
+    """Relevé hebdomadaire compact : pour chaque action, [cours, valeur intrinsèque, marge, score, DCF fiable].
+    Les séries sont alignées sur la liste des dates (None quand l'action n'avait pas de données)."""
+    history = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"dates": [], "series": {}}
+    today = datetime.now(timezone.utc).date()
+    if history["dates"] and (today - datetime.fromisoformat(history["dates"][-1]).date()).days < HISTORY_EVERY_DAYS:
+        return
+
+    def rounded(x, digits):
+        return round(x, digits) if isinstance(x, (int, float)) else None
+
+    n = len(history["dates"])
+    history["dates"].append(today.isoformat())
+    for ticker, s in stocks.items():
+        if s.get("error") or s.get("price") is None:
+            point = None
+        else:
+            point = [rounded(s.get("price"), 4), rounded(s.get("intrinsic_value"), 2), rounded(s.get("margin_of_safety"), 1),
+                     rounded(s.get("quality_score"), 1), 1 if s.get("dcf_reliable") else 0]
+        series = history["series"].setdefault(ticker, [None] * n)
+        series.extend([None] * (n - len(series)))  # action entrée dans l'univers en cours de route
+        series.append(point)
+    path.write_text(json.dumps(history, separators=(",", ":")), encoding="utf-8")
+    log.info("historique : relevé du %s ajouté (%d relevés)", today, len(history["dates"]))
 
 
 def save(path: Path, stocks: dict[str, dict]) -> None:

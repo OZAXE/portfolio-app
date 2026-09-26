@@ -231,3 +231,52 @@ def get_overview() -> Overview:
     except gspread.WorksheetNotFound:
         pass  # onglet facultatif
     return overview
+
+
+# --- Watchlist : onglet "Watchlist" (TICKER au format Yahoo, date d'ajout), géré depuis l'appli ---
+WATCHLIST_TAB = "Watchlist"
+WRITE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+
+def _watchlist_worksheet(create: bool) -> gspread.Worksheet | None:
+    sheet = gspread.authorize(google_credentials(WRITE_SCOPES)).open_by_key(SHEET_ID)
+    try:
+        return sheet.worksheet(WATCHLIST_TAB)
+    except gspread.WorksheetNotFound:
+        if not create:
+            return None
+        ws = sheet.add_worksheet(WATCHLIST_TAB, rows=200, cols=2)
+        ws.update(range_name="A1:B1", values=[["TICKER", "AJOUTÉ LE"]])
+        return ws
+
+
+def get_watchlist() -> list[str]:
+    ws = _watchlist_worksheet(create=False)
+    if ws is None:
+        return []
+    tickers = ws.col_values(1)[1:]
+    return [t.strip().upper() for t in tickers if t.strip()]
+
+
+def add_to_watchlist(ticker: str) -> list[str]:
+    """Nécessite que le compte de service soit Éditeur du Sheet (pas seulement Lecteur)."""
+    ticker = ticker.strip().upper()
+    ws = _watchlist_worksheet(create=True)
+    current = [t.strip().upper() for t in ws.col_values(1)[1:]]
+    if ticker not in current:
+        ws.append_row([ticker, date.today().isoformat()], value_input_option="USER_ENTERED")
+        current.append(ticker)
+    return [t for t in current if t]
+
+
+def remove_from_watchlist(ticker: str) -> list[str]:
+    ticker = ticker.strip().upper()
+    ws = _watchlist_worksheet(create=False)
+    if ws is None:
+        return []
+    column = ws.col_values(1)
+    # De bas en haut, pour que la suppression d'une ligne ne décale pas les suivantes
+    for row in range(len(column), 1, -1):
+        if column[row - 1].strip().upper() == ticker:
+            ws.delete_rows(row)
+    return [t.strip().upper() for t in ws.col_values(1)[1:] if t.strip()]

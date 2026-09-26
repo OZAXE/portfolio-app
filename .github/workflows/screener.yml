@@ -50,6 +50,13 @@ jobs:
       - name: Lance le screener
         run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
 
+      - name: Notifications des alertes (ntfy)
+        continue-on-error: true
+        env:
+          APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python screener/notify.py --data-dir data
+
       # Publié même si une étape a échoué : le travail déjà fait n'est pas perdu
       - name: Publie sur la branche screener-data
         if: always()

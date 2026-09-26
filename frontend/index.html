@@ -142,6 +142,15 @@
     .holders { margin-top: 8px; font-size: 13px; color: var(--muted); }
     .holders b { color: var(--text); font-weight: 600; }
 
+    /* Alertes, watchlist, historique */
+    .alert-row { display: flex; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .alert-row:first-child { border-top: 0; padding-top: 0; }
+    .alert-row .icon { flex: none; width: 20px; text-align: center; }
+    .alert-row .origin { font-size: 12px; color: var(--muted); }
+    .star { color: var(--series-cto); }
+    .star.off { color: var(--muted); }
+    .history-box { position: relative; height: 180px; margin-top: 10px; }
+
     /* Briefs */
     .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
     .brief-item .title { font-weight: 600; font-size: 15px; }
@@ -193,6 +202,11 @@
           <div class="envelopes" id="envelopes"></div>
         </div>
 
+        <div id="alerts-block" hidden>
+          <h2>Alertes</h2>
+          <div class="card" id="alerts"></div>
+        </div>
+
         <h2>Évolution</h2>
         <div class="card">
           <div class="chart-head">
@@ -212,6 +226,11 @@
         <h2>Positions</h2>
         <div class="positions" id="positions"></div>
         <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
+
+        <div id="watchlist-block" hidden>
+          <h2>Actions surveillées</h2>
+          <div id="watchlist"></div>
+        </div>
 
         <h2>Répartition par secteur</h2>
         <div class="card" id="sectors"></div>
@@ -263,6 +282,8 @@
         <button class="chip" id="filter-reliable">DCF fiable</button>
         <button class="chip" id="filter-quality">Score ≥ 14</button>
         <button class="chip" id="filter-owned">Mes positions</button>
+        <button class="chip" id="filter-investors">Super investisseurs</button>
+        <button class="chip" id="filter-watch">Ma watchlist</button>
       </div>
       <div class="result-count" id="market-count"></div>
       <div id="market-list"></div>
@@ -572,6 +593,10 @@
       renderSectors();
       renderSavings();
 
+      loadWatchlist();
+      loadAlerts();
+      loadMarket();  // données du screener, utilisées par la section Actions surveillées
+
       // Les analyses interrogent Yahoo pour chaque ligne : plus lentes, chargées ensuite
       const analysisStatus = document.getElementById("analysis-status");
       try {
@@ -595,7 +620,7 @@
     let market = null;
     let marketLoading = false;
     let marketShown = PAGE_SIZE;
-    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false };
+    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false, investors: false, watch: false };
 
     const ownedTickers = () => new Set((overview?.holdings || []).map((h) => h.yahoo_ticker));
 
@@ -618,6 +643,7 @@
       const sectors = [...new Set(market.stocks.map((s) => s.sector))].sort((a, b) => a.localeCompare(b, "fr"));
       document.getElementById("filter-sector").innerHTML += sectors.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
       renderMarket();
+      renderWatchlist();
     }
 
     function filteredStocks() {
@@ -630,7 +656,9 @@
         (!f.sector || s.sector === f.sector) &&
         (!f.reliable || valuationOf(s).reliable) &&
         (!f.quality || (s.quality_score ?? 0) >= 14) &&
-        (!f.owned || owned.has(s.ticker))
+        (!f.owned || owned.has(s.ticker)) &&
+        (!f.investors || !!investors?.by_ticker?.[s.ticker]) &&
+        (!f.watch || watchlist.has(s.ticker))
       );
       // Les actions sans valeur pour le critère de tri passent en fin de liste
       const key = {
@@ -657,7 +685,7 @@
           <details class="stock" data-ticker="${escapeHtml(s.ticker)}">
             <summary>
               <div>
-                <div class="title">${escapeHtml(s.name)}${owned.has(s.ticker) ? '<span class="badge owned">en portefeuille</span>' : ""}</div>
+                <div class="title">${escapeHtml(s.name)}${owned.has(s.ticker) ? '<span class="badge owned">en portefeuille</span>' : ""}${investors?.by_ticker?.[s.ticker] ? `<span class="badge">${investors.by_ticker[s.ticker].length} super inv.</span>` : ""}</div>
                 <div class="sub">${escapeHtml(s.ticker)} · ${escapeHtml(s.country)} · ${escapeHtml(s.sector)}</div>
               </div>
               <div class="right">
@@ -710,6 +738,11 @@
           ${dcf}
           ${hypotheses}
           ${holdersLine(s.ticker)}
+          <div>
+            <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
+            <button class="btn" data-history="${escapeHtml(s.ticker)}">Historique</button>
+          </div>
+          <div class="history-slot" data-history-slot="${escapeHtml(s.ticker)}"></div>
           ${notes}
           ${showDates ? `<div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>` : ""}
         </div>`;
@@ -743,7 +776,7 @@
         if (market) renderMarket();
       });
     }
-    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"]]) {
+    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"]]) {
       document.getElementById(id).addEventListener("click", (e) => {
         marketFilters[key] = !marketFilters[key];
         e.currentTarget.classList.toggle("active", marketFilters[key]);
@@ -857,6 +890,135 @@
       document.getElementById("investors-pane").hidden = btn.dataset.mode !== "investors";
     });
 
+    // --- Watchlist (onglet "Watchlist" du Sheet) ---
+    let watchlist = new Set();
+
+    async function loadWatchlist() {
+      try {
+        watchlist = new Set(await api("/watchlist"));
+      } catch {
+        watchlist = new Set();  // code d'accès absent ou compte de service en lecture seule
+      }
+      renderWatchlist();
+    }
+
+    async function toggleWatch(ticker, button) {
+      const watched = watchlist.has(ticker);
+      button.disabled = true;
+      try {
+        const headers = settings.token ? { "X-Access-Token": settings.token } : {};
+        const res = await fetch(`${API_BASE_URL}/watchlist/${encodeURIComponent(ticker)}`, { method: watched ? "DELETE" : "POST", headers });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Erreur ${res.status}`);
+        watchlist = new Set(await res.json());
+      } catch (e) {
+        alert("Watchlist non modifiée : " + e.message);
+      }
+      button.disabled = false;
+      button.innerHTML = watchlist.has(ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller';
+      renderWatchlist();
+    }
+
+    function renderWatchlist() {
+      const block = document.getElementById("watchlist-block");
+      if (!watchlist.size) { block.hidden = true; return; }
+      block.hidden = false;
+      const byTicker = Object.fromEntries((market?.stocks || []).map((st) => [st.ticker, st]));
+      document.getElementById("watchlist").innerHTML = [...watchlist].sort().map((t) => {
+        const st = byTicker[t];
+        if (!st) {
+          return `<div class="stock"><div class="title">${escapeHtml(t)}</div><div class="sub">Hors du panel du screener : utilise « Analyser en direct » dans l'onglet Marché.</div>
+            <button class="btn" data-star="${escapeHtml(t)}"><span class="star">★</span> Surveillée</button></div>`;
+        }
+        const v = valuationOf(st);
+        const mos = v.reliable && v.margin != null
+          ? `<span class="${signClass(v.margin)}">${v.margin > 0 ? "+" : ""}${num(v.margin)} %</span>` : `<span class="muted">—</span>`;
+        return `
+          <details class="stock">
+            <summary>
+              <div><div class="title">${escapeHtml(st.name)}</div><div class="sub">${escapeHtml(t)} · ${escapeHtml(st.country)} · ${escapeHtml(st.sector)}</div></div>
+              <div class="right"><div class="score">${st.quality_score != null ? num(st.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div><div>${mos}</div></div>
+            </summary>
+            ${renderStockDetail(st)}
+          </details>`;
+      }).join("");
+    }
+
+    // --- Alertes (calculées par l'API sur le screener de la nuit) ---
+    const ALERT_ICONS = { "sous-évaluée": "💰", baisse: "📉", score: "⚠️", "super investisseur": "👀" };
+
+    async function loadAlerts() {
+      let data;
+      try { data = await api("/alerts"); } catch { return; }
+      const rows = [
+        ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin })),
+        ...data.opportunities
+          .filter((o) => !data.events.some((e) => e.ticker === o.ticker && e.type === "sous-évaluée"))
+          .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin })),
+      ];
+      if (!rows.length) return;
+      document.getElementById("alerts").innerHTML = rows.map((r) => `
+        <div class="alert-row"><span class="icon">${r.icon}</span>
+          <div><div>${escapeHtml(r.text)}</div><div class="origin">${r.origin === "position" ? "Position" : "Watchlist"}</div></div>
+        </div>`).join("");
+      document.getElementById("alerts-block").hidden = false;
+    }
+
+    // --- Historique hebdomadaire du screener (cours et valeur intrinsèque) ---
+    const HISTORY_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/history.json";
+    let historyData = null;
+    const historyCharts = {};
+
+    async function showHistory(ticker) {
+      const slot = document.querySelector(`[data-history-slot="${CSS.escape(ticker)}"]`);
+      if (!slot) return;
+      slot.innerHTML = `<div class="hypotheses">Chargement de l'historique…</div>`;
+      try {
+        if (!historyData) {
+          const res = await fetch(HISTORY_URL, { cache: "no-cache" });
+          if (!res.ok) throw new Error(`historique indisponible (${res.status})`);
+          historyData = await res.json();
+        }
+      } catch (e) {
+        slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
+        return;
+      }
+      const series = historyData.series[ticker] || [];
+      const points = historyData.dates.map((d, i) => ({ d, p: series[i] })).filter((x) => x.p);
+      if (points.length < 2) {
+        slot.innerHTML = `<div class="hypotheses">Historique en construction : un relevé est ajouté chaque semaine (${points.length} pour l'instant). La courbe apparaîtra à partir de 2 relevés.</div>`;
+        return;
+      }
+      slot.innerHTML = `<div class="history-box"><canvas></canvas></div>
+        <div class="hypotheses">Relevés hebdomadaires. Score qualité : ${points.map((x) => x.p[3] ?? "—").join(" → ")}</div>`;
+      if (historyCharts[ticker]) historyCharts[ticker].destroy();
+      historyCharts[ticker] = new Chart(slot.querySelector("canvas"), {
+        type: "line",
+        data: {
+          labels: points.map((x) => dateFmt.format(new Date(x.d))),
+          datasets: [
+            { label: "Cours", data: points.map((x) => x.p[0]), borderColor: cssVar("--series-total"), backgroundColor: cssVar("--series-total"), pointRadius: 2, tension: 0.2 },
+            { label: "Valeur intrinsèque", data: points.map((x) => x.p[1]), borderColor: cssVar("--series-pea"), backgroundColor: cssVar("--series-pea"), borderDash: [5, 4], pointRadius: 2, tension: 0.2 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          plugins: { legend: { labels: { color: cssVar("--muted"), boxWidth: 12 } } },
+          scales: {
+            x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { color: cssVar("--line") } },
+          },
+        },
+      });
+    }
+
+    // Boutons des fiches (portefeuille, screener, watchlist, analyse en direct)
+    document.addEventListener("click", (e) => {
+      const star = e.target.closest("button[data-star]");
+      if (star) { e.preventDefault(); toggleWatch(star.dataset.star, star); return; }
+      const hist = e.target.closest("button[data-history]");
+      if (hist) { e.preventDefault(); showHistory(hist.dataset.history); }
+    });
+
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     let briefs = null;
@@ -942,7 +1104,7 @@
 
     function rerenderValuations() {
       if (overview) renderPositions(portfolioAnalyses);
-      if (market) renderMarket();
+      if (market) { renderMarket(); renderWatchlist(); }
     }
 
     document.getElementById("hyp-save").addEventListener("click", () => {
