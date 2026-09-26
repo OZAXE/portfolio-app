@@ -10,10 +10,12 @@ Endpoints prévus pour le MVP :
 """
 
 import logging
+import os
+import secrets
 from collections import defaultdict
 from dataclasses import asdict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .data import INVALID_TICKER_ERROR, SOURCE_UNAVAILABLE_ERROR, fetch_company_financials
@@ -25,13 +27,25 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(
 
 app = FastAPI(title="Portfolio Insights API")
 
-# CORS ouvert pour l'instant : à restreindre au domaine du frontend une fois déployé
+# Seul le frontend peut appeler l'API depuis un navigateur. Ce n'est pas une protection
+# des données (un script n'envoie pas d'Origin) : c'est le rôle du code d'accès ci-dessous
+FRONTEND_ORIGINS = ["https://portfolio-front-8t6m.onrender.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=FRONTEND_ORIGINS,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",  # tests en local
+    allow_methods=["GET"],
+    allow_headers=["X-Access-Token"],
 )
+
+# Code d'accès aux données personnelles (positions, valeurs). Tant que la variable
+# n'est pas définie sur Render, l'API reste ouverte, pour ne rien casser
+ACCESS_TOKEN = os.environ.get("APP_ACCESS_TOKEN")
+
+
+def require_access(x_access_token: str | None = Header(default=None)):
+    if ACCESS_TOKEN and not (x_access_token and secrets.compare_digest(x_access_token, ACCESS_TOKEN)):
+        raise HTTPException(status_code=401, detail="Code d'accès manquant ou invalide")
 
 
 @app.get("/health")
@@ -48,7 +62,7 @@ def _load_positions():
         raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
 
 
-@app.get("/portfolio")
+@app.get("/portfolio", dependencies=[Depends(require_access)])
 def get_portfolio():
     return [p.__dict__ for p in _load_positions()]
 
@@ -69,7 +83,7 @@ def get_analysis(ticker: str):
     }
 
 
-@app.get("/portfolio/analysis")
+@app.get("/portfolio/analysis", dependencies=[Depends(require_access)])
 def get_portfolio_analysis():
     positions = _load_positions()
     output = []
@@ -100,7 +114,7 @@ def _totals(lines: list[HoldingLine]) -> dict:
     }
 
 
-@app.get("/portfolio/overview")
+@app.get("/portfolio/overview", dependencies=[Depends(require_access)])
 def get_portfolio_overview():
     try:
         overview = get_overview()

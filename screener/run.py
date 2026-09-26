@@ -144,6 +144,9 @@ def analyze(entry: dict) -> dict:
         "dcf_reliable": v.dcf_reliable,
         "growth_rate": v.growth_rate_used,
         "discount_rate": v.discount_rate_used,
+        "base_fcf": v.base_fcf,
+        "net_debt": v.net_debt,
+        "shares": v.shares_used,
         "notes": v.notes,
         "data_source": cf.data_source,
     })

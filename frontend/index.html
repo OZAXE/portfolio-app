@@ -131,6 +131,15 @@
     }
     .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
 
+    /* Réglages */
+    .help { font-size: 13px; color: var(--muted); margin: 0 0 4px; line-height: 1.45; }
+    .field { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font-size: 14px; }
+    .field input {
+      width: 110px; background: var(--card-2); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--text); font: inherit; padding: 8px; text-align: right;
+    }
+    .custom-flag { color: var(--series-cto); }
+
     /* Onglets */
     .view[hidden] { display: none; }
     .placeholder { text-align: center; padding: 48px 16px; color: var(--muted); }
@@ -235,7 +244,26 @@
     <!-- Réglages -->
     <section class="view" id="view-settings" hidden>
       <header><h1>Réglages</h1></header>
-      <div class="placeholder"><div class="big">Bientôt ici</div>Tes propres hypothèses de DCF (croissance, actualisation).</div>
+
+      <h2>Code d'accès</h2>
+      <div class="card">
+        <p class="help">Protège tes positions et tes montants. À saisir une fois par appareil, il reste mémorisé sur celui-ci.</p>
+        <input class="search" id="settings-token" type="password" placeholder="Code d'accès" autocomplete="current-password" />
+        <button class="btn" id="settings-token-save">Enregistrer</button>
+        <span class="help" id="settings-token-status"></span>
+      </div>
+
+      <h2>Hypothèses du DCF</h2>
+      <div class="card">
+        <p class="help">Laisse un champ vide pour garder le calcul automatique : croissance tirée de l'historique de cash-flow de chaque entreprise, actualisation selon son bêta. Une valeur saisie s'applique à toutes les actions, dans le portefeuille comme dans le screener.</p>
+        <label class="field"><span>Croissance initiale du cash-flow (% par an)</span><input id="hyp-growth" type="number" step="0.5" min="-10" max="30" placeholder="auto (0 à 12 %)" inputmode="decimal" /></label>
+        <label class="field"><span>Taux d'actualisation (%)</span><input id="hyp-discount" type="number" step="0.5" min="3" max="20" placeholder="auto (7 à 11 %)" inputmode="decimal" /></label>
+        <label class="field"><span>Croissance à long terme (%)</span><input id="hyp-terminal" type="number" step="0.5" min="0" max="4" placeholder="2" inputmode="decimal" /></label>
+        <button class="btn" id="hyp-save">Appliquer</button>
+        <button class="btn" id="hyp-reset">Revenir à l'automatique</button>
+        <p class="help" id="hyp-status"></p>
+        <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
+      </div>
     </section>
   </main>
 
@@ -265,13 +293,68 @@
     const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+    // --- Réglages mémorisés sur l'appareil (le stockage peut être indisponible : on ne bloque jamais) ---
+    const SETTINGS_KEY = "portfolio-insights-settings";
+    const settings = (() => {
+      try { return { token: "", growth: null, discount: null, terminal: null, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; }
+      catch { return { token: "", growth: null, discount: null, terminal: null }; }
+    })();
+    function saveSettings() {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* navigation privée : réglage valable pour la session */ }
+    }
+
     async function api(path) {
-      const res = await fetch(`${API_BASE_URL}${path}`);
+      const headers = settings.token ? { "X-Access-Token": settings.token } : {};
+      const res = await fetch(`${API_BASE_URL}${path}`, { headers });
+      if (res.status === 401) throw new Error("code d'accès requis : saisis-le dans l'onglet Réglages");
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Erreur API : ${res.status}`);
       }
       return res.json();
+    }
+
+    // --- DCF recalculé dans l'appli (même formule que le backend) avec les hypothèses de l'utilisateur ---
+    const RELIABLE_MIN = 0.4, RELIABLE_MAX = 2.5, DEFAULT_TERMINAL = 0.02;
+    const customHypotheses = () => settings.growth != null || settings.discount != null || settings.terminal != null;
+
+    function dcfValue(baseFcf, growth, discount, terminal, years = 10) {
+      let pv = 0, fcf = baseFcf;
+      for (let year = 1; year <= years; year++) {
+        const fade = (year - 1) / (years - 1);
+        fcf *= 1 + growth + (terminal - growth) * fade;
+        pv += fcf / (1 + discount) ** year;
+      }
+      return pv + (fcf * (1 + terminal)) / (discount - terminal) / (1 + discount) ** years;
+    }
+
+    // s : fiche au format screener. Renvoie la valorisation à afficher (serveur, ou recalculée si hypothèses perso)
+    function valuationOf(s) {
+      const server = { iv: s.intrinsic_value, margin: s.margin_of_safety, reliable: !!s.dcf_reliable, g: s.growth_rate, r: s.discount_rate, custom: false };
+      if (!customHypotheses() || s.base_fcf == null || !s.shares || s.growth_rate == null) return server;
+      const g = settings.growth ?? s.growth_rate;
+      const r = settings.discount ?? s.discount_rate;
+      const t = settings.terminal ?? DEFAULT_TERMINAL;
+      if (r <= t) return { ...server, iv: null, margin: null, reliable: false, g, r, custom: true };
+      const equity = dcfValue(s.base_fcf, g, r, t) - (s.net_debt || 0);
+      const iv = equity > 0 ? equity / s.shares : null;
+      const margin = iv && s.price ? ((iv - s.price) / iv) * 100 : null;
+      const reliable = !!(iv && s.price && iv / s.price >= RELIABLE_MIN && iv / s.price <= RELIABLE_MAX);
+      return { iv, margin, reliable, g, r, custom: true };
+    }
+
+    // Analyse renvoyée par l'API (/analysis, /portfolio/analysis) -> fiche au format screener
+    function analysisToRecord(a, ticker) {
+      const f = a.financials, v = a.valuation;
+      return {
+        ticker, name: f.name, currency: f.currency, price: f.current_price, market_cap: f.market_cap,
+        pe: f.trailing_pe, forward_pe: f.forward_pe, pb: f.price_to_book, ev_ebitda: f.ev_to_ebitda,
+        roe: f.return_on_equity, operating_margin: f.operating_margin, debt_to_equity: f.debt_to_equity,
+        quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
+        dcf_reliable: v.dcf_reliable, growth_rate: v.growth_rate_used, discount_rate: v.discount_rate_used,
+        base_fcf: v.base_fcf, net_debt: v.net_debt, shares: v.shares_used,
+        notes: v.notes, fundamentals_updated: new Date().toISOString(), indices: [],
+      };
     }
 
     // --- Onglets (l'onglet courant est gardé dans l'URL : #market, #briefs...) ---
@@ -291,6 +374,7 @@
 
     // --- Portefeuille ---
     let overview = null;
+    let portfolioAnalyses = {};
     let chart = null;
     let chartMode = "value";
 
@@ -403,34 +487,8 @@
       if (!a) {
         return `<div class="analysis">${investedRow}<div class="hypotheses">Analyse en cours de chargement ou indisponible.</div></div>`;
       }
-      const v = a.valuation;
-      const cur = a.financials.currency || "";
-      const iv = v.intrinsic_value_per_share;
-      let ivText = "N/A", mosText = "N/A", mosClass = "";
-      if (iv != null && v.dcf_reliable) {
-        ivText = `${iv} ${cur}`;
-        mosText = `${v.margin_of_safety_pct} %`;
-        mosClass = signClass(v.margin_of_safety_pct);
-      } else if (iv != null) {
-        // Chiffre gardé pour info, sans couleur ni marge : il ne veut rien dire en l'état
-        ivText = `<span class="unreliable">${iv} ${cur} (indicatif)</span>`;
-        mosText = `<span class="unreliable">non pertinente</span>`;
-      }
-      const hypotheses = v.growth_rate_used != null
-        ? `<div class="hypotheses">Hypothèses DCF : croissance ${pctFmt.format(v.growth_rate_used)} décroissante, actualisation ${pctFmt.format(v.discount_rate_used).replace("+", "")}</div>`
-        : "";
-      const notes = v.notes.length ? `<ul>${v.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
-      return `
-        <div class="analysis">
-          ${investedRow}
-          <div class="row"><span>Quantité</span><span>${a.quantity}</span></div>
-          <div class="row"><span>Cours</span><span>${a.financials.current_price ?? "N/A"} ${cur}</span></div>
-          <div class="row"><span>Score qualité</span><span>${v.quality_score != null ? v.quality_score + " / 20" : "N/A"}</span></div>
-          <div class="row"><span>Valeur intrinsèque</span><span>${ivText}</span></div>
-          <div class="row"><span>Marge de sécurité</span><span class="${mosClass}">${mosText}</span></div>
-          ${hypotheses}
-          ${notes}
-        </div>`;
+      const extra = `${investedRow}<div class="row"><span>Quantité</span><span>${a.quantity}</span></div>`;
+      return renderStockDetail(analysisToRecord(a, a.ticker), extra, false);
     }
 
     function renderSectors() {
@@ -472,7 +530,8 @@
       const analysisStatus = document.getElementById("analysis-status");
       try {
         const analyses = await api("/portfolio/analysis");
-        renderPositions(Object.fromEntries(analyses.map((a) => [a.ticker, a])));
+        portfolioAnalyses = Object.fromEntries(analyses.map((a) => [a.ticker, a]));
+        renderPositions(portfolioAnalyses);
         analysisStatus.hidden = true;
       } catch (e) {
         analysisStatus.textContent = "Analyses indisponibles : " + e.message;
@@ -523,13 +582,13 @@
         (!q || s.ticker.toLowerCase().includes(q) || (s.name || "").toLowerCase().includes(q)) &&
         (!f.region || s.region === f.region) &&
         (!f.sector || s.sector === f.sector) &&
-        (!f.reliable || s.dcf_reliable) &&
+        (!f.reliable || valuationOf(s).reliable) &&
         (!f.quality || (s.quality_score ?? 0) >= 14) &&
         (!f.owned || owned.has(s.ticker))
       );
       // Les actions sans valeur pour le critère de tri passent en fin de liste
       const key = {
-        margin: (s) => (s.dcf_reliable ? s.margin_of_safety : null),
+        margin: (s) => { const v = valuationOf(s); return v.reliable ? v.margin : null; },
         score: (s) => s.quality_score,
         pe: (s) => (s.pe > 0 ? -s.pe : null),
         cap: (s) => s.market_cap_eur ?? null,
@@ -544,8 +603,9 @@
         `${list.length} action${list.length > 1 ? "s" : ""}` + (marketFilters.sort === "margin" ? " · classées par marge de sécurité (DCF fiables en tête)" : "");
       const shown = list.slice(0, marketShown);
       document.getElementById("market-list").innerHTML = shown.map((s) => {
-        const mos = s.dcf_reliable && s.margin_of_safety != null
-          ? `<span class="${signClass(s.margin_of_safety)}">${s.margin_of_safety > 0 ? "+" : ""}${num(s.margin_of_safety)} %</span>`
+        const v = valuationOf(s);
+        const mos = v.reliable && v.margin != null
+          ? `<span class="${signClass(v.margin)}">${v.margin > 0 ? "+" : ""}${num(v.margin)} %</span>`
           : `<span class="muted">—</span>`;
         return `
           <details class="stock" data-ticker="${escapeHtml(s.ticker)}">
@@ -570,21 +630,25 @@
         : "";
     }
 
-    function renderStockDetail(s) {
+    // extraRows : lignes propres au portefeuille (investi, quantité) ; showDates : date d'analyse et indices
+    function renderStockDetail(s, extraRows = "", showDates = true) {
       const cur = s.currency || "";
+      const v = valuationOf(s);
       let dcf = `<div class="row"><span>Valeur intrinsèque</span><span>N/A</span></div>`;
-      if (s.intrinsic_value != null) {
-        dcf = s.dcf_reliable
-          ? `<div class="row"><span>Valeur intrinsèque</span><span>${money(s.intrinsic_value, cur)}</span></div>
-             <div class="row"><span>Marge de sécurité</span><span class="${signClass(s.margin_of_safety)}">${num(s.margin_of_safety)} %</span></div>`
-          : `<div class="row"><span>Valeur intrinsèque</span><span class="unreliable">${money(s.intrinsic_value, cur)} (indicatif)</span></div>`;
+      if (v.iv != null) {
+        // Hors fourchette de fiabilité, chiffre gardé pour info mais sans marge : il ne veut rien dire en l'état
+        dcf = v.reliable
+          ? `<div class="row"><span>Valeur intrinsèque</span><span>${money(v.iv, cur)}</span></div>
+             <div class="row"><span>Marge de sécurité</span><span class="${signClass(v.margin)}">${num(v.margin)} %</span></div>`
+          : `<div class="row"><span>Valeur intrinsèque</span><span class="unreliable">${money(v.iv, cur)} (indicatif)</span></div>`;
       }
-      const hypotheses = s.growth_rate != null
-        ? `<div class="hypotheses">Hypothèses DCF : croissance ${pctPlain(s.growth_rate)} décroissante, actualisation ${pctPlain(s.discount_rate)}</div>` : "";
+      const hypotheses = v.g != null
+        ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
       const notes = (s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
       const analysed = s.fundamentals_updated ? new Date(s.fundamentals_updated).toLocaleDateString("fr-FR") : "?";
       return `
         <div class="analysis">
+          ${extraRows}
           <div class="metrics">
             <div class="row"><span>Cours</span><span>${money(s.price, cur)}</span></div>
             <div class="row"><span>Capitalisation</span><span>${s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A"}</span></div>
@@ -600,7 +664,7 @@
           ${dcf}
           ${hypotheses}
           ${notes}
-          <div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>
+          ${showDates ? `<div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>` : ""}
         </div>`;
     }
 
@@ -609,16 +673,8 @@
       out.innerHTML = `<div class="status">Analyse de ${escapeHtml(ticker)} en cours (jusqu'à une minute)…</div>`;
       try {
         const a = await api(`/analysis/${encodeURIComponent(ticker)}`);
-        const f = a.financials, v = a.valuation;
-        const s = {
-          ticker, name: f.name, currency: f.currency, price: f.current_price, market_cap: f.market_cap,
-          pe: f.trailing_pe, forward_pe: f.forward_pe, pb: f.price_to_book, ev_ebitda: f.ev_to_ebitda,
-          roe: f.return_on_equity, operating_margin: f.operating_margin, debt_to_equity: f.debt_to_equity,
-          quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
-          dcf_reliable: v.dcf_reliable, growth_rate: v.growth_rate_used, discount_rate: v.discount_rate_used,
-          notes: v.notes, fundamentals_updated: new Date().toISOString(), indices: [],
-        };
-        out.innerHTML = `<div class="stock"><div class="title">${escapeHtml(f.name || ticker)}</div><div class="sub">${escapeHtml(ticker)} · analyse en direct</div>${renderStockDetail(s)}</div>`;
+        const s = analysisToRecord(a, ticker);
+        out.innerHTML = `<div class="stock"><div class="title">${escapeHtml(s.name || ticker)}</div><div class="sub">${escapeHtml(ticker)} · analyse en direct</div>${renderStockDetail(s, "", false)}</div>`;
       } catch (e) {
         out.innerHTML = `<div class="status">${escapeHtml(e.message)}. Vérifie le ticker au format Yahoo (ex : MC.PA, SAP.DE, AAPL, 7203.T).</div>`;
       }
@@ -655,6 +711,68 @@
       } else if (e.target.id === "market-live-btn") {
         analyzeLive(e.target.dataset.ticker);
       }
+    });
+
+    // --- Réglages ---
+    const tokenInput = document.getElementById("settings-token");
+    const hypInputs = { growth: "hyp-growth", discount: "hyp-discount", terminal: "hyp-terminal" };
+    tokenInput.value = settings.token;
+    for (const [key, id] of Object.entries(hypInputs)) {
+      document.getElementById(id).value = settings[key] != null ? +(settings[key] * 100).toFixed(2) : "";
+    }
+
+    document.getElementById("settings-token-save").addEventListener("click", async () => {
+      settings.token = tokenInput.value.trim();
+      saveSettings();
+      const status = document.getElementById("settings-token-status");
+      status.textContent = "Vérification…";
+      try {
+        await api("/portfolio");
+        status.textContent = "Code valide, enregistré sur cet appareil.";
+        overview = null;
+        document.getElementById("portfolio-status").hidden = false;
+        document.getElementById("portfolio-status").textContent = "Chargement…";
+        loadPortfolio();
+      } catch (e) {
+        status.textContent = e.message;
+      }
+    });
+
+    function rerenderValuations() {
+      if (overview) renderPositions(portfolioAnalyses);
+      if (market) renderMarket();
+    }
+
+    document.getElementById("hyp-save").addEventListener("click", () => {
+      const status = document.getElementById("hyp-status");
+      const read = (id) => {
+        const raw = document.getElementById(id).value.trim().replace(",", ".");
+        return raw === "" ? null : Number(raw) / 100;
+      };
+      const next = Object.fromEntries(Object.entries(hypInputs).map(([key, id]) => [key, read(id)]));
+      if (Object.values(next).some((x) => x != null && Number.isNaN(x))) {
+        status.textContent = "Valeur invalide : saisis des nombres, en %.";
+        return;
+      }
+      const terminal = next.terminal ?? DEFAULT_TERMINAL;
+      if (next.discount != null && next.discount <= terminal) {
+        status.textContent = "L'actualisation doit être supérieure à la croissance à long terme.";
+        return;
+      }
+      Object.assign(settings, next);
+      saveSettings();
+      rerenderValuations();
+      status.textContent = customHypotheses()
+        ? "Hypothèses appliquées au portefeuille et au screener."
+        : "Calcul automatique rétabli.";
+    });
+
+    document.getElementById("hyp-reset").addEventListener("click", () => {
+      Object.keys(hypInputs).forEach((key) => (settings[key] = null));
+      Object.values(hypInputs).forEach((id) => (document.getElementById(id).value = ""));
+      saveSettings();
+      rerenderValuations();
+      document.getElementById("hyp-status").textContent = "Calcul automatique rétabli.";
     });
 
     if ("serviceWorker" in navigator) {

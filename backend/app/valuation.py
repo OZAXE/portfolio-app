@@ -25,6 +25,10 @@ class ValuationResult:
     dcf_reliable: bool = False
     growth_rate_used: float | None = None
     discount_rate_used: float | None = None
+    # Ingrédients du DCF, pour que l'appli le recalcule avec les hypothèses de l'utilisateur
+    base_fcf: float | None = None
+    net_debt: float | None = None
+    shares_used: float | None = None
 
 
 # Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
@@ -285,6 +289,9 @@ def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
     if cf.market_cap and cf.current_price:
         shares = cf.market_cap / cf.current_price
 
+    result.base_fcf = base_fcf
+    result.net_debt = cf.total_debt - cf.total_cash
+    result.shares_used = shares
     intrinsic_value = equity_value_per_share(
         compute_dcf(base_fcf, growth, discount), cf.total_debt, cf.total_cash, shares
     )
