@@ -152,6 +152,11 @@
     }
     .op-grid input.auto { border-style: dashed; }
 
+    /* Plus-values réalisées et dividendes */
+    .realized-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .realized-grid .envelope .perf { color: var(--muted); }
+    .realized-list { margin-top: 10px; font-size: 13px; }
+
     /* Alertes, watchlist, historique */
     .alert-row { display: flex; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
     .alert-row:first-child { border-top: 0; padding-top: 0; }
@@ -275,6 +280,14 @@
         <h2>Positions</h2>
         <div class="positions" id="positions"></div>
         <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
+
+        <h2>Plus-values réalisées et dividendes</h2>
+        <div class="card" id="realized">
+          <div class="chart-head">
+            <select class="fin-select" id="realized-year" aria-label="Année" style="margin-top:0" hidden></select>
+          </div>
+          <div id="realized-body" class="help">Chargement…</div>
+        </div>
 
         <div id="watchlist-block" hidden>
           <h2>Actions surveillées</h2>
@@ -721,6 +734,7 @@
 
       loadWatchlist();
       loadAlerts();
+      loadRealized();
       loadMarket();  // données du screener, utilisées par la section Actions surveillées
 
       // Les analyses interrogent Yahoo pour chaque ligne : plus lentes, chargées ensuite
@@ -1363,6 +1377,57 @@
       updateOperationForm();
     });
     opEl("op-form").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") updateOperationForm(); });
+
+    // --- Plus-values réalisées et dividendes perçus, par année ---
+    let realized = null;
+
+    async function loadRealized() {
+      const body = document.getElementById("realized-body");
+      try {
+        realized = await api("/portfolio/realized");
+      } catch (e) {
+        body.textContent = "Indisponible : " + e.message;
+        return;
+      }
+      const select = document.getElementById("realized-year");
+      if (!realized.years.length) {
+        select.hidden = true;
+        body.textContent = "Aucune vente ni aucun dividende enregistré pour l'instant. Ils apparaîtront ici dès ta première vente ou ton premier dividende saisi.";
+        return;
+      }
+      select.innerHTML = realized.years.map((y) => `<option value="${y.year}">${y.year}</option>`).join("");
+      select.hidden = false;
+      renderRealized(realized.years[0].year);
+    }
+
+    function renderRealized(year) {
+      const y = realized.years.find((x) => x.year === Number(year));
+      const body = document.getElementById("realized-body");
+      body.className = "";
+      const envelopes = Object.entries(y.envelopes).sort(([a], [b]) => a.localeCompare(b));
+      const cards = envelopes.map(([name, e]) => `
+        <div class="envelope">
+          <div class="name">${escapeHtml(name)}</div>
+          <div class="amount ${signClass(e.realized_gain)}">${e.sales ? signedEur(e.realized_gain) : "—"}</div>
+          <div class="perf">plus-values réalisées${e.sales ? ` · ${e.sales} vente${e.sales > 1 ? "s" : ""}` : ""}</div>
+          <div class="amount" style="margin-top:6px">${eur.format(e.dividends_net)}</div>
+          <div class="perf">dividendes nets${e.dividends_taxes ? ` (brut ${eur.format(e.dividends_gross)}, retenues ${eur.format(e.dividends_taxes)})` : ""}</div>
+          ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">Impôt estimé (flat tax ${Math.round(realized.flat_tax_rate * 100)} %) : ${eur.format(e.estimated_tax)}</div>` : ""}
+        </div>`).join("");
+      const sales = y.sales.map((s) => `
+        <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · ${num(s.quantity, 4)} × PRU ${money(s.unit_cost, "€")}</span></div>
+          <div class="right ${signClass(s.gain)}">${signedEur(s.gain)}</div></div>`).join("");
+      const dividends = y.dividends.map((d) => `
+        <div class="rank-row"><div>${escapeHtml(d.name)} <span class="muted">${new Date(d.date).toLocaleDateString("fr-FR")} · ${escapeHtml(d.envelope)}</span></div>
+          <div class="right">${eur.format(d.net)}</div></div>`).join("");
+      body.innerHTML = `
+        <div class="realized-grid">${cards}</div>
+        ${sales ? `<details class="realized-list"><summary>Ventes ${y.year} (${y.sales.length})</summary>${sales}</details>` : ""}
+        ${dividends ? `<details class="realized-list"><summary>Dividendes ${y.year} (${y.dividends.length})</summary>${dividends}</details>` : ""}
+        <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation (moins-values reportables, option pour le barème et prélèvements à la source non pris en compte) : fie-toi à ton IFU.</p>`;
+    }
+
+    document.getElementById("realized-year").addEventListener("change", (e) => renderRealized(e.target.value));
 
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

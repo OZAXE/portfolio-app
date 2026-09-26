@@ -368,3 +368,11 @@ def get_performance(benchmark: str = "world", user: User = Depends(require_acces
     result = _sheet_call(lambda: portfolio_performance(user.sheet_id, benchmark))
     _performance_cache[key] = (time.monotonic(), result)
     return result
+
+
+# --- Plus-values réalisées et dividendes perçus (onglet Opérations) ---
+@app.get("/portfolio/realized")
+def get_realized(user: User = Depends(require_access)):
+    from .realized import realized_summary
+
+    return _sheet_call(lambda: realized_summary(user.sheet_id))
