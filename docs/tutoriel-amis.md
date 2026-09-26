@@ -14,7 +14,8 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 ## Étape 1 : copier le Sheet modèle (2 min)
 
-1. Ouvre le lien du **Sheet modèle** qu'on t'a envoyé.
+1. Ouvre le **Sheet modèle** :
+   https://docs.google.com/spreadsheets/d/1Cw44TPxJkpfoXUKkg4eDuDeoHIIvI-UJmzkXi2MYeZU/edit
 2. Menu **Fichier > Créer une copie**, nomme-la par exemple « Mon portefeuille », puis **Créer une copie**.
    C'est ta copie qui compte désormais, garde son lien.
 
@@ -22,7 +23,8 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 Dans ta copie :
 
-1. Onglet **Comptes** : une ligne par compte-titres. Exemple :
+1. Onglet **Comptes** : une ligne par compte-titres (les deux lignes présentes sont des exemples,
+   remplace-les par les tiens). Exemple :
 
    | Compte | Enveloppe | Courtier |
    |---|---|---|

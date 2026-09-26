@@ -5,6 +5,9 @@ dans la variable `USERS_JSON` du service backend sur Render.
 
 ## 1. Préparer le Sheet modèle (une seule fois)
 
+Déjà fait : https://docs.google.com/spreadsheets/d/1Cw44TPxJkpfoXUKkg4eDuDeoHIIvI-UJmzkXi2MYeZU/edit
+(à refaire seulement si le modèle change).
+
 1. Crée un Google Sheet vide nommé « Portfolio Insights — Modèle » et partage-le en **Éditeur**
    avec le compte de service.
 2. Construis-y les onglets du modèle :
