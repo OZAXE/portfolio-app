@@ -96,6 +96,41 @@
     .saving:first-child { margin-top: 0; }
     .saving.total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; font-weight: 600; }
 
+    /* Marché */
+    .market-meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .search {
+      width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+      color: var(--text); font: inherit; font-size: 15px; padding: 11px 12px; margin-top: 12px;
+    }
+    .search:focus { outline: 2px solid var(--series-pea); outline-offset: 1px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    .filters select {
+      background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+      font: inherit; font-size: 13px; padding: 7px 8px; max-width: 100%;
+    }
+    .chip {
+      border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 13px;
+      padding: 6px 10px; border-radius: 999px; cursor: pointer;
+    }
+    .chip.active { background: var(--card-2); color: var(--text); border-color: var(--muted); }
+    .result-count { font-size: 12px; color: var(--muted); margin: 12px 0 8px; }
+    .stock { background: var(--card); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .stock summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .stock summary::-webkit-details-marker { display: none; }
+    .stock .title { font-weight: 600; font-size: 15px; }
+    .stock .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stock .right { text-align: right; white-space: nowrap; font-size: 13px; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--card-2); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
+    .badge.owned { color: var(--accent); }
+    .score { font-weight: 600; font-size: 15px; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+    .metrics .row { margin-top: 2px; }
+    .btn {
+      border: 1px solid var(--line); background: var(--card-2); color: var(--text); font: inherit; font-size: 13px;
+      padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px;
+    }
+    .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
+
     /* Onglets */
     .view[hidden] { display: none; }
     .placeholder { text-align: center; padding: 48px 16px; color: var(--muted); }
@@ -161,8 +196,34 @@
 
     <!-- Marché -->
     <section class="view" id="view-market" hidden>
-      <header><h1>Marché</h1></header>
-      <div class="placeholder"><div class="big">Screener en préparation</div>Un large panel d'actions Europe, US et Asie, analysé chaque nuit.</div>
+      <header>
+        <h1>Marché</h1>
+        <div class="market-meta" id="market-meta">Chargement du screener…</div>
+      </header>
+      <input class="search" id="market-search" type="search" placeholder="Rechercher une action (nom ou ticker)" autocomplete="off" />
+      <div class="filters">
+        <select id="filter-region" aria-label="Région">
+          <option value="">Toutes régions</option>
+          <option value="Europe">Europe</option>
+          <option value="US">États-Unis</option>
+          <option value="Asie">Asie</option>
+        </select>
+        <select id="filter-sector" aria-label="Secteur"><option value="">Tous secteurs</option></select>
+        <select id="market-sort" aria-label="Tri">
+          <option value="margin">Tri : marge de sécurité</option>
+          <option value="score">Tri : score qualité</option>
+          <option value="pe">Tri : PER le plus bas</option>
+          <option value="cap">Tri : capitalisation</option>
+        </select>
+      </div>
+      <div class="filters">
+        <button class="chip" id="filter-reliable">DCF fiable</button>
+        <button class="chip" id="filter-quality">Score ≥ 14</button>
+        <button class="chip" id="filter-owned">Mes positions</button>
+      </div>
+      <div class="result-count" id="market-count"></div>
+      <div id="market-list"></div>
+      <div id="market-live"></div>
     </section>
 
     <!-- Briefs -->
@@ -220,6 +281,7 @@
       document.querySelectorAll("#tabbar button").forEach((b) => b.classList.toggle("active", b === btn));
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${btn.dataset.view}`));
       window.scrollTo(0, 0);
+      if (btn.dataset.view === "market") loadMarket();
     });
 
     // --- Portefeuille ---
@@ -411,6 +473,184 @@
         analysisStatus.textContent = "Analyses indisponibles : " + e.message;
       }
     }
+
+    // --- Marché (screener calculé chaque nuit par GitHub Actions) ---
+    const SCREENER_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/screener.json";
+    const PAGE_SIZE = 50;
+    const compact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
+    const num = (x, digits = 1) => (x == null ? "N/A" : x.toLocaleString("fr-FR", { maximumFractionDigits: digits }));
+    const pctPlain = (x) => (x == null ? "N/A" : `${(x * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`);
+    const money = (x, cur) => (x == null ? "N/A" : `${x.toLocaleString("fr-FR", { maximumFractionDigits: x < 10 ? 2 : x < 1000 ? 1 : 0 })} ${cur || ""}`);
+
+    let market = null;
+    let marketLoading = false;
+    let marketShown = PAGE_SIZE;
+    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false };
+
+    const ownedTickers = () => new Set((overview?.holdings || []).map((h) => h.yahoo_ticker));
+
+    async function loadMarket() {
+      if (market || marketLoading) return;
+      marketLoading = true;
+      const meta = document.getElementById("market-meta");
+      try {
+        const res = await fetch(SCREENER_URL, { cache: "no-cache" });
+        if (!res.ok) throw new Error(`screener indisponible (${res.status})`);
+        market = await res.json();
+      } catch (e) {
+        meta.textContent = "Screener pas encore disponible : " + e.message;
+        marketLoading = false;
+        return;
+      }
+      market.stocks = market.stocks.filter((s) => !s.error && s.price != null);
+      const updated = new Date(market.generated_at);
+      meta.textContent = `${market.stocks.length} actions analysées sur ${market.universe_size} · mis à jour le ${updated.toLocaleDateString("fr-FR")} à ${updated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+      const sectors = [...new Set(market.stocks.map((s) => s.sector))].sort((a, b) => a.localeCompare(b, "fr"));
+      document.getElementById("filter-sector").innerHTML += sectors.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+      renderMarket();
+    }
+
+    function filteredStocks() {
+      const f = marketFilters;
+      const q = f.query.trim().toLowerCase();
+      const owned = ownedTickers();
+      let list = market.stocks.filter((s) =>
+        (!q || s.ticker.toLowerCase().includes(q) || (s.name || "").toLowerCase().includes(q)) &&
+        (!f.region || s.region === f.region) &&
+        (!f.sector || s.sector === f.sector) &&
+        (!f.reliable || s.dcf_reliable) &&
+        (!f.quality || (s.quality_score ?? 0) >= 14) &&
+        (!f.owned || owned.has(s.ticker))
+      );
+      // Les actions sans valeur pour le critère de tri passent en fin de liste
+      const key = {
+        margin: (s) => (s.dcf_reliable ? s.margin_of_safety : null),
+        score: (s) => s.quality_score,
+        pe: (s) => (s.pe > 0 ? -s.pe : null),
+        cap: (s) => s.market_cap_eur ?? null,
+      }[f.sort];
+      return list.sort((a, b) => (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
+    }
+
+    function renderMarket() {
+      const list = filteredStocks();
+      const owned = ownedTickers();
+      document.getElementById("market-count").textContent =
+        `${list.length} action${list.length > 1 ? "s" : ""}` + (marketFilters.sort === "margin" ? " · classées par marge de sécurité (DCF fiables en tête)" : "");
+      const shown = list.slice(0, marketShown);
+      document.getElementById("market-list").innerHTML = shown.map((s) => {
+        const mos = s.dcf_reliable && s.margin_of_safety != null
+          ? `<span class="${signClass(s.margin_of_safety)}">${s.margin_of_safety > 0 ? "+" : ""}${num(s.margin_of_safety)} %</span>`
+          : `<span class="muted">—</span>`;
+        return `
+          <details class="stock" data-ticker="${escapeHtml(s.ticker)}">
+            <summary>
+              <div>
+                <div class="title">${escapeHtml(s.name)}${owned.has(s.ticker) ? '<span class="badge owned">en portefeuille</span>' : ""}</div>
+                <div class="sub">${escapeHtml(s.ticker)} · ${escapeHtml(s.country)} · ${escapeHtml(s.sector)}</div>
+              </div>
+              <div class="right">
+                <div class="score">${s.quality_score != null ? num(s.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div>
+                <div>${mos}</div>
+              </div>
+            </summary>
+            ${renderStockDetail(s)}
+          </details>`;
+      }).join("") + (list.length > marketShown ? `<button class="btn more" id="market-more">Afficher ${Math.min(PAGE_SIZE, list.length - marketShown)} de plus</button>` : "");
+
+      // Recherche d'un ticker hors panel : analyse en direct par l'API
+      const q = marketFilters.query.trim().toUpperCase();
+      document.getElementById("market-live").innerHTML = q && !list.some((s) => s.ticker === q)
+        ? `<button class="btn more" id="market-live-btn" data-ticker="${escapeHtml(q)}">Analyser « ${escapeHtml(q)} » en direct</button><div id="market-live-result"></div>`
+        : "";
+    }
+
+    function renderStockDetail(s) {
+      const cur = s.currency || "";
+      let dcf = `<div class="row"><span>Valeur intrinsèque</span><span>N/A</span></div>`;
+      if (s.intrinsic_value != null) {
+        dcf = s.dcf_reliable
+          ? `<div class="row"><span>Valeur intrinsèque</span><span>${money(s.intrinsic_value, cur)}</span></div>
+             <div class="row"><span>Marge de sécurité</span><span class="${signClass(s.margin_of_safety)}">${num(s.margin_of_safety)} %</span></div>`
+          : `<div class="row"><span>Valeur intrinsèque</span><span class="unreliable">${money(s.intrinsic_value, cur)} (indicatif)</span></div>`;
+      }
+      const hypotheses = s.growth_rate != null
+        ? `<div class="hypotheses">Hypothèses DCF : croissance ${pctPlain(s.growth_rate)} décroissante, actualisation ${pctPlain(s.discount_rate)}</div>` : "";
+      const notes = (s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
+      const analysed = s.fundamentals_updated ? new Date(s.fundamentals_updated).toLocaleDateString("fr-FR") : "?";
+      return `
+        <div class="analysis">
+          <div class="metrics">
+            <div class="row"><span>Cours</span><span>${money(s.price, cur)}</span></div>
+            <div class="row"><span>Capitalisation</span><span>${s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A"}</span></div>
+            <div class="row"><span>PER</span><span>${num(s.pe)}</span></div>
+            <div class="row"><span>PER prévisionnel</span><span>${num(s.forward_pe)}</span></div>
+            <div class="row"><span>Cours / valeur comptable</span><span>${num(s.pb)}</span></div>
+            <div class="row"><span>VE / EBITDA</span><span>${num(s.ev_ebitda)}</span></div>
+            <div class="row"><span>ROE</span><span>${pctPlain(s.roe)}</span></div>
+            <div class="row"><span>Marge opérationnelle</span><span>${pctPlain(s.operating_margin)}</span></div>
+            <div class="row"><span>Dette / fonds propres</span><span>${s.debt_to_equity != null ? num(s.debt_to_equity, 0) + " %" : "N/A"}</span></div>
+            <div class="row"><span>Score qualité</span><span>${s.quality_score != null ? num(s.quality_score) + " / 20" : "N/A"}</span></div>
+          </div>
+          ${dcf}
+          ${hypotheses}
+          ${notes}
+          <div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>
+        </div>`;
+    }
+
+    async function analyzeLive(ticker) {
+      const out = document.getElementById("market-live-result");
+      out.innerHTML = `<div class="status">Analyse de ${escapeHtml(ticker)} en cours (jusqu'à une minute)…</div>`;
+      try {
+        const a = await api(`/analysis/${encodeURIComponent(ticker)}`);
+        const f = a.financials, v = a.valuation;
+        const s = {
+          ticker, name: f.name, currency: f.currency, price: f.current_price, market_cap: f.market_cap,
+          pe: f.trailing_pe, forward_pe: f.forward_pe, pb: f.price_to_book, ev_ebitda: f.ev_to_ebitda,
+          roe: f.return_on_equity, operating_margin: f.operating_margin, debt_to_equity: f.debt_to_equity,
+          quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
+          dcf_reliable: v.dcf_reliable, growth_rate: v.growth_rate_used, discount_rate: v.discount_rate_used,
+          notes: v.notes, fundamentals_updated: new Date().toISOString(), indices: [],
+        };
+        out.innerHTML = `<div class="stock"><div class="title">${escapeHtml(f.name || ticker)}</div><div class="sub">${escapeHtml(ticker)} · analyse en direct</div>${renderStockDetail(s)}</div>`;
+      } catch (e) {
+        out.innerHTML = `<div class="status">${escapeHtml(e.message)}. Vérifie le ticker au format Yahoo (ex : MC.PA, SAP.DE, AAPL, 7203.T).</div>`;
+      }
+    }
+
+    let searchTimer;
+    document.getElementById("market-search").addEventListener("input", (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        marketFilters.query = e.target.value;
+        marketShown = PAGE_SIZE;
+        if (market) renderMarket();
+      }, 200);
+    });
+    for (const [id, key] of [["filter-region", "region"], ["filter-sector", "sector"], ["market-sort", "sort"]]) {
+      document.getElementById(id).addEventListener("change", (e) => {
+        marketFilters[key] = e.target.value;
+        marketShown = PAGE_SIZE;
+        if (market) renderMarket();
+      });
+    }
+    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"]]) {
+      document.getElementById(id).addEventListener("click", (e) => {
+        marketFilters[key] = !marketFilters[key];
+        e.currentTarget.classList.toggle("active", marketFilters[key]);
+        marketShown = PAGE_SIZE;
+        if (market) renderMarket();
+      });
+    }
+    document.getElementById("view-market").addEventListener("click", (e) => {
+      if (e.target.id === "market-more") {
+        marketShown += PAGE_SIZE;
+        renderMarket();
+      } else if (e.target.id === "market-live-btn") {
+        analyzeLive(e.target.dataset.ticker);
+      }
+    });
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js");

@@ -168,6 +168,25 @@ def infer_price_scale(record: dict, raw_price: float | None) -> None:
         record["price_scale"] = 0.01 if 0.005 < ratio < 0.02 else 1.0
 
 
+def add_market_cap_eur(stocks: dict[str, dict]) -> None:
+    """Capitalisation en euros, pour pouvoir trier ensemble des actions cotées en KRW, JPY, USD..."""
+    currencies = {s["currency"] for s in stocks.values() if s.get("currency") and s["currency"] != "EUR"}
+    rates = {"EUR": 1.0}
+    pairs = [f"{c}EUR=X" for c in currencies]
+    if pairs:
+        try:
+            df = yf.download(pairs, period="5d", progress=False, auto_adjust=False, group_by="ticker")
+            for c in currencies:
+                close = (df[f"{c}EUR=X"]["Close"] if len(pairs) > 1 else df["Close"]).dropna()
+                if not close.empty:
+                    rates[c] = float(close.iloc[-1])
+        except Exception as e:
+            log.warning("taux de change en erreur (%s)", e)
+    for s in stocks.values():
+        rate = rates.get(s.get("currency"))
+        s["market_cap_eur"] = s["market_cap"] * rate if s.get("market_cap") and rate else None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="data")
@@ -217,6 +236,7 @@ def main():
             save(out_path, stocks)  # sauvegarde régulière : rien de perdu si le job est interrompu
         time.sleep(DELAY_BETWEEN_TICKERS)
 
+    add_market_cap_eur(stocks)
     save(out_path, stocks)
     log.info("terminé : %d fondamentaux mis à jour en %.0f min", done, (time.monotonic() - started) / 60)
 
