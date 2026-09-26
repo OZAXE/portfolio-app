@@ -12,6 +12,7 @@ est parfois moins complète hors US. À vérifier ticker par ticker.
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import logging
+import math
 import threading
 import time
 import yfinance as yf
@@ -255,35 +256,46 @@ def _convert_financials_to_quote_currency(result: CompanyFinancials) -> None:
     result.financial_currency = target
 
 
+def _number(value) -> float | None:
+    """Yahoo glisse parfois du texte ("Infinity", "N/A") dans des champs numériques."""
+    if isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
 def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
     result.data_source = QUOTE_SUMMARY_SOURCE
     result.name = info.get("longName") or info.get("shortName")
     result.quote_type = info.get("quoteType")
     result.currency = info.get("currency")
-    result.current_price = info.get("currentPrice") or info.get("regularMarketPrice")
+    result.current_price = _number(info.get("currentPrice")) or _number(info.get("regularMarketPrice"))
     _normalize_minor_currency(result)
-    result.market_cap = info.get("marketCap")
+    result.market_cap = _number(info.get("marketCap"))
 
-    result.trailing_pe = info.get("trailingPE")
-    result.forward_pe = info.get("forwardPE")
-    result.price_to_book = info.get("priceToBook")
-    result.ev_to_ebitda = info.get("enterpriseToEbitda")
+    result.trailing_pe = _number(info.get("trailingPE"))
+    result.forward_pe = _number(info.get("forwardPE"))
+    result.price_to_book = _number(info.get("priceToBook"))
+    result.ev_to_ebitda = _number(info.get("enterpriseToEbitda"))
 
-    result.return_on_equity = info.get("returnOnEquity")
-    result.gross_margin = info.get("grossMargins")
-    result.operating_margin = info.get("operatingMargins")
-    result.debt_to_equity = info.get("debtToEquity")
+    result.return_on_equity = _number(info.get("returnOnEquity"))
+    result.gross_margin = _number(info.get("grossMargins"))
+    result.operating_margin = _number(info.get("operatingMargins"))
+    result.debt_to_equity = _number(info.get("debtToEquity"))
 
     result.sector = info.get("sector")
     result.industry = info.get("industry")
-    result.beta = info.get("beta")
+    result.beta = _number(info.get("beta"))
     result.financial_currency = info.get("financialCurrency")
 
-    result.free_cash_flow = info.get("freeCashflow")
-    result.shares_outstanding = info.get("sharesOutstanding")
+    result.free_cash_flow = _number(info.get("freeCashflow"))
+    result.shares_outstanding = _number(info.get("sharesOutstanding"))
 
-    result.total_debt = info.get("totalDebt")
-    result.total_cash = info.get("totalCash")
+    result.total_debt = _number(info.get("totalDebt"))
+    result.total_cash = _number(info.get("totalCash"))
 
 
 def _latest(df, *labels) -> float | None:

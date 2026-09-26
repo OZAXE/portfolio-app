@@ -191,7 +191,14 @@ def main():
         if time.monotonic() - started > args.time_budget_min * 60:
             log.info("budget de temps atteint")
             break
-        record = analyze(entry)
+        try:
+            record = analyze(entry)
+        except Exception as e:  # une donnée inattendue sur une action ne doit pas arrêter tout le screener
+            log.warning("%s : analyse en erreur (%s)", entry["ticker"], e)
+            # L'analyse précédente reste affichée si elle existe ; la date avance pour passer à la suite
+            record = {**stocks[entry["ticker"]], "fundamentals_updated": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+            if record.get("price") is None:
+                record["error"] = f"analyse en erreur : {e}"
         if record["error"] == SOURCE_UNAVAILABLE_ERROR:
             consecutive_blocks += 1
             if consecutive_blocks >= MAX_CONSECUTIVE_BLOCKS:

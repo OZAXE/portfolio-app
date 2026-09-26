@@ -131,6 +131,17 @@
     }
     .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
 
+    /* Super investisseurs */
+    .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .rank-row:first-child { border-top: 0; padding-top: 0; }
+    .rank-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .rank-row .right { text-align: right; white-space: nowrap; }
+    .move { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--card-2); }
+    .move.nouvelle, .move.renforcée { color: var(--accent); }
+    .move.allégée, .move.vendue { color: var(--accent-neg); }
+    .holders { margin-top: 8px; font-size: 13px; color: var(--muted); }
+    .holders b { color: var(--text); font-weight: 600; }
+
     /* Briefs */
     .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
     .brief-item .title { font-weight: 600; font-size: 15px; }
@@ -216,8 +227,22 @@
     <section class="view" id="view-market" hidden>
       <header>
         <h1>Marché</h1>
-        <div class="market-meta" id="market-meta">Chargement du screener…</div>
+        <div class="segmented" id="market-mode" style="margin-top:10px">
+          <button data-mode="screener" class="active">Screener</button>
+          <button data-mode="investors">Super investisseurs</button>
+        </div>
       </header>
+      <div id="investors-pane" hidden>
+        <div class="market-meta" id="investors-meta">Chargement…</div>
+        <h2>Les plus achetés ce trimestre</h2>
+        <div class="card" id="investors-bought"></div>
+        <h2>Les plus détenus</h2>
+        <div class="card" id="investors-held"></div>
+        <h2>Les fonds</h2>
+        <div id="investors-funds"></div>
+      </div>
+      <div id="screener-pane">
+      <div class="market-meta" id="market-meta">Chargement du screener…</div>
       <input class="search" id="market-search" type="search" placeholder="Rechercher une action (nom ou ticker)" autocomplete="off" />
       <div class="filters">
         <select id="filter-region" aria-label="Région">
@@ -242,6 +267,7 @@
       <div class="result-count" id="market-count"></div>
       <div id="market-list"></div>
       <div id="market-live"></div>
+      </div>
     </section>
 
     <!-- Briefs -->
@@ -384,7 +410,7 @@
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${view}`));
       window.scrollTo(0, 0);
       history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
-      if (view === "market") loadMarket();
+      if (view === "market") { loadMarket(); loadInvestors(); }
       if (view === "briefs") loadBriefs();
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
@@ -683,6 +709,7 @@
           </div>
           ${dcf}
           ${hypotheses}
+          ${holdersLine(s.ticker)}
           ${notes}
           ${showDates ? `<div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>` : ""}
         </div>`;
@@ -731,6 +758,103 @@
       } else if (e.target.id === "market-live-btn") {
         analyzeLive(e.target.dataset.ticker);
       }
+    });
+
+    // --- Super investisseurs (13F de la SEC, mis à jour avec le screener) ---
+    const INVESTORS_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/superinvestors.json";
+    const usd = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1, style: "currency", currency: "USD" });
+    const weightPct = (w) => `${(w * 100).toLocaleString("fr-FR", { maximumFractionDigits: w < 0.01 ? 2 : 1 })} %`;
+    let investors = null;
+    let investorsLoading = false;
+
+    const moveBadge = (change, pct) => {
+      if (!change || change === "inchangée") return "";
+      const detail = pct != null && change !== "vendue" ? ` ${pct > 0 ? "+" : ""}${Math.round(pct * 100)} %` : "";
+      return `<span class="move ${change}">${change}${detail}</span>`;
+    };
+
+    async function loadInvestors() {
+      if (investors || investorsLoading) return;
+      investorsLoading = true;
+      try {
+        const res = await fetch(INVESTORS_URL, { cache: "no-cache" });
+        if (!res.ok) throw new Error(`données indisponibles (${res.status})`);
+        investors = await res.json();
+      } catch (e) {
+        document.getElementById("investors-meta").textContent = "Super investisseurs pas encore disponibles : " + e.message;
+        investorsLoading = false;
+        return;
+      }
+      renderInvestors();
+      if (market) renderMarket();  // ajoute « détenue par » aux fiches du screener
+    }
+
+    function renderInvestors() {
+      const funds = Object.fromEntries(investors.funds.map((f) => [f.id, f]));
+      const periods = [...new Set(investors.funds.map((f) => f.period))].sort();
+      document.getElementById("investors-meta").textContent =
+        `${investors.funds.length} fonds suivis · positions au ${new Date(periods[periods.length - 1]).toLocaleDateString("fr-FR")} (déclarations 13F publiées jusqu'à 45 jours après la fin du trimestre, actions américaines uniquement)`;
+
+      const names = {};
+      for (const f of investors.funds) for (const p of f.positions) if (p.ticker && !names[p.ticker]) names[p.ticker] = p.name;
+      const entries = Object.entries(investors.by_ticker);
+      const row = (ticker, holders, right) => `
+        <div class="rank-row">
+          <div><div>${escapeHtml(names[ticker] || ticker)} <span class="muted">${escapeHtml(ticker)}</span></div>
+          <div class="who">${holders.map((h) => escapeHtml(funds[h.fund].manager)).join(", ")}</div></div>
+          <div class="right">${right}</div>
+        </div>`;
+
+      const bought = entries
+        .map(([t, hs]) => [t, hs.filter((h) => h.change === "nouvelle" || h.change === "renforcée")])
+        .filter(([, hs]) => hs.length >= 2)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 12);
+      document.getElementById("investors-bought").innerHTML = bought.length
+        ? bought.map(([t, hs]) => row(t, hs, `${hs.length} fonds`)).join("")
+        : `<div class="muted">Pas d'achat commun à plusieurs fonds ce trimestre.</div>`;
+
+      const held = entries.slice().sort((a, b) => b[1].length - a[1].length).slice(0, 12);
+      document.getElementById("investors-held").innerHTML = held.map(([t, hs]) => row(t, hs, `${hs.length} fonds`)).join("");
+
+      document.getElementById("investors-funds").innerHTML = investors.funds
+        .slice().sort((a, b) => b.total_value - a.total_value)
+        .map((f) => `
+          <details class="stock">
+            <summary>
+              <div><div class="title">${escapeHtml(f.manager)}</div><div class="sub">${escapeHtml(f.name)} · au ${new Date(f.period).toLocaleDateString("fr-FR")}</div></div>
+              <div class="right"><div>${usd.format(f.total_value)}</div><div class="muted">${f.positions_count} positions</div></div>
+            </summary>
+            <div class="analysis">
+              ${f.positions.slice(0, 25).map((p) => `
+                <div class="rank-row">
+                  <div>${escapeHtml(p.name)} <span class="muted">${escapeHtml(p.ticker || "")}</span></div>
+                  <div class="right">${weightPct(p.weight)} ${moveBadge(p.change, p.change_pct)}</div>
+                </div>`).join("")}
+              ${f.positions_count > 25 ? `<div class="hypotheses">+ ${f.positions_count - 25} autres positions</div>` : ""}
+              ${f.sold.length ? `<div class="hypotheses">Vendues ce trimestre : ${f.sold.slice(0, 10).map((p) => escapeHtml(p.ticker || p.name)).join(", ")}</div>` : ""}
+            </div>
+          </details>`).join("");
+    }
+
+    // Fonds qui détiennent une action, pour la fiche du screener
+    function holdersLine(ticker) {
+      const holders = investors?.by_ticker?.[ticker];
+      if (!holders?.length) return "";
+      const funds = Object.fromEntries(investors.funds.map((f) => [f.id, f]));
+      const list = holders
+        .slice().sort((a, b) => b.weight - a.weight)
+        .map((h) => `<b>${escapeHtml(funds[h.fund].manager)}</b> (${weightPct(h.weight)}${h.change && h.change !== "inchangée" ? ", " + h.change : ""})`)
+        .join(", ");
+      return `<div class="holders">Détenue par ${list}</div>`;
+    }
+
+    document.getElementById("market-mode").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-mode]");
+      if (!btn) return;
+      document.querySelectorAll("#market-mode button").forEach((b) => b.classList.toggle("active", b === btn));
+      document.getElementById("screener-pane").hidden = btn.dataset.mode !== "screener";
+      document.getElementById("investors-pane").hidden = btn.dataset.mode !== "investors";
     });
 
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
