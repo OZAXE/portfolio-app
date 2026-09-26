@@ -21,47 +21,87 @@ class ValuationResult:
     margin_of_safety_pct: float | None  # positif = sous-évaluée, négatif = surévaluée
     quality_score: float | None  # sur 20
     notes: list[str]
+    # False quand l'écart avec le prix est tel que le DCF simple ne capte manifestement pas l'entreprise
+    dcf_reliable: bool = False
+    growth_rate_used: float | None = None
+    discount_rate_used: float | None = None
 
 
-# Défauts du DCF, réutilisés dans l'alerte sur les écarts extrêmes
+# Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
+# (historique du FCF, bêta) mais bornées pour éviter les extrapolations délirantes.
 DEFAULT_GROWTH_RATE = 0.05
-DEFAULT_DISCOUNT_RATE = 0.09
+MIN_GROWTH_RATE = 0.0
+MAX_GROWTH_RATE = 0.12
+TERMINAL_GROWTH = 0.02
 
-# Au-delà de cet écart (en %), on signale que les hypothèses par défaut collent sans doute mal
-EXTREME_MARGIN_THRESHOLD_PCT = 75
+DEFAULT_DISCOUNT_RATE = 0.09
+RISK_FREE_RATE = 0.04
+EQUITY_RISK_PREMIUM = 0.05
+MIN_DISCOUNT_RATE = 0.07
+MAX_DISCOUNT_RATE = 0.11
+
+# Nombre d'exercices moyennés pour le FCF de départ (lisse une année de gros investissements)
+NORMALIZATION_YEARS = 3
+
+# Hors de cette fourchette (valeur intrinsèque / prix), le DCF est jugé non fiable
+RELIABLE_RATIO_MIN = 0.4
+RELIABLE_RATIO_MAX = 2.5
+
+
+def normalized_fcf(fcf_history: list[float]) -> float | None:
+    """Moyenne des derniers exercices connus : un FCF ponctuellement écrasé par
+    un pic d'investissement ne doit pas servir seul de base à 10 ans de projection."""
+    recent = [x for x in fcf_history[-NORMALIZATION_YEARS:] if x is not None]
+    if not recent:
+        return None
+    return sum(recent) / len(recent)
+
+
+def estimate_growth_rate(fcf_history: list[float]) -> float:
+    """Croissance annuelle moyenne du FCF sur l'historique, ramenée à mi-chemin du
+    défaut (3-4 ans d'historique ne suffisent pas à extrapoler 10 ans), puis bornée.
+    Retombe sur le défaut si l'historique ne permet pas le calcul (trop court, valeur négative)."""
+    values = [x for x in fcf_history if x is not None]
+    if len(values) < 3 or values[0] <= 0 or values[-1] <= 0:
+        return DEFAULT_GROWTH_RATE
+    cagr = (values[-1] / values[0]) ** (1 / (len(values) - 1)) - 1
+    blended = (cagr + DEFAULT_GROWTH_RATE) / 2
+    return min(max(blended, MIN_GROWTH_RATE), MAX_GROWTH_RATE)
+
+
+def estimate_discount_rate(beta: float | None) -> float:
+    """Coût des fonds propres façon MEDAF (taux sans risque + bêta x prime de risque), borné."""
+    if beta is None or beta <= 0:
+        return DEFAULT_DISCOUNT_RATE
+    rate = RISK_FREE_RATE + beta * EQUITY_RISK_PREMIUM
+    return min(max(rate, MIN_DISCOUNT_RATE), MAX_DISCOUNT_RATE)
 
 
 def compute_dcf(
-    fcf_history: list[float],
+    base_fcf: float | None,
     growth_rate: float = DEFAULT_GROWTH_RATE,
     discount_rate: float = DEFAULT_DISCOUNT_RATE,
-    terminal_growth: float = 0.02,
+    terminal_growth: float = TERMINAL_GROWTH,
     projection_years: int = 10,
 ) -> float | None:
     """
-    DCF à deux phases : croissance explicite pendant `projection_years`,
-    puis valeur terminale à croissance stable (formule de Gordon-Shapiro).
+    DCF à deux phases : la croissance part de `growth_rate` et décroît
+    linéairement jusqu'à `terminal_growth` sur `projection_years` (une
+    entreprise ne garde pas 12 % par an pendant 10 ans), puis valeur
+    terminale à croissance stable (formule de Gordon-Shapiro).
 
     Renvoie la valeur d'entreprise (flux actualisés), pas une valeur par
     action : le passage aux capitaux propres se fait dans
     `equity_value_per_share`, pour tenir compte de la dette nette.
-
-    growth_rate / discount_rate / terminal_growth sont les hypothèses clés :
-    c'est là que se joue la subjectivité de toute valorisation DCF, donc
-    à ajuster selon ta propre lecture de l'entreprise plutôt qu'à prendre
-    tel quel.
     """
-    if not fcf_history:
-        return None
-
-    base_fcf = fcf_history[-1]  # dernier FCF connu
     if base_fcf is None or base_fcf <= 0:
         return None
 
     pv_sum = 0.0
     fcf = base_fcf
     for year in range(1, projection_years + 1):
-        fcf = fcf * (1 + growth_rate)
+        fade = (year - 1) / (projection_years - 1) if projection_years > 1 else 1
+        fcf = fcf * (1 + growth_rate + (terminal_growth - growth_rate) * fade)
         pv_sum += fcf / ((1 + discount_rate) ** year)
 
     terminal_value = (fcf * (1 + terminal_growth)) / (discount_rate - terminal_growth)
@@ -161,7 +201,6 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
 
 
 def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
-    enterprise_value = compute_dcf(cf.fcf_history)
     quality_score, notes = compute_quality_score(cf)
     if cf.data_source == STATEMENTS_SOURCE and cf.quote_type != "ETF":
         notes.append(
@@ -169,34 +208,78 @@ def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
             "inaccessibles depuis ce serveur) : PER prévisionnel indisponible"
         )
 
-    # None = donnée absente chez Yahoo, à ne pas confondre avec une dette ou trésorerie réellement à 0
-    intrinsic_value = None
-    if cf.total_debt is None or cf.total_cash is None:
-        if enterprise_value is not None:
-            notes.append(
-                "Dette nette indisponible (données Yahoo incomplètes), valeur intrinsèque "
-                "non calculée pour éviter un chiffre trompeur"
-            )
-    else:
-        intrinsic_value = equity_value_per_share(
-            enterprise_value, cf.total_debt, cf.total_cash, cf.shares_outstanding
-        )
-
-    margin_of_safety = None
-    if intrinsic_value is not None and cf.current_price:
-        margin_of_safety = ((intrinsic_value - cf.current_price) / intrinsic_value) * 100
-        if abs(margin_of_safety) > EXTREME_MARGIN_THRESHOLD_PCT:
-            notes.append(
-                f"Écart important : les hypothèses DCF par défaut (croissance "
-                f"{DEFAULT_GROWTH_RATE:.0%}, actualisation {DEFAULT_DISCOUNT_RATE:.0%}) sont "
-                f"probablement mal adaptées à cette entreprise, à ajuster manuellement"
-            )
-
-    return ValuationResult(
+    result = ValuationResult(
         ticker=cf.ticker,
-        intrinsic_value_per_share=round(intrinsic_value, 2) if intrinsic_value else None,
+        intrinsic_value_per_share=None,
         current_price=cf.current_price,
-        margin_of_safety_pct=round(margin_of_safety, 1) if margin_of_safety is not None else None,
+        margin_of_safety_pct=None,
         quality_score=quality_score,
         notes=notes,
     )
+    if cf.quote_type == "ETF":
+        return result
+    if cf.financial_currency and cf.currency and cf.financial_currency != cf.currency:
+        notes.append(
+            f"Comptes publiés en {cf.financial_currency} mais cotation en {cf.currency} : "
+            "DCF non calculé pour éviter de mélanger les devises"
+        )
+        return result
+
+    base_fcf = normalized_fcf(cf.fcf_history)
+    if base_fcf is None:
+        base_fcf = cf.free_cash_flow
+    if base_fcf is None:
+        notes.append("Historique de cash-flow libre indisponible : DCF non calculé")
+        return result
+    if base_fcf <= 0:
+        notes.append(
+            "Cash-flow libre moyen négatif ou nul sur les derniers exercices : "
+            "un DCF n'a pas de sens tant que l'entreprise consomme du cash"
+        )
+        return result
+
+    latest = cf.fcf_history[-1] if cf.fcf_history else None
+    if latest is not None and latest < 0.5 * base_fcf:
+        notes.append(
+            "Dernier cash-flow libre très inférieur à la moyenne (investissements lourds ?) : "
+            f"le DCF part de la moyenne des {NORMALIZATION_YEARS} derniers exercices"
+        )
+
+    growth = estimate_growth_rate(cf.fcf_history)
+    discount = estimate_discount_rate(cf.beta)
+    result.growth_rate_used = round(growth, 4)
+    result.discount_rate_used = round(discount, 4)
+
+    # None = donnée absente chez Yahoo, à ne pas confondre avec une dette ou trésorerie réellement à 0
+    if cf.total_debt is None or cf.total_cash is None:
+        notes.append(
+            "Dette nette indisponible (données Yahoo incomplètes), valeur intrinsèque "
+            "non calculée pour éviter un chiffre trompeur"
+        )
+        return result
+
+    intrinsic_value = equity_value_per_share(
+        compute_dcf(base_fcf, growth, discount), cf.total_debt, cf.total_cash, cf.shares_outstanding
+    )
+    if intrinsic_value is None:
+        notes.append(
+            "La dette nette dépasse la valeur actualisée des cash-flows : DCF non applicable "
+            "(fréquent pour les entreprises très endettées, comme les utilities)"
+        )
+        return result
+
+    result.intrinsic_value_per_share = round(intrinsic_value, 2)
+    if cf.current_price:
+        result.margin_of_safety_pct = round(
+            (intrinsic_value - cf.current_price) / intrinsic_value * 100, 1
+        )
+        ratio = intrinsic_value / cf.current_price
+        result.dcf_reliable = RELIABLE_RATIO_MIN <= ratio <= RELIABLE_RATIO_MAX
+        if not result.dcf_reliable:
+            notes.append(
+                f"Valeur intrinsèque trop éloignée du cours (x{ratio:.2f}) : le marché intègre "
+                f"des perspectives que ce DCF simple (croissance {growth:.0%} décroissante, "
+                f"actualisation {discount:.1%}) ne capte pas. Chiffre indicatif seulement"
+            )
+
+    return result

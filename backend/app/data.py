@@ -95,6 +95,11 @@ class CompanyFinancials:
     operating_margin: float | None = None
     debt_to_equity: float | None = None
 
+    # Risque de marché (sert au taux d'actualisation du DCF)
+    beta: float | None = None
+    # Devise des états financiers, parfois différente de celle de la cotation (ADR, cotations étrangères)
+    financial_currency: str | None = None
+
     # Cash flow (nécessaire pour le DCF)
     free_cash_flow: float | None = None
     fcf_history: list[float] = field(default_factory=list)  # du plus ancien au plus récent
@@ -214,6 +219,9 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
     result.gross_margin = info.get("grossMargins")
     result.operating_margin = info.get("operatingMargins")
     result.debt_to_equity = info.get("debtToEquity")
+
+    result.beta = info.get("beta")
+    result.financial_currency = info.get("financialCurrency")
 
     result.free_cash_flow = info.get("freeCashflow")
     result.shares_outstanding = info.get("sharesOutstanding")
