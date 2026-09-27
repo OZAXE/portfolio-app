@@ -208,8 +208,9 @@
       height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
       padding-bottom: env(safe-area-inset-bottom, 0px);
       background: rgba(15, 23, 42, 0.96); border-top: 1px solid var(--line);
-      display: grid; grid-template-columns: repeat(4, 1fr);
+      display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
     }
+    nav.tabbar button[hidden] { display: none; }
     nav.tabbar button {
       border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11px;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
@@ -424,7 +425,7 @@
     <button data-view="market">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Marché
     </button>
-    <button data-view="briefs">
+    <button data-view="briefs" hidden>
       <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Briefs
     </button>
     <button data-view="settings">
@@ -456,7 +457,7 @@
     async function api(path) {
       const headers = settings.token ? { "X-Access-Token": settings.token } : {};
       const res = await fetch(`${API_BASE_URL}${path}`, { headers });
-      if (res.status === 401) throw new Error("code d'accès requis : saisis-le dans l'onglet Réglages");
+      if (res.status === 401) throw Object.assign(new Error("code d'accès requis : saisis-le dans l'onglet Réglages"), { status: 401 });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Erreur API : ${res.status}`);
@@ -519,7 +520,6 @@
       window.scrollTo(0, 0);
       history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
       if (view === "market") { loadMarket(); loadInvestors(); }
-      if (view === "briefs") loadBriefs();
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-view]");
@@ -1524,17 +1524,23 @@
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     let briefs = null;
 
+    // Chargés au démarrage : l'onglet Briefs n'apparaît que s'il y a quelque chose à lire
+    // (masqué pour un utilisateur sans dossier de briefs ou avec un dossier vide)
     async function loadBriefs() {
-      if (briefs) return;
+      const tab = document.querySelector('#tabbar button[data-view="briefs"]');
       const status = document.getElementById("briefs-status");
+      briefs = null;
       try {
         briefs = await api("/briefs");
       } catch (e) {
+        tab.hidden = e.status === 401;  // autre erreur : onglet visible pour voir le message
+        status.hidden = false;
         status.textContent = "Briefs indisponibles : " + e.message;
         return;
       }
-      status.hidden = !!briefs.length;
-      status.textContent = "Aucun brief dans le dossier Drive pour l'instant.";
+      tab.hidden = !briefs.length;
+      if (tab.hidden && location.hash === "#briefs") showView("portfolio");
+      status.hidden = true;
       document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => `
         <button class="card brief-item" data-id="${escapeHtml(b.id)}">
           <div>
@@ -1598,6 +1604,7 @@
         document.getElementById("portfolio-status").hidden = false;
         document.getElementById("portfolio-status").textContent = "Chargement…";
         loadPortfolio();
+        loadBriefs();
       } catch (e) {
         status.textContent = e.message;
       }
@@ -1645,6 +1652,7 @@
     }
 
     loadPortfolio();
+    loadBriefs();
     if (location.hash) showView(location.hash.slice(1));
   </script>
 </body>
