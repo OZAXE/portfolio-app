@@ -28,7 +28,7 @@ OPERATIONS_HEADERS = [
 ]
 OPERATION_TYPES = ["Achat", "Vente", "Dividende"]
 ORDER_TYPES = ["Ordre", "Plan d'investissement"]
-TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche"]
+TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche", "Frais courants %"]
 ALLOCATION_HEADERS = ["Poche", "Cible %"]
 COMPTES_HEADERS = ["Compte", "Enveloppe", "Courtier"]
 FRAIS_HEADERS = ["Courtier", "Type d'ordre", "Fixe €", "Pourcentage", "Minimum €", "Frais de change", "Note"]
@@ -81,6 +81,7 @@ NUMBER_FORMATS = {
     "Frais": [("C", EUR), ("D", "0.00%"), ("E", EUR), ("F", "0.00%")],
     "Livret": [("B", EUR)],
     "Allocation": [("B", "0.0%")],
+    "Titres": [("I", "0.00")],  # frais courants d'un ETF en % : 0,15 pour 0,15 %
 }
 
 
@@ -163,6 +164,8 @@ def build_template(sheet: gspread.Spreadsheet) -> None:
         if spec.title not in existing:
             sheet.add_worksheet(spec.title, rows=spec.rows, cols=max(len(spec.headers), 2))
         ws = sheet.worksheet(spec.title)
+        if ws.col_count < len(spec.headers):  # onglet créé par une version plus ancienne du modèle
+            ws.add_cols(len(spec.headers) - ws.col_count)
         ws.update(range_name="A1", values=[spec.headers])
     # L'onglet vide créé avec le fichier ("Feuille 1" / "Sheet1") ne sert plus
     for ws in sheet.worksheets():

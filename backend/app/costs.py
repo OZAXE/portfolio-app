@@ -18,6 +18,7 @@ from collections import defaultdict
 from datetime import date
 
 from .realized import Operation
+from .workbook import TITRES_HEADERS
 
 PEA_CEILING = 150_000.0
 
@@ -71,15 +72,47 @@ def fees_by_year(operations: list[Operation], envelopes: dict[str, str]) -> list
     return result
 
 
+FEE_COLUMN = TITRES_HEADERS.index("Frais courants %")  # colonne I
+
+
+def manual_fees(titres: list[list]) -> dict[str, float]:
+    """Frais courants saisis à la main dans l'onglet Titres, en % (0,15 = 0,15 %).
+    Une cellule au format pourcentage (0,15 % -> 0,0015) est reconnue : aucun ETF ne coûte moins de 0,02 %."""
+    fees = {}
+    for row in titres[1:]:
+        if len(row) <= FEE_COLUMN or not row[0]:
+            continue
+        value = row[FEE_COLUMN]
+        if isinstance(value, str):
+            try:
+                value = float(value.replace("%", "").replace(",", ".").strip())
+            except ValueError:
+                continue
+        if isinstance(value, (int, float)) and value > 0:
+            fees[str(row[0]).strip().upper()] = round(value * 100 if value < 0.02 else value, 4)
+    return fees
+
+
+def ensure_fee_column(worksheet) -> None:
+    """Ajoute l'en-tête « Frais courants % » aux onglets Titres créés avant cette colonne."""
+    header = worksheet.row_values(1)
+    if len(header) > FEE_COLUMN and header[FEE_COLUMN]:
+        return
+    if worksheet.col_count <= FEE_COLUMN:
+        worksheet.add_cols(FEE_COLUMN + 1 - worksheet.col_count)
+    worksheet.update_cell(1, FEE_COLUMN + 1, TITRES_HEADERS[FEE_COLUMN])
+
+
 def etf_costs(holdings: list[dict], ter: dict[str, float | None]) -> dict:
-    """holdings : ETF détenus {ticker, name, value} ; ter : frais courants en % (0,38 = 0,38 %)."""
+    """holdings : ETF détenus {ticker, name, value} ; ter : frais courants en % (0,38 = 0,38 %),
+    saisis dans l'onglet Titres ou, à défaut, récupérés auprès de Yahoo."""
     lines, unknown = [], []
     for h in holdings:
         rate = ter.get(h["ticker"])
         if rate is None:
             unknown.append(h["name"] or h["ticker"])
             continue
-        lines.append({**h, "ter": rate, "annual": round((h["value"] or 0) * rate / 100, 2)})
+        lines.append({**h, "ter": rate, "annual": round((h["value"] or 0) * rate / 100, 2), "manual": h.get("manual", False)})
     lines.sort(key=lambda l: -l["annual"])
     covered = sum(l["value"] or 0 for l in lines)
     return {"lines": lines, "unknown": unknown, "annual": round(sum(l["annual"] for l in lines), 2),

@@ -554,16 +554,24 @@ def mark_alerts_triggered(payload: dict = Body(...)):
 def get_costs(user: User = Depends(require_access)):
     from datetime import date
 
-    from .costs import etf_costs, fees_by_year, pea_ceiling
+    from .costs import ensure_fee_column, etf_costs, fees_by_year, manual_fees, pea_ceiling
     from .realized import read_operations
+    from .sheets import UNFORMATTED, _open_sheet, _worksheet
 
     def compute():
         operations, envelopes, _ = read_operations(user.sheet_id)
-        holdings = [{"ticker": h.ticker.upper(), "name": h.name, "value": h.value}
-                    for h in get_overview(user.sheet_id).holdings if h.kind == "ETF"]
-        # Frais courants récupérés chaque nuit par screener/etf_fees.py (Yahoo est souvent bloqué ici)
+        titres_ws = _worksheet(_open_sheet(user.sheet_id, write=True), "Titres")
+        try:
+            ensure_fee_column(titres_ws)
+        except Exception:
+            pass  # compte de service en lecture seule : la colonne reste à ajouter à la main
+        manual = manual_fees(titres_ws.get_values(value_render_option=UNFORMATTED))
+        # Frais courants récupérés chaque nuit par screener/etf_fees.py (Yahoo est souvent bloqué ici),
+        # remplacés par ceux saisis dans l'onglet Titres
         fees_file = _screener_data("etf_fees.json") or {}
-        ter = {t: v.get("ter") for t, v in fees_file.get("etfs", {}).items()}
+        ter = {t: v.get("ter") for t, v in fees_file.get("etfs", {}).items()} | manual
+        holdings = [{"ticker": h.ticker.upper(), "name": h.name, "value": h.value, "manual": h.ticker.upper() in manual}
+                    for h in get_overview(user.sheet_id).holdings if h.kind == "ETF"]
         return {"pea": pea_ceiling(operations, envelopes, date.today()),
                 "years": fees_by_year(operations, envelopes), "etf": etf_costs(holdings, ter)}
 

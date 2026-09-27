@@ -1727,8 +1727,9 @@
       const etf = c.etf.lines.length || c.etf.unknown.length ? `
         <div class="div-title"><span data-term="Frais courants">Frais courants des ETF</span></div>
         ${c.etf.lines.length ? `<div style="font-size:14px">≈ ${eur.format(c.etf.annual)} par an${c.etf.weighted_ter != null ? ` (${num(c.etf.weighted_ter, 2)} % en moyenne)` : ""}</div>
-          ${c.etf.lines.map((l) => `<div class="rank-row"><div>${escapeHtml(l.name || l.ticker)}<div class="who">${num(l.ter, 2)} % par an sur ${eur.format(l.value)}</div></div><div class="right">${eur.format(l.annual)}</div></div>`).join("")}` : ""}
-        ${c.etf.unknown.length ? `<p class="help">Frais courants pas encore connus pour : ${escapeHtml(c.etf.unknown.join(", "))} (récupérés chaque nuit auprès de Yahoo).</p>` : ""}` : "";
+          ${c.etf.lines.map((l) => `<div class="rank-row"><div>${escapeHtml(l.name || l.ticker)}<div class="who">${num(l.ter, 2)} % par an sur ${eur.format(l.value)}${l.manual ? " · saisi dans Titres" : ""}</div></div><div class="right">${eur.format(l.annual)}</div></div>`).join("")}` : ""}
+        ${c.etf.unknown.length ? `<p class="help">Frais courants inconnus pour : ${escapeHtml(c.etf.unknown.join(", "))}. Ils sont récupérés chaque nuit auprès de Yahoo ; sinon, saisis-les dans la colonne « Frais courants % » de l'onglet Titres (0,15 pour 0,15 %, indiqué sur la fiche de l'ETF chez l'émetteur).</p>` : ""}
+        <p class="help">Une valeur saisie dans la colonne « Frais courants % » de l'onglet Titres remplace celle de Yahoo.</p>` : "";
       body.innerHTML = pea + years + etf || `<p class="help" style="margin:0">Rien à afficher pour l'instant.</p>`;
     }
 

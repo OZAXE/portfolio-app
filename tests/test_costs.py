@@ -70,3 +70,40 @@ def test_etf_fee_refresh_every_30_days():
     today = date(2026, 9, 27)
     assert stale(None, today) and stale({"updated": "2026-08-01"}, today)
     assert not stale({"updated": "2026-09-20"}, today)
+
+
+def test_manual_fees_from_titres_column():
+    from app.costs import manual_fees
+
+    header = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche", "Frais courants %"]
+    rows = [header,
+            ["ESE.PA", "EPA:ESE", "BNPP S&P 500", "", "", "EUR", "ETF", "", 0.15],   # saisi 0,15
+            ["CW8.PA", "EPA:CW8", "Amundi World", "", "", "EUR", "ETF", "", 0.0038],  # saisi 0,38 % (format pourcentage)
+            ["URNU.L", "LON:URNU", "Uranium", "", "", "USD", "ETF", "", "0,65"],
+            ["AI.PA", "EPA:AI", "Air Liquide", "", "", "EUR", "Action", ""]]           # colonne absente
+    assert manual_fees(rows) == {"ESE.PA": 0.15, "CW8.PA": 0.38, "URNU.L": 0.65}
+
+
+class FakeWorksheet:
+    def __init__(self, header, cols):
+        self.header, self.col_count, self.writes = header, cols, []
+
+    def row_values(self, row):
+        return self.header
+
+    def add_cols(self, n):
+        self.col_count += n
+
+    def update_cell(self, row, col, value):
+        self.writes.append((row, col, value))
+
+
+def test_fee_column_added_to_old_titres_tab():
+    from app.costs import ensure_fee_column
+
+    old = FakeWorksheet(["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche"], cols=8)
+    ensure_fee_column(old)
+    assert old.col_count == 9 and old.writes == [(1, 9, "Frais courants %")]
+    done = FakeWorksheet(old.header + ["Frais courants %"], cols=9)
+    ensure_fee_column(done)
+    assert done.writes == []
