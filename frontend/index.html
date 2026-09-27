@@ -165,6 +165,14 @@
       font: inherit; font-size: 15px; padding: 8px; width: 100%;
     }
     .op-grid input.auto { border-style: dashed; }
+    .op-actions { display: flex; gap: 8px; }
+    .op-actions .btn.more { flex: 1; }
+    .imp-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .imp-row input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+    .imp-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .imp-row .right { text-align: right; white-space: nowrap; }
+    .imp-row.skip { opacity: 0.55; }
+    .imp-ticker { background: var(--card-2); border: 1px solid var(--accent-neg); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; padding: 4px 6px; width: 110px; margin-top: 4px; }
 
     /* Allocation cible */
     .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -259,7 +267,24 @@
           <div class="envelopes" id="envelopes"></div>
         </div>
 
-        <button class="btn more" id="op-open">+ Nouvelle opération</button>
+        <div class="op-actions">
+          <button class="btn more" id="op-open">+ Nouvelle opération</button>
+          <button class="btn more" id="imp-open">Importer un relevé</button>
+        </div>
+        <div class="card" id="imp-panel" hidden>
+          <p class="help" style="margin-top:0"><b>Trade Republic</b> : export CSV des transactions, sur toute la période depuis l'ouverture du compte. <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
+          <div class="op-grid">
+            <label class="wide">Compte<select id="imp-account"></select></label>
+            <label class="wide">Fichiers (CSV ou PDF)<input id="imp-files" type="file" accept=".csv,.pdf,text/csv,application/pdf" multiple /></label>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn" id="imp-preview">Analyser</button>
+            <button class="btn" id="imp-cancel">Fermer</button>
+          </div>
+          <p class="help" id="imp-status"></p>
+          <div id="imp-list"></div>
+          <button class="btn" id="imp-submit" hidden></button>
+        </div>
         <div class="card" id="op-form" hidden>
           <div class="op-grid">
             <label>Type<select id="op-type"></select></label>
@@ -1674,6 +1699,116 @@
       }
       opEl("op-submit").disabled = false;
     }
+
+    // --- Import de relevés (Trade Republic CSV, avis d'opéré Boursorama PDF) : aperçu, puis écriture ---
+    let importPreview = null;
+    const IMPORT_STATUS = { new: "", duplicate: "déjà dans le Sheet", no_ticker: "ticker introuvable" };
+
+    async function openImport() {
+      opEl("imp-panel").hidden = false;
+      opEl("imp-status").textContent = "";
+      if (!opSettings) {
+        try { opSettings = await api("/settings"); } catch (e) { opEl("imp-status").textContent = e.message; return; }
+      }
+      opEl("imp-account").innerHTML = opSettings.accounts.map((a) => `<option>${escapeHtml(a.name)}</option>`).join("");
+    }
+
+    const readBase64 = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+      reader.onerror = () => reject(new Error(`${file.name} : lecture impossible`));
+      reader.readAsDataURL(file);
+    });
+
+    async function postJson(path, payload) {
+      const headers = { "Content-Type": "application/json", ...(settings.token ? { "X-Access-Token": settings.token } : {}) };
+      const res = await fetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: JSON.stringify(payload) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
+      return body;
+    }
+
+    async function previewImport() {
+      const status = opEl("imp-status");
+      const files = [...opEl("imp-files").files];
+      if (!files.length) { status.textContent = "Choisis au moins un fichier."; return; }
+      status.textContent = `Lecture de ${files.length} fichier${files.length > 1 ? "s" : ""} et recherche des tickers…`;
+      opEl("imp-list").innerHTML = "";
+      opEl("imp-submit").hidden = true;
+      try {
+        const payload = { account: opEl("imp-account").value, files: await Promise.all(files.map(async (f) => ({ name: f.name, content: await readBase64(f) }))) };
+        importPreview = await postJson("/operations/import/preview", payload);
+      } catch (e) {
+        status.textContent = e.message;
+        return;
+      }
+      const c = importPreview.counts;
+      status.textContent = `${importPreview.operations.length} opération${importPreview.operations.length > 1 ? "s" : ""} lue${importPreview.operations.length > 1 ? "s" : ""} : ${c.new} nouvelle${c.new > 1 ? "s" : ""}, ${c.duplicate} déjà dans le Sheet (décochée${c.duplicate > 1 ? "s" : ""}), ${c.no_ticker} sans ticker (à compléter).`
+        + (importPreview.errors.length ? ` Fichiers ignorés : ${importPreview.errors.join(" ; ")}` : "");
+      renderImport();
+    }
+
+    function renderImport() {
+      opEl("imp-list").innerHTML = importPreview.operations.map((o, i) => `
+        <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
+          <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
+          <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${num(o.quantity, 6)} × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+              ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${o.status === "no_ticker" ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
+            ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
+          </div>
+          <div class="right">${eur.format(o.quantity * o.price)}</div>
+        </div>`).join("");
+      updateImportButton();
+    }
+
+    function updateImportButton() {
+      const selected = importPreview.operations.filter((o, i) => document.querySelector(`[data-imp-check="${i}"]`)?.checked);
+      const btn = opEl("imp-submit");
+      btn.hidden = !importPreview.operations.length;
+      btn.disabled = !selected.length || selected.some((o) => !o.ticker);
+      btn.textContent = selected.some((o) => !o.ticker)
+        ? "Complète les tickers manquants ou décoche ces lignes"
+        : `Importer ${selected.length} opération${selected.length > 1 ? "s" : ""} dans « ${opEl("imp-account").value} »`;
+    }
+
+    async function submitImport() {
+      const status = opEl("imp-status");
+      const operations = importPreview.operations.filter((o, i) => document.querySelector(`[data-imp-check="${i}"]`)?.checked);
+      opEl("imp-submit").disabled = true;
+      status.textContent = "Écriture dans le Sheet…";
+      try {
+        const result = await postJson("/operations/import", { account: opEl("imp-account").value, operations });
+        status.textContent = `${result.written} opération${result.written > 1 ? "s" : ""} ajoutée${result.written > 1 ? "s" : ""} à l'onglet Opérations`
+          + (result.new_tickers.length ? ` ; nouveaux titres dans l'onglet Titres : ${result.new_tickers.join(", ")} (pense à renseigner leur secteur et leur zone)` : "") + ". Mise à jour du portefeuille…";
+        opEl("imp-list").innerHTML = "";
+        opEl("imp-submit").hidden = true;
+        opEl("imp-files").value = "";
+        opSettings = null;
+        loadPortfolio();
+      } catch (e) {
+        status.textContent = e.message;
+        opEl("imp-submit").disabled = false;
+      }
+    }
+
+    opEl("imp-open").addEventListener("click", openImport);
+    opEl("imp-cancel").addEventListener("click", () => { opEl("imp-panel").hidden = true; });
+    opEl("imp-preview").addEventListener("click", previewImport);
+    opEl("imp-submit").addEventListener("click", submitImport);
+    opEl("imp-list").addEventListener("change", (e) => {
+      if (e.target.dataset.impCheck != null) e.target.closest(".imp-row").classList.toggle("skip", !e.target.checked);
+      updateImportButton();
+    });
+    opEl("imp-list").addEventListener("input", (e) => {
+      const i = e.target.dataset.impTicker;
+      if (i == null) return;
+      importPreview.operations[i].ticker = e.target.value.trim().toUpperCase() || null;
+      const check = document.querySelector(`[data-imp-check="${i}"]`);
+      if (importPreview.operations[i].ticker && !check.checked) { check.checked = true; e.target.closest(".imp-row").classList.remove("skip"); }
+      updateImportButton();
+    });
+    opEl("imp-account").addEventListener("change", () => { if (importPreview) updateImportButton(); });
 
     opEl("op-open").addEventListener("click", openOperationForm);
     opEl("op-cancel").addEventListener("click", () => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; });

@@ -11,6 +11,7 @@ Endpoints prévus pour le MVP :
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
+- POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -340,10 +341,15 @@ def post_operation(payload: dict = Body(...), user: User = Depends(require_acces
     ticker = str(payload.get("ticker") or "").strip().upper()
     stock = next((s for s in (_screener_data("screener.json") or {}).get("stocks", []) if s["ticker"] == ticker), {})
     result = _operation_call(lambda: add_operation(user.sheet_id, payload, stock.get("sector", ""), stock.get("country", "")))
-    for key in [k for k in _performance_cache if k[0] == user.sheet_id]:
-        _performance_cache.pop(key)  # la courbe comparée doit intégrer la nouvelle opération
-    _dividends_cache.pop(user.sheet_id, None)
+    _forget_operations(user.sheet_id)
     return result
+
+
+def _forget_operations(sheet_id: str):
+    """Caches calculés à partir des opérations, à refaire après une saisie ou un import."""
+    for key in [k for k in _performance_cache if k[0] == sheet_id]:
+        _performance_cache.pop(key)  # la courbe comparée doit intégrer la nouvelle opération
+    _dividends_cache.pop(sheet_id, None)
 
 
 @app.get("/fx/{currency}")
@@ -414,4 +420,36 @@ def get_dividend_calendar(user: User = Depends(require_access)):
         return cached[1]
     result = _sheet_call(lambda: dividend_calendar(user.sheet_id))
     _dividends_cache[user.sheet_id] = (time.monotonic(), result)
+    return result
+
+
+# --- Import des relevés de courtier : aperçu (rien n'est écrit), puis écriture des lignes validées ---
+ISIN_TICKERS_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/main/screener/isin_tickers.json"
+_isin_cache: dict[str, str] = {}
+
+
+def _known_isins() -> dict[str, str]:
+    """ISIN -> ticker Yahoo des actions européennes du screener (évite une recherche Yahoo par titre)."""
+    if not _isin_cache:
+        try:
+            data = requests.get(ISIN_TICKERS_URL, timeout=30).json()
+            _isin_cache.update({isin: f"{v[0]}{v[1]}" for isin, v in data.items()})
+        except Exception:
+            pass
+    return _isin_cache
+
+
+@app.post("/operations/import/preview")
+def preview_operations_import(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .imports import preview_import
+
+    return _operation_call(lambda: preview_import(user.sheet_id, payload.get("account"), payload.get("files") or [], _known_isins()))
+
+
+@app.post("/operations/import")
+def write_operations_import(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .imports import write_import
+
+    result = _operation_call(lambda: write_import(user.sheet_id, payload.get("account"), payload.get("operations") or []))
+    _forget_operations(user.sheet_id)
     return result

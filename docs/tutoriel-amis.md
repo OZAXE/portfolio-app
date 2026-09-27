@@ -58,7 +58,15 @@ Dans ta copie :
 
 ## Étape 5 : saisir tes positions
 
-Dans l'onglet **Portefeuille**, bouton **+ Nouvelle opération**, une ligne par achat déjà fait :
+Le plus rapide : onglet **Portefeuille**, bouton **Importer un relevé**. Choisis le compte, puis :
+- **Trade Republic** : l'export CSV des transactions, sur toute la période depuis l'ouverture du compte ;
+- **Boursorama** : les avis d'opéré PDF (Espace client > Documents), tous d'un coup.
+
+L'appli affiche les opérations trouvées avant d'écrire quoi que ce soit : décoche ce que tu ne veux pas,
+complète un ticker s'il manque, puis valide. Les opérations déjà présentes dans le Sheet sont repérées
+et décochées.
+
+Sinon, bouton **+ Nouvelle opération**, une ligne par achat déjà fait :
 compte, date, ticker au format Yahoo (`MC.PA` pour LVMH, `AAPL` pour Apple, `SAP.DE` pour SAP…),
 quantité, prix, frais. Tu peux aussi remplir directement l'onglet **Opérations** du Sheet en recopiant
 une ligne existante.

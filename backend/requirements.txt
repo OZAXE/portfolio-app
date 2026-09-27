@@ -6,3 +6,4 @@ pydantic==2.9.2
 gspread==6.1.2
 google-auth==2.34.0
 python-dotenv==1.0.1
+pypdf==6.19.0
