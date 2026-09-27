@@ -9,6 +9,7 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/overview   -> valeurs, historique et répartition lus dans le Sheet (rapide, sans Yahoo)
 - GET /watchlist            -> actions surveillées (onglet Watchlist du Sheet) ; POST / DELETE /watchlist/{ticker}
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
+- GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -387,3 +388,11 @@ def get_realized(user: User = Depends(require_access)):
     from .realized import realized_summary
 
     return _sheet_call(lambda: realized_summary(user.sheet_id))
+
+
+# --- Rendement annualisé (TRI) : tient compte de la date de chaque apport ---
+@app.get("/portfolio/returns")
+def get_returns(user: User = Depends(require_access)):
+    from .returns import returns_summary
+
+    return _sheet_call(lambda: returns_summary(user.sheet_id))

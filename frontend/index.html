@@ -47,6 +47,9 @@
     .hero .label { font-size: 13px; color: var(--muted); }
     .hero .value { font-size: 32px; font-weight: 700; margin-top: 4px; }
     .hero .gain { font-size: 15px; margin-top: 4px; }
+    .hero .returns { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    .hero .returns b { font-weight: 600; }
+    [data-term] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
     .envelopes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     .envelope { background: var(--card-2); border-radius: 10px; padding: 10px 12px; }
     .envelope .name { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
@@ -241,6 +244,7 @@
           <div class="label">Valeur des placements</div>
           <div class="value" id="total-value"></div>
           <div class="gain" id="total-gain"></div>
+          <div class="returns" id="total-returns" hidden></div>
           <div class="envelopes" id="envelopes"></div>
         </div>
 
@@ -557,6 +561,36 @@
     let chart = null;
     let chartMode = "value";
 
+    // Rendement réel (TRI) : tient compte de la date de chaque apport, dividendes compris
+    let returns = null;
+    const shortDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+    // Moins d'un an : rendement sur la période (annualiser 2 mois de bourse donnerait un chiffre trompeur)
+    function returnLabel(r) {
+      if (!r || r.xirr == null) return null;
+      return r.days >= 365
+        ? { term: "Rendement annualisé", text: `${pctFmt.format(r.xirr)} par an` }
+        : { term: "Rendement réel", text: `${pctFmt.format(r.period_return)} depuis le ${shortDate.format(new Date(r.since + "T12:00:00"))}` };
+    }
+
+    function renderReturns() {
+      const el = document.getElementById("total-returns");
+      const t = returns?.total;
+      const label = returnLabel(t);
+      if (!label) { el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = `<span data-term="${label.term}">${label.term}</span> : <b class="${signClass(t.xirr)}">${label.text}</b><br>
+        <span data-term="Gain total">Gain total</span> : <b class="${signClass(t.gain)}">${signedEur(t.gain)}</b>, dividendes et ventes compris${t.incomplete ? " (cours manquant pour un titre)" : ""}`;
+    }
+
+    function envelopeReturn(name) {
+      const r = returns?.envelopes?.[name];
+      const label = returnLabel(r);
+      if (!label) return "";
+      const short = r.days >= 365 ? `${pctFmt.format(r.xirr)} /an` : `${pctFmt.format(r.period_return)} réel`;
+      return `<div class="perf muted" style="margin-top:2px">${short}</div>`;
+    }
+
     function renderSummary() {
       const t = overview.total;
       document.getElementById("total-value").textContent = eur.format(t.value);
@@ -571,6 +605,7 @@
             <div class="name"><i class="dot" style="background:${colors[name] || "var(--muted)"}"></i>${escapeHtml(name)}</div>
             <div class="amount">${eur.format(e.value)}</div>
             <div class="perf ${signClass(e.gain)}">${signedEur(e.gain)} · ${pctFmt.format(e.gain_pct)}</div>
+            ${envelopeReturn(name)}
           </div>`)
         .join("");
     }
@@ -734,7 +769,11 @@
     }
 
     function renderAnalysis(h, a) {
-      const investedRow = `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`;
+      const r = returns?.positions?.[String(h.ticker).toUpperCase()];
+      const label = returnLabel(r);
+      const investedRow = `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`
+        + (r ? `<div class="row"><span>Gain total</span><span class="${signClass(r.gain)}">${signedEur(r.gain)}</span></div>` : "")
+        + (label ? `<div class="row"><span>${label.term}</span><span class="${signClass(r.xirr)}">${label.text}</span></div>` : "");
       if (!a) {
         return `<div class="analysis">${investedRow}<div class="hypotheses">Analyse en cours de chargement ou indisponible.</div></div>`;
       }
@@ -829,6 +868,17 @@
       document.getElementById("savings-block").hidden = false;
     }
 
+    async function loadReturns() {
+      try {
+        returns = await api("/portfolio/returns");
+      } catch {
+        return;  // indicateur secondaire : la page reste utilisable sans lui
+      }
+      renderReturns();
+      renderSummary();
+      renderPositions(portfolioAnalyses);
+    }
+
     async function loadPortfolio() {
       const statusEl = document.getElementById("portfolio-status");
       try {
@@ -846,6 +896,7 @@
       renderAllocation();
       renderSavings();
 
+      loadReturns();
       loadWatchlist();
       loadAlerts();
       loadRealized();
@@ -1615,6 +1666,9 @@
         "Investi": "<p>Ce que tu as payé pour cette ligne, frais d'achat compris : quantité × PRU.</p><p>C'est la base de calcul de la plus-value.</p>",
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
+        "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
+        "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
+        "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",
         "Plus-value latente": "<p>Valeur actuelle − montant investi, affichée sous chaque ligne et pour tout le portefeuille.</p><p>« Latente » : tant que tu n'as pas vendu, rien n'est gagné ni perdu, et rien n'est imposé.</p>",
         "Plus-value réalisée": "<p>Gain ou perte constaté au moment d'une vente : montant encaissé − PRU des actions vendues, frais inclus.</p><p>Sur le CTO, elle est imposée l'année de la vente (flat tax). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent.</p>",
         "Poche": "<p>Catégorie que tu choisis pour chaque titre (colonne Poche de l'onglet Titres) : par exemple « Cœur ETF », « Dividendes », « Croissance ».</p><p>Sert à la répartition du portefeuille et à l'allocation cible.</p>",
@@ -1677,6 +1731,8 @@
 
     // Libellés des fiches (PER, ROE...) : un toucher ouvre l'explication
     document.addEventListener("click", (e) => {
+      const tagged = e.target.closest("[data-term]");
+      if (tagged && TERMS[tagged.dataset.term]) return showTerm(tagged.dataset.term);
       const label = e.target.closest(".analysis .row > span:first-child");
       if (label && TERMS[label.textContent.trim()]) showTerm(label.textContent.trim());
     });
