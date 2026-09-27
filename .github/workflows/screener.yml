@@ -33,7 +33,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt openpyxl==3.1.5
 
       - name: Récupère les résultats précédents
         run: |
@@ -49,6 +49,10 @@ jobs:
 
       - name: Lance le screener
         run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
+
+      - name: Contenu des ETF (composition des grands indices)
+        continue-on-error: true
+        run: python screener/etf_lookthrough.py --data-dir data
 
       - name: Historique financier (SEC pour les US, Yahoo archivé pour le reste)
         continue-on-error: true

@@ -195,6 +195,9 @@
     .div-bars span { flex: 1; background: var(--series-cto); border-radius: 2px 2px 0 0; min-height: 1px; }
     .div-years { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
     .cal-total { font-size: 22px; font-weight: 700; }
+    .lt-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 12px; cursor: pointer; }
+    .lt-toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+    .bar-sub { font-size: 11px; color: var(--muted); margin-top: -2px; margin-bottom: 4px; }
     .cal-bars, .cal-months { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
     .cal-bars { align-items: end; height: 80px; margin-top: 14px; }
     .cal-bars .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; cursor: pointer; }
@@ -339,8 +342,17 @@
             <button data-dim="currency">Devise</button>
             <button data-dim="pocket">Poche</button>
           </div>
+          <label class="lt-toggle" id="lookthrough-toggle" hidden><input type="checkbox" id="lookthrough" checked /><span>Voir à travers les ETF (<span data-term="Contenu des ETF">contenu réel</span>)</span></label>
           <div id="sectors" style="margin-top:12px"></div>
           <p class="help" id="breakdown-note" style="margin-top:10px"></p>
+        </div>
+
+        <div id="exposure-block" hidden>
+          <h2>Exposition par entreprise</h2>
+          <div class="card">
+            <div id="exposure"></div>
+            <p class="help" style="margin-top:10px">Tes actions en direct, plus la part de chaque entreprise dans tes ETF. Les 15 plus grosses expositions.</p>
+          </div>
         </div>
 
         <h2>Allocation cible</h2>
@@ -801,17 +813,130 @@
       pocket: "Poches de la colonne Poche de l'onglet Titres ; sans poche, rangement par type (Actions / ETF).",
     };
 
+    // --- Contenu réel des ETF : composition des grands indices (calculée chaque nuit, branche screener-data) ---
+    const LOOKTHROUGH_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/etf_lookthrough.json";
+    let lookthrough = null;
+    // Indice reconnu au nom de l'ETF (onglet Titres), du plus précis au plus large
+    const INDEX_PATTERNS = [
+      ["acwi_imi", /acwi\s*imi|investable market/i],
+      ["acwi", /acwi|all[\s-]country/i],
+      ["em", /emerging|émergents|\bem\b/i],
+      ["nasdaq100", /nasdaq/i],
+      ["sp500", /s&p\s*500|\bsp\s?500/i],
+      ["eurostoxx50", /euro\s*stoxx\s*50/i],
+      ["stoxx600", /stoxx\s*(europe\s*)?600|europe\s*600/i],
+      ["cac40", /cac\s*40/i],
+      ["europe", /europe/i],
+      ["world", /world|monde/i],
+    ];
+    // Même règle que screener/etf_lookthrough.py pour reconnaître une entreprise d'une source à l'autre
+    const NAME_STOPWORDS = new Set(("inc corp corporation co company ltd limited plc sa se ag nv ab asa spa as oyj the class group holding holdings "
+      + "and de reg common stock shares adr sponsored ordinary npv aktiengesellschaft kgaa societe europeenne anonyme incorporated sab cv bhd tbk pcl").split(" "));
+    const nameKey = (name) => String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !NAME_STOPWORDS.has(w)).slice(0, 2).join(" ");
+
+    function etfIndex(h) {
+      if (!lookthrough) return null;
+      const isEtf = h.kind === "ETF" || /\b(etf|ucits)\b/i.test(h.name || "");
+      if (!isEtf || /small|mid cap/i.test(h.name || "")) return null;
+      const key = INDEX_PATTERNS.find(([, re]) => re.test(h.name || ""))?.[0];
+      return key && lookthrough.indices[key] ? key : null;
+    }
+
+    async function loadLookthrough() {
+      try {
+        const res = await fetch(LOOKTHROUGH_URL);
+        if (!res.ok) return;
+        lookthrough = await res.json();
+      } catch {
+        return;
+      }
+      renderSectors();
+      renderExposure();
+    }
+
+    const lookthroughOn = () => document.getElementById("lookthrough").checked;
+
+    // Répartition par secteur ou par zone, avec les ETF reconnus décomposés selon leur indice
+    function lookthroughRows(dim) {
+      const groups = {};
+      const add = (label, value) => { groups[label || "Non classé"] = (groups[label || "Non classé"] || 0) + value; };
+      for (const h of overview.holdings) {
+        const value = h.value || 0;
+        const key = etfIndex(h);
+        if (key) {
+          const index = lookthrough.indices[key];
+          for (const [label, w] of Object.entries(dim === "sector" ? index.sectors : index.countries)) add(label, value * w);
+        } else {
+          add(dim === "sector" ? h.sector : (h.zone ? String(h.zone).split("(")[0].trim() : null), value);
+        }
+      }
+      const total = Object.values(groups).reduce((a, b) => a + b, 0);
+      let rows = Object.entries(groups).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value, weight: total ? value / total : 0 }));
+      if (rows.length > 12) {  // pays : une longue traîne de petites parts regroupée
+        const rest = rows.slice(11);
+        const value = rest.reduce((sum, r) => sum + r.value, 0);
+        rows = [...rows.slice(0, 11), { label: `Autres (${rest.length})`, value, weight: total ? value / total : 0 }];
+      }
+      return rows;
+    }
+
     function renderSectors() {
+      const matched = overview.holdings.filter((h) => etfIndex(h));
+      const canLook = matched.length > 0 && ["sector", "zone"].includes(breakdownDim);
+      document.getElementById("lookthrough-toggle").hidden = !matched.length;
+      document.getElementById("lookthrough").disabled = !canLook;
+      const looking = canLook && lookthroughOn();
       // Ancien format de Sheet : seule la répartition par secteur existe
-      const rows = overview.breakdowns?.[breakdownDim] || overview.sectors.map((x) => ({ label: x.sector, ...x }));
+      const rows = looking ? lookthroughRows(breakdownDim) : overview.breakdowns?.[breakdownDim] || overview.sectors.map((x) => ({ label: x.sector, ...x }));
       const max = Math.max(...rows.map((r) => r.value));
       document.getElementById("sectors").innerHTML = rows.map((r) => `
         <div class="bar-row">
           <div class="bar-label"><span>${escapeHtml(r.label)}</span><span>${eur.format(r.value)} · ${Math.round(r.weight * 100)} %</span></div>
           <div class="bar-track"><div class="bar-fill" style="width:${(r.value / max) * 100}%"></div></div>
         </div>`).join("");
-      document.getElementById("breakdown-note").textContent = BREAKDOWN_NOTES[breakdownDim] || "";
+      const unknown = overview.holdings.filter((h) => h.kind === "ETF" && !etfIndex(h));
+      document.getElementById("breakdown-note").textContent = looking
+        ? `ETF décomposés selon la composition de leur indice : ${matched.map((h) => `${h.name || h.ticker} → ${lookthrough.indices[etfIndex(h)].label}`).join(", ")}.`
+          + (unknown.length ? ` Non reconnus, comptés tels quels : ${unknown.map((h) => h.name || h.ticker).join(", ")}.` : "")
+        : BREAKDOWN_NOTES[breakdownDim] || "";
     }
+
+    // Exposition par entreprise : lignes en direct + part de chaque entreprise dans les ETF reconnus
+    function renderExposure() {
+      const block = document.getElementById("exposure-block");
+      const etfs = overview.holdings.filter((h) => etfIndex(h));
+      if (!etfs.length) { block.hidden = true; return; }
+      const companies = {};
+      for (const h of etfs) {
+        for (const [name, key, w] of lookthrough.indices[etfIndex(h)].holdings) {
+          const c = (companies[key] ||= { name, direct: 0, viaEtf: 0 });
+          c.viaEtf += (h.value || 0) * w;
+        }
+      }
+      for (const h of overview.holdings.filter((x) => x.kind !== "ETF" && !etfIndex(x))) {
+        let key = nameKey(h.name || h.ticker);
+        if (!companies[key]) {  // même premier mot et un seul candidat : « asml » et « asml new »
+          const first = key.split(" ")[0];
+          const candidates = Object.keys(companies).filter((k) => k.split(" ")[0] === first);
+          if (candidates.length === 1) key = candidates[0];
+        }
+        const c = (companies[key] ||= { name: h.name || h.ticker, direct: 0, viaEtf: 0 });
+        c.direct += h.value || 0;
+      }
+      const total = overview.total.value || 1;
+      const top = Object.values(companies).map((c) => ({ ...c, value: c.direct + c.viaEtf })).sort((a, b) => b.value - a.value).slice(0, 15);
+      const max = top[0]?.value || 1;
+      document.getElementById("exposure").innerHTML = top.map((c) => `
+        <div class="bar-row">
+          <div class="bar-label"><span>${escapeHtml(c.name)}</span><span>${eur.format(c.value)} · ${pctPlain(c.value / total)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(c.value / max) * 100}%"></div></div>
+          ${c.direct && c.viaEtf ? `<div class="bar-sub">${eur.format(c.direct)} en direct + ${eur.format(c.viaEtf)} via tes ETF</div>` : c.viaEtf ? `<div class="bar-sub">via tes ETF</div>` : ""}
+        </div>`).join("");
+      block.hidden = false;
+    }
+
+    document.getElementById("lookthrough").addEventListener("change", renderSectors);
 
     // Répartition d'un nouvel apport : d'abord combler les poches sous leur cible (au prorata des écarts),
     // le reste selon les cibles. Rien n'est vendu.
@@ -908,6 +1033,7 @@
       renderSectors();
       renderAllocation();
       renderSavings();
+      loadLookthrough();
 
       loadReturns();
       loadDividends();
@@ -1751,6 +1877,7 @@
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",
         "Revenu projeté": "<p>Les dividendes que tes titres devraient te verser sur les 12 prochains mois, avant impôts : chaque dividende de l'an dernier, répété à la même date et au même montant, multiplié par ta quantité actuelle.</p><p>C'est une estimation prudente : elle ne compte pas les hausses de dividende, ni les achats à venir. Un dividende réduit ou supprimé la rend trop optimiste.</p>",
         "Date de détachement": "<p>Le jour où le dividende est « détaché » de l'action (ex-date) : il faut détenir l'action la veille au soir pour le toucher. Ce jour-là, le cours baisse d'environ le montant du dividende.</p><p>Le versement sur ton compte arrive quelques jours à quelques semaines plus tard. Les dates affichées sont estimées d'après l'an dernier.</p>",
+        "Contenu des ETF": "<p>Un ETF contient des centaines d'entreprises : un ETF MSCI World, c'est environ 70 % d'actions américaines, et 5 % de NVIDIA. Cochée, la case répartit chaque ETF selon la composition de son indice, reconnu à son nom (MSCI World, S&amp;P 500, Nasdaq, Emerging Markets…).</p><p>La composition vient des fichiers publiés chaque jour par SPDR pour le même indice, ou est reconstituée d'après les capitalisations (CAC 40, STOXX 600, Nasdaq 100). Un ETF qui suit le même indice a presque exactement la même.</p>",
         "Plus-value latente": "<p>Valeur actuelle − montant investi, affichée sous chaque ligne et pour tout le portefeuille.</p><p>« Latente » : tant que tu n'as pas vendu, rien n'est gagné ni perdu, et rien n'est imposé.</p>",
         "Plus-value réalisée": "<p>Gain ou perte constaté au moment d'une vente : montant encaissé − PRU des actions vendues, frais inclus.</p><p>Sur le CTO, elle est imposée l'année de la vente (flat tax). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent.</p>",
         "Poche": "<p>Catégorie que tu choisis pour chaque titre (colonne Poche de l'onglet Titres) : par exemple « Cœur ETF », « Dividendes », « Croissance ».</p><p>Sert à la répartition du portefeuille et à l'allocation cible.</p>",
