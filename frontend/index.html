@@ -191,6 +191,12 @@
     .alert-row { display: flex; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
     .alert-row:first-child { border-top: 0; padding-top: 0; }
     .alert-row .icon { flex: none; width: 20px; text-align: center; }
+    .alert-row .grow { flex: 1; min-width: 0; }
+    .alert-row .btn { padding: 4px 8px; font-size: 12px; margin: 0 0 0 4px; }
+    .pa-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; }
+    .pa-form select, .pa-form input { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; font-size: 14px; padding: 6px 8px; }
+    .pa-form input[type=number] { width: 110px; }
+    .pa-form input.pa-note { flex: 1; min-width: 120px; }
     .alert-row .origin { font-size: 12px; color: var(--muted); }
     .star { color: var(--series-cto); }
     .star.off { color: var(--muted); }
@@ -312,6 +318,14 @@
         <div id="alerts-block" hidden>
           <h2>Alertes</h2>
           <div class="card" id="alerts"></div>
+        </div>
+
+        <div id="price-alerts-block" hidden>
+          <h2>Mes alertes de prix</h2>
+          <div class="card">
+            <div id="price-alerts"></div>
+            <p class="help" style="margin-top:10px" id="price-alerts-note"></p>
+          </div>
         </div>
 
         <h2>Évolution</h2>
@@ -479,6 +493,18 @@
         <button class="btn" id="hyp-reset">Revenir à l'automatique</button>
         <p class="help" id="hyp-status"></p>
         <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
+      </div>
+
+      <h2>Notifications</h2>
+      <div class="card">
+        <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
+        <input class="search" id="ntfy-topic" placeholder="Sujet ntfy, ex. portfolio-k3x9q2m1p8" autocomplete="off" />
+        <button class="btn" id="ntfy-generate">Générer un sujet</button>
+        <button class="btn" id="ntfy-save">Enregistrer</button>
+        <button class="btn" id="ntfy-test">Envoyer un test</button>
+        <p class="help"><a id="ntfy-link" target="_blank" rel="noopener" hidden></a></p>
+        <p class="help" id="ntfy-default" hidden>Sans sujet enregistré ici, tes notifications partent sur le sujet du secret GitHub NTFY_TOPIC, comme avant.</p>
+        <p class="help" id="ntfy-status"></p>
       </div>
 
       <h2>Lexique des indicateurs</h2>
@@ -1062,6 +1088,7 @@
 
       loadReturns();
       loadDividends();
+      loadPriceAlerts();
       loadWatchlist();
       loadAlerts();
       loadRealized();
@@ -1213,9 +1240,11 @@
           ${holdersLine(s.ticker)}
           <div>
             <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
+            <button class="btn" data-price-alert="${escapeHtml(s.ticker)}" data-price="${s.price ?? ""}" data-currency="${escapeHtml(cur)}">🔔 Alerte de prix</button>
             <button class="btn" data-history="${escapeHtml(s.ticker)}">Historique du screener</button>
             <button class="btn" data-financials="${escapeHtml(s.ticker)}">Comptes annuels</button>
           </div>
+          <div class="pa-slot"></div>
           <div class="history-slot" data-history-slot="${escapeHtml(s.ticker)}"></div>
           <div class="history-slot" data-financials-slot="${escapeHtml(s.ticker)}"></div>
           ${notes}
@@ -1587,7 +1616,153 @@
       const hist = e.target.closest("button[data-history]");
       if (hist) { e.preventDefault(); showHistory(hist.dataset.history); return; }
       const fin = e.target.closest("button[data-financials]");
-      if (fin) { e.preventDefault(); showFinancials(fin.dataset.financials); }
+      if (fin) { e.preventDefault(); showFinancials(fin.dataset.financials); return; }
+      const pa = e.target.closest("button[data-price-alert]");
+      if (pa) { e.preventDefault(); openPriceAlertForm(pa); }
+    });
+
+    // --- Alertes de prix : vérifiées chaque nuit sur le cours de clôture, notifiées une seule fois ---
+    let priceAlerts = [];
+
+    async function apiSend(method, path, payload) {
+      const headers = { "Content-Type": "application/json", ...(settings.token ? { "X-Access-Token": settings.token } : {}) };
+      const res = await fetch(`${API_BASE_URL}${path}`, { method, headers, body: payload ? JSON.stringify(payload) : undefined });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
+      return body;
+    }
+
+    function openPriceAlertForm(button) {
+      const slot = button.closest(".analysis").querySelector(".pa-slot");
+      if (slot.innerHTML) { slot.innerHTML = ""; return; }
+      const price = Number(button.dataset.price) || null;
+      const cur = button.dataset.currency || "";
+      slot.innerHTML = `
+        <div class="pa-form" data-ticker="${escapeHtml(button.dataset.priceAlert)}" data-current="${price ?? ""}">
+          <span>Me prévenir si le cours passe</span>
+          <select class="pa-direction"><option>Sous</option><option>Au-dessus</option></select>
+          <input class="pa-price" type="number" step="any" min="0" inputmode="decimal" value="${price ? +(price * 0.9).toPrecision(4) : ""}" /> <span>${escapeHtml(cur)}</span>
+          <input class="pa-note" placeholder="Note (facultatif) : renforcer, vendre…" maxlength="200" />
+          <button class="btn pa-save">Créer l'alerte</button>
+          <span class="help pa-status">${price ? `Cours actuel : ${money(price, cur)}` : ""}</span>
+        </div>`;
+    }
+
+    // Le sens suit le prix saisi : sous le cours actuel -> « Sous », au-dessus -> « Au-dessus »
+    document.addEventListener("input", (e) => {
+      if (!e.target.classList.contains("pa-price")) return;
+      const form = e.target.closest(".pa-form");
+      const current = Number(form.dataset.current);
+      if (current && e.target.value) form.querySelector(".pa-direction").value = Number(e.target.value) < current ? "Sous" : "Au-dessus";
+    });
+
+    document.addEventListener("click", async (e) => {
+      if (!e.target.classList.contains("pa-save")) return;
+      const form = e.target.closest(".pa-form");
+      const status = form.querySelector(".pa-status");
+      e.target.disabled = true;
+      status.textContent = "Enregistrement…";
+      try {
+        priceAlerts = await apiSend("POST", "/price-alerts", {
+          ticker: form.dataset.ticker, direction: form.querySelector(".pa-direction").value,
+          price: Number(form.querySelector(".pa-price").value), note: form.querySelector(".pa-note").value,
+        });
+        status.textContent = "Alerte créée : vérifiée chaque nuit sur le cours de clôture.";
+        renderPriceAlerts();
+      } catch (err) {
+        status.textContent = err.message;
+        e.target.disabled = false;
+      }
+    });
+
+    async function loadPriceAlerts() {
+      try { priceAlerts = await api("/price-alerts"); } catch { return; }
+      renderPriceAlerts();
+      try {
+        const n = await api("/notifications/settings");
+        notificationSettings = n;
+        document.getElementById("price-alerts-note").textContent = n.topic || n.admin
+          ? "Vérifiées chaque nuit sur le dernier cours de clôture, dans la devise de cotation. Une alerte déclenchée t'est notifiée une fois, puis reste ici jusqu'à ce que tu la réactives ou la supprimes."
+          : "Pour recevoir une notification quand une alerte se déclenche, choisis ton sujet ntfy dans Réglages > Notifications.";
+        renderNotificationSettings();
+      } catch { /* réglages indisponibles : la liste reste utilisable */ }
+    }
+
+    function renderPriceAlerts() {
+      const block = document.getElementById("price-alerts-block");
+      block.hidden = !priceAlerts.length;
+      const names = Object.fromEntries((overview?.holdings || []).map((h) => [String(h.ticker).toUpperCase(), h.name]));
+      for (const st of market?.stocks || []) names[st.ticker] ||= st.name;
+      document.getElementById("price-alerts").innerHTML = priceAlerts.map((a) => `
+        <div class="alert-row"><span class="icon">${a.triggered ? "✅" : "🔔"}</span>
+          <div class="grow"><div>${escapeHtml(names[a.ticker] || a.ticker)} ${a.direction === "Sous" ? "sous" : "au-dessus de"} ${num(a.price, 4)}</div>
+            <div class="origin">${escapeHtml(a.ticker)}${a.note ? ` · ${escapeHtml(a.note)}` : ""} · ${a.triggered ? `déclenchée le ${new Date(a.triggered + "T12:00:00").toLocaleDateString("fr-FR")}` : "active"}</div></div>
+          ${a.triggered ? `<button class="btn" data-pa-rearm="${escapeHtml(a.id)}">Réactiver</button>` : ""}
+          <button class="btn" data-pa-delete="${escapeHtml(a.id)}">Supprimer</button>
+        </div>`).join("");
+    }
+
+    document.getElementById("price-alerts").addEventListener("click", async (e) => {
+      const del = e.target.closest("[data-pa-delete]");
+      const rearm = e.target.closest("[data-pa-rearm]");
+      if (!del && !rearm) return;
+      e.target.disabled = true;
+      try {
+        priceAlerts = del
+          ? await apiSend("DELETE", `/price-alerts/${encodeURIComponent(del.dataset.paDelete)}`)
+          : await apiSend("POST", `/price-alerts/${encodeURIComponent(rearm.dataset.paRearm)}/rearm`);
+        renderPriceAlerts();
+      } catch (err) {
+        e.target.disabled = false;
+        document.getElementById("price-alerts-note").textContent = err.message;
+      }
+    });
+
+    // --- Réglages > Notifications : sujet ntfy.sh de l'utilisateur ---
+    let notificationSettings = null;
+
+    function renderNotificationSettings() {
+      const input = document.getElementById("ntfy-topic");
+      if (!notificationSettings || document.activeElement === input) return;
+      input.value = notificationSettings.topic || "";
+      updateNtfyLink();
+      document.getElementById("ntfy-default").hidden = !(notificationSettings.admin && !notificationSettings.topic);
+    }
+
+    function updateNtfyLink() {
+      const topic = document.getElementById("ntfy-topic").value.trim();
+      const link = document.getElementById("ntfy-link");
+      link.hidden = !topic;
+      link.href = `https://ntfy.sh/${encodeURIComponent(topic)}`;
+      link.textContent = `ntfy.sh/${topic}`;
+    }
+
+    document.getElementById("ntfy-topic").addEventListener("input", updateNtfyLink);
+    document.getElementById("ntfy-generate").addEventListener("click", () => {
+      const bytes = crypto.getRandomValues(new Uint8Array(9));
+      document.getElementById("ntfy-topic").value = "portfolio-" + [...bytes].map((b) => b.toString(36).padStart(2, "0")).join("").slice(0, 14);
+      updateNtfyLink();
+    });
+    document.getElementById("ntfy-save").addEventListener("click", async () => {
+      const status = document.getElementById("ntfy-status");
+      status.textContent = "Enregistrement…";
+      try {
+        notificationSettings = { ...(notificationSettings || {}), ...(await apiSend("POST", "/notifications/settings", { topic: document.getElementById("ntfy-topic").value })) };
+        status.textContent = notificationSettings.topic ? "Enregistré. Envoie une notification de test pour vérifier." : "Notifications désactivées.";
+        renderNotificationSettings();
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    });
+    document.getElementById("ntfy-test").addEventListener("click", async () => {
+      const status = document.getElementById("ntfy-status");
+      status.textContent = "Envoi…";
+      try {
+        await apiSend("POST", "/notifications/test");
+        status.textContent = "Notification envoyée : elle doit arriver sur ton téléphone dans quelques secondes.";
+      } catch (err) {
+        status.textContent = err.message;
+      }
     });
 
     // --- Saisie d'une opération (achat, vente, dividende) dans le Sheet ---

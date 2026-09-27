@@ -12,6 +12,8 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
+- GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
+- GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy de l'utilisateur
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -33,6 +35,7 @@ from .briefs import BriefNotFoundError, DriveAccessError, get_brief_html, list_b
 from .alerts import compute_alerts
 from .sheets import add_to_watchlist, get_watchlist, remove_from_watchlist
 from .sheets import HoldingLine, SheetNotConfiguredError, get_overview, get_portfolio_positions
+from . import users as users_config
 from .users import User, access_protected, resolve
 from .operations import OperationError, add_operation, read_settings
 
@@ -453,3 +456,92 @@ def write_operations_import(payload: dict = Body(...), user: User = Depends(requ
     result = _operation_call(lambda: write_import(user.sheet_id, payload.get("account"), payload.get("operations") or []))
     _forget_operations(user.sheet_id)
     return result
+
+
+# --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---
+APP_URL = "https://portfolio-front-8t6m.onrender.com/#portfolio"
+
+
+@app.get("/price-alerts")
+def get_price_alerts(user: User = Depends(require_access)):
+    from .notifications import list_price_alerts
+
+    return _sheet_call(lambda: list_price_alerts(user.sheet_id))
+
+
+@app.post("/price-alerts")
+def create_price_alert(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .notifications import add_price_alert
+
+    ticker = _checked_ticker(str(payload.get("ticker") or ""))
+    return _operation_call(lambda: add_price_alert(user.sheet_id, ticker, payload.get("direction"), payload.get("price"), payload.get("note", "")))
+
+
+@app.delete("/price-alerts/{alert_id}")
+def remove_price_alert(alert_id: str, user: User = Depends(require_access)):
+    from .notifications import delete_price_alert
+
+    return _operation_call(lambda: delete_price_alert(user.sheet_id, alert_id))
+
+
+@app.post("/price-alerts/{alert_id}/rearm")
+def rearm_price_alert(alert_id: str, user: User = Depends(require_access)):
+    from .notifications import set_alert_triggered
+
+    return _operation_call(lambda: set_alert_triggered(user.sheet_id, [alert_id], None))
+
+
+@app.get("/notifications/settings")
+def get_notification_settings(user: User = Depends(require_access)):
+    from .notifications import get_topic
+
+    return {"topic": _sheet_call(lambda: get_topic(user.sheet_id)), "admin": user.admin}
+
+
+@app.post("/notifications/settings")
+def save_notification_settings(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .notifications import set_topic
+
+    return {"topic": _operation_call(lambda: set_topic(user.sheet_id, payload.get("topic")))}
+
+
+@app.post("/notifications/test")
+def test_notification(user: User = Depends(require_access)):
+    from .notifications import get_topic, send_ntfy
+
+    topic = _sheet_call(lambda: get_topic(user.sheet_id))
+    if not topic:
+        raise HTTPException(status_code=400, detail="Enregistre d'abord ton sujet ntfy")
+    send_ntfy(topic, "Portfolio Insights", f"Notifications activées pour {user.name}. Tu recevras ici tes alertes de la nuit.", "white_check_mark", APP_URL)
+    return {"sent": True}
+
+
+# Réservé au job nocturne (code du propriétaire) : de quoi calculer les alertes de chaque utilisateur
+@app.get("/notifications/users", dependencies=[Depends(require_admin)])
+def notification_users():
+    from .notifications import get_topic, list_price_alerts
+
+    result = []
+    for u in users_config.USERS:
+        try:
+            result.append({
+                "name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id),
+                "positions": sorted({p.ticker.upper() for p in get_portfolio_positions(u.sheet_id)}),
+                "watchlist": get_watchlist(u.sheet_id),
+                "price_alerts": [a for a in list_price_alerts(u.sheet_id) if not a["triggered"]],
+            })
+        except Exception as e:  # un Sheet inaccessible ne bloque pas les autres
+            result.append({"name": u.name, "admin": u.admin, "error": str(e)})
+    return result
+
+
+@app.post("/notifications/triggered", dependencies=[Depends(require_admin)])
+def mark_alerts_triggered(payload: dict = Body(...)):
+    from datetime import date
+
+    from .notifications import set_alert_triggered
+
+    target = next((u for u in users_config.USERS if u.name == payload.get("user")), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Utilisateur inconnu")
+    return _operation_call(lambda: set_alert_triggered(target.sheet_id, payload.get("ids") or [], payload.get("date") or date.today().isoformat()))
