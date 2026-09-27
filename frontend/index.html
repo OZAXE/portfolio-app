@@ -1390,6 +1390,8 @@
       let fees = 0;
       if (rule) {
         fees = Math.max(rule.minimum, rule.fixed + rule.percent * amount);
+        // PEA : courtage plafonné par la loi à 0,5 % du montant (ex. 1 € chez Trade Republic sous 200 €)
+        if (account.envelope === "PEA") fees = Math.min(fees, 0.005 * amount);
         if (opEl("op-currency").value !== "EUR") fees += rule.fx_percent * amount;
       }
       // TTF : 0,4 % à l'achat d'actions françaises de plus d'un milliard d'euros de capitalisation

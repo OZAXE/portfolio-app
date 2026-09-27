@@ -29,10 +29,13 @@ Dans ta copie :
    | Compte | Enveloppe | Courtier |
    |---|---|---|
    | PEA Boursorama | PEA | Boursorama |
+   | PEA Trade Republic | PEA | Trade Republic |
    | CTO Trade Republic | CTO | Trade Republic |
 
-   L'enveloppe doit être `PEA` ou `CTO`.
-2. Onglet **Frais** : le barème de chaque courtier, par type d'ordre (`Ordre` ou `Plan d'investissement`).
+   L'enveloppe doit être `PEA` ou `CTO`. Le courtier doit être écrit exactement comme dans l'onglet
+   **Frais** : c'est lui qui détermine les frais proposés (un PEA et un CTO Trade Republic ont le même barème).
+2. Onglet **Frais** : le barème de chaque courtier, par type d'ordre (`Ordre` ou `Plan d'investissement`,
+   pour les achats programmés comme les plans Trade Republic).
    Frais d'un ordre = le plus grand entre le *minimum* et *fixe + pourcentage × montant*.
    Vérifie les valeurs sur la grille tarifaire de ton courtier : elles servent à pré-remplir les frais,
    que tu peux toujours corriger au moment de la saisie.
