@@ -14,6 +14,8 @@ Endpoints prévus pour le MVP :
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
 - GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy de l'utilisateur
+- GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
+- GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -545,3 +547,37 @@ def mark_alerts_triggered(payload: dict = Body(...)):
     if target is None:
         raise HTTPException(status_code=404, detail="Utilisateur inconnu")
     return _operation_call(lambda: set_alert_triggered(target.sheet_id, payload.get("ids") or [], payload.get("date") or date.today().isoformat()))
+
+
+# --- Plafond du PEA, frais payés et frais courants des ETF ---
+@app.get("/portfolio/costs")
+def get_costs(user: User = Depends(require_access)):
+    from datetime import date
+
+    from .costs import etf_costs, fees_by_year, pea_ceiling
+    from .realized import read_operations
+
+    def compute():
+        operations, envelopes, _ = read_operations(user.sheet_id)
+        holdings = [{"ticker": h.ticker.upper(), "name": h.name, "value": h.value}
+                    for h in get_overview(user.sheet_id).holdings if h.kind == "ETF"]
+        # Frais courants récupérés chaque nuit par screener/etf_fees.py (Yahoo est souvent bloqué ici)
+        fees_file = _screener_data("etf_fees.json") or {}
+        ter = {t: v.get("ter") for t, v in fees_file.get("etfs", {}).items()}
+        return {"pea": pea_ceiling(operations, envelopes, date.today()),
+                "years": fees_by_year(operations, envelopes), "etf": etf_costs(holdings, ter)}
+
+    return _sheet_call(compute)
+
+
+@app.get("/portfolio/chart/{ticker}")
+def get_position_chart(ticker: str, user: User = Depends(require_access)):
+    from .performance import position_chart
+
+    ticker = _checked_ticker(ticker)
+    def build():
+        try:
+            return position_chart(user.sheet_id, ticker)
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+    return _sheet_call(build)

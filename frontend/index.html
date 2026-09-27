@@ -209,6 +209,12 @@
     .div-bars span { flex: 1; background: var(--series-cto); border-radius: 2px 2px 0 0; min-height: 1px; }
     .div-years { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
     .cal-total { font-size: 22px; font-weight: 700; }
+    .pea-track { height: 10px; background: var(--card-2); border-radius: 5px; overflow: hidden; margin: 8px 0 6px; }
+    .pea-fill { height: 100%; background: var(--series-pea); border-radius: 5px; min-width: 2px; }
+    .fees-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .fees-table th { text-align: right; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 0 6px 6px; }
+    .fees-table th:first-child, .fees-table td:first-child { text-align: left; padding-left: 0; }
+    .fees-table td { text-align: right; padding: 6px 0 6px 6px; border-top: 1px solid var(--line); white-space: nowrap; }
     .lt-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 12px; cursor: pointer; }
     .lt-toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
     .bar-sub { font-size: 11px; color: var(--muted); margin-top: -2px; margin-bottom: 4px; }
@@ -358,6 +364,11 @@
         <h2>Dividendes à venir</h2>
         <div class="card" id="dividends-card">
           <div id="dividends-body" class="help">Chargement…</div>
+        </div>
+
+        <h2>Plafond PEA et frais</h2>
+        <div class="card" id="costs-card">
+          <div id="costs-body" class="help">Chargement…</div>
         </div>
 
         <h2>Plus-values réalisées et dividendes</h2>
@@ -847,7 +858,8 @@
     function renderAnalysis(h, a) {
       const r = returns?.positions?.[String(h.ticker).toUpperCase()];
       const label = returnLabel(r);
-      const investedRow = `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`
+      const chartButton = `<div style="margin-top:4px"><button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button></div><div class="buy-chart-slot"></div>`;
+      const investedRow = chartButton + `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`
         + (r ? `<div class="row"><span>Gain total</span><span class="${signClass(r.gain)}">${signedEur(r.gain)}</span></div>` : "")
         + (label ? `<div class="row"><span>${label.term}</span><span class="${signClass(r.xirr)}">${label.text}</span></div>` : "");
       if (!a) {
@@ -1089,6 +1101,7 @@
       loadReturns();
       loadDividends();
       loadPriceAlerts();
+      loadCosts();
       loadWatchlist();
       loadAlerts();
       loadRealized();
@@ -1618,8 +1631,106 @@
       const fin = e.target.closest("button[data-financials]");
       if (fin) { e.preventDefault(); showFinancials(fin.dataset.financials); return; }
       const pa = e.target.closest("button[data-price-alert]");
-      if (pa) { e.preventDefault(); openPriceAlertForm(pa); }
+      if (pa) { e.preventDefault(); openPriceAlertForm(pa); return; }
+      const bc = e.target.closest("button[data-buy-chart]");
+      if (bc) { e.preventDefault(); showBuyChart(bc); }
     });
+
+    // --- Graphique d'une position : cours en euros, achats, ventes et PRU ---
+    const buyCharts = new WeakMap();
+
+    async function showBuyChart(button) {
+      const slot = button.closest(".analysis").querySelector(".buy-chart-slot");
+      if (buyCharts.has(slot)) { buyCharts.get(slot).destroy(); buyCharts.delete(slot); slot.innerHTML = ""; return; }
+      slot.innerHTML = `<div class="hypotheses">Chargement des cours…</div>`;
+      let data;
+      try {
+        data = await api(`/portfolio/chart/${encodeURIComponent(button.dataset.buyChart)}`);
+      } catch (e) {
+        slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
+        return;
+      }
+      if (data.points.length < 2) { slot.innerHTML = `<div class="hypotheses">Pas assez de cours pour tracer le graphique.</div>`; return; }
+      const dates = data.points.map((p) => p[0]);
+      // Opération d'un jour sans cotation (week-end) : placée au jour de bourse suivant
+      const indexOf = (d) => { const i = dates.findIndex((x) => x >= d); return i === -1 ? dates.length - 1 : i; };
+      const marks = (type) => {
+        const arr = dates.map(() => null);
+        const info = dates.map(() => []);
+        for (const t of data.trades.filter((t) => t.type === type)) { const i = indexOf(t.date); arr[i] = t.price; info[i].push(t); }
+        return { arr, info };
+      };
+      const buys = marks("Achat"), sells = marks("Vente");
+      const pru = dates.map(() => null);
+      let current = null, k = 0;
+      const steps = data.pru.map((p) => ({ i: indexOf(p.date), v: p.pru }));
+      dates.forEach((_, i) => { while (k < steps.length && steps[k].i <= i) current = steps[k++].v; pru[i] = current; });
+      slot.innerHTML = `<div class="history-box"><canvas></canvas></div>
+        <div class="hypotheses">Cours de clôture en euros ; ▲ achats et ▼ ventes au prix payé (frais exclus), PRU frais inclus. ${data.trades.length} opération${data.trades.length > 1 ? "s" : ""}.</div>`;
+      const green = cssVar("--accent"), red = cssVar("--accent-neg");
+      const chart = new Chart(slot.querySelector("canvas"), {
+        type: "line",
+        data: {
+          labels: dates.map((d) => dateFmt.format(new Date(d + "T12:00:00"))),
+          datasets: [
+            { label: "Cours", data: data.points.map((p) => p[1]), borderColor: cssVar("--series-total"), borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+            { label: "PRU", data: pru, borderColor: cssVar("--series-cto"), borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, stepped: true },
+            { label: "Achats", data: buys.arr, showLine: false, pointStyle: "triangle", pointRadius: 7, pointHoverRadius: 9, backgroundColor: green, borderColor: green },
+            { label: "Ventes", data: sells.arr, showLine: false, pointStyle: "triangle", rotation: 180, pointRadius: 7, pointHoverRadius: 9, backgroundColor: red, borderColor: red },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { labels: { color: cssVar("--muted"), boxWidth: 12, filter: (item) => item.text !== "Ventes" || data.trades.some((t) => t.type === "Vente") } },
+            tooltip: { callbacks: { label: (ctx) => {
+              if (ctx.raw == null) return null;
+              const trades = (ctx.datasetIndex === 2 ? buys : ctx.datasetIndex === 3 ? sells : null)?.info[ctx.dataIndex];
+              if (trades) return trades.map((t) => `${t.type} ${num(t.quantity, 6)} × ${money(t.price, "€")}`);
+              return `${ctx.dataset.label} : ${money(ctx.raw, "€")}`;
+            } } },
+          },
+          scales: {
+            x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { color: cssVar("--line") } },
+          },
+        },
+      });
+      buyCharts.set(slot, chart);
+    }
+
+    // --- Plafond du PEA et frais payés ---
+    async function loadCosts() {
+      const body = document.getElementById("costs-body");
+      let c;
+      try {
+        c = await api("/portfolio/costs");
+      } catch (e) {
+        body.textContent = "Indisponible : " + e.message;
+        return;
+      }
+      body.className = "";
+      const pea = c.pea ? `
+        <div class="div-title" style="margin-top:0"><span data-term="Plafond PEA">Plafond du PEA</span></div>
+        <div class="pea-track"><div class="pea-fill" style="width:${Math.max(c.pea.used * 100, 0.5)}%"></div></div>
+        <div style="font-size:14px">${eur.format(c.pea.deposits)} versés sur ${eur.format(c.pea.ceiling)} · reste ${eur.format(c.pea.remaining)}</div>
+        <div class="help" style="margin-top:4px">${c.pea.five_years_reached
+          ? "Ton PEA a plus de 5 ans : un retrait n'est plus soumis qu'aux prélèvements sociaux, sans fermer le plan."
+          : `Cap des 5 ans le ${new Date(c.pea.five_years + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} (d'après ta première opération) : ensuite, plus d'impôt sur le revenu sur les gains retirés. Avant, un retrait ferme le PEA.`}</div>` : "";
+      const years = c.years.length ? `
+        <div class="div-title">Frais payés</div>
+        <table class="fees-table">
+          <tr><th>Année</th><th>Courtage</th><th>TTF</th><th>Retenues</th><th>Total</th></tr>
+          ${c.years.map((y) => `<tr><td>${y.year}</td><td>${eur.format(y.brokerage)}</td><td>${eur.format(y.transaction_tax)}</td><td>${eur.format(y.dividend_tax)}</td><td><b>${eur.format(y.total)}</b></td></tr>`).join("")}
+        </table>
+        <div class="help" style="margin-top:6px">${c.years[0].trading_cost_pct != null ? `En ${c.years[0].year}, courtage et TTF représentent ${pctPlain(c.years[0].trading_cost_pct)} de tes achats. ` : ""}Les retenues sur dividendes sont les impôts prélevés à la source (CTO).</div>` : "";
+      const etf = c.etf.lines.length || c.etf.unknown.length ? `
+        <div class="div-title"><span data-term="Frais courants">Frais courants des ETF</span></div>
+        ${c.etf.lines.length ? `<div style="font-size:14px">≈ ${eur.format(c.etf.annual)} par an${c.etf.weighted_ter != null ? ` (${num(c.etf.weighted_ter, 2)} % en moyenne)` : ""}</div>
+          ${c.etf.lines.map((l) => `<div class="rank-row"><div>${escapeHtml(l.name || l.ticker)}<div class="who">${num(l.ter, 2)} % par an sur ${eur.format(l.value)}</div></div><div class="right">${eur.format(l.annual)}</div></div>`).join("")}` : ""}
+        ${c.etf.unknown.length ? `<p class="help">Frais courants pas encore connus pour : ${escapeHtml(c.etf.unknown.join(", "))} (récupérés chaque nuit auprès de Yahoo).</p>` : ""}` : "";
+      body.innerHTML = pea + years + etf || `<p class="help" style="margin:0">Rien à afficher pour l'instant.</p>`;
+    }
 
     // --- Alertes de prix : vérifiées chaque nuit sur le cours de clôture, notifiées une seule fois ---
     let priceAlerts = [];
@@ -2188,6 +2299,8 @@
         "Revenu projeté": "<p>Les dividendes que tes titres devraient te verser sur les 12 prochains mois, avant impôts : chaque dividende de l'an dernier, répété à la même date et au même montant, multiplié par ta quantité actuelle.</p><p>C'est une estimation prudente : elle ne compte pas les hausses de dividende, ni les achats à venir. Un dividende réduit ou supprimé la rend trop optimiste.</p>",
         "Date de détachement": "<p>Le jour où le dividende est « détaché » de l'action (ex-date) : il faut détenir l'action la veille au soir pour le toucher. Ce jour-là, le cours baisse d'environ le montant du dividende.</p><p>Le versement sur ton compte arrive quelques jours à quelques semaines plus tard. Les dates affichées sont estimées d'après l'an dernier.</p>",
         "Contenu des ETF": "<p>Un ETF contient des centaines d'entreprises : un ETF MSCI World, c'est environ 70 % d'actions américaines, et 5 % de NVIDIA. Cochée, la case répartit chaque ETF selon la composition de son indice, reconnu à son nom (MSCI World, S&amp;P 500, Nasdaq, Emerging Markets…).</p><p>La composition vient des fichiers publiés chaque jour par SPDR pour le même indice, ou est reconstituée d'après les capitalisations (CAC 40, STOXX 600, Nasdaq 100). Un ETF qui suit le même indice a presque exactement la même.</p>",
+        "Plafond PEA": "<p>Un PEA accepte au plus 150 000 € de versements (l'argent que tu y déposes), quelle que soit sa valeur ensuite : les gains ne comptent pas.</p><p>L'appli estime tes versements d'après l'onglet Opérations : les achats, moins l'argent déjà présent dans le PEA (ventes, dividendes) quand tu le réinvestis. Une vente ne libère pas de place. Il n'y a qu'un PEA par personne.</p>",
+        "Frais courants": "<p>Frais de gestion d'un ETF (TER), en % par an, prélevés directement dans sa valeur : ils n'apparaissent sur aucun relevé.</p><p>Repères : 0,1 à 0,3 % pour un ETF indiciel large, jusqu'à 0,7 % pour un ETF thématique. Sur 20 ans, 0,5 % de frais en plus coûte environ 10 % du capital final.</p>",
         "Plus-value latente": "<p>Valeur actuelle − montant investi, affichée sous chaque ligne et pour tout le portefeuille.</p><p>« Latente » : tant que tu n'as pas vendu, rien n'est gagné ni perdu, et rien n'est imposé.</p>",
         "Plus-value réalisée": "<p>Gain ou perte constaté au moment d'une vente : montant encaissé − PRU des actions vendues, frais inclus.</p><p>Sur le CTO, elle est imposée l'année de la vente (flat tax). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent.</p>",
         "Poche": "<p>Catégorie que tu choisis pour chaque titre (colonne Poche de l'onglet Titres) : par exemple « Cœur ETF », « Dividendes », « Croissance ».</p><p>Sert à la répartition du portefeuille et à l'allocation cible.</p>",

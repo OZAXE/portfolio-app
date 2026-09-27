@@ -54,6 +54,12 @@ jobs:
         continue-on-error: true
         run: python screener/etf_lookthrough.py --data-dir data
 
+      - name: Frais courants des ETF détenus
+        continue-on-error: true
+        env:
+          APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
+        run: python screener/etf_fees.py --data-dir data
+
       - name: Historique financier (SEC pour les US, Yahoo archivé pour le reste)
         continue-on-error: true
         run: python screener/financials.py --data-dir data --max 400 --time-budget-min 30

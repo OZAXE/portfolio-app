@@ -136,3 +136,53 @@ def portfolio_performance(sheet_id: str, benchmark: str) -> dict:
             "benchmark_pct": (last["benchmark"] / last["invested"] - 1) if last["benchmark"] else None,
         }
     return {"benchmark": bench_label, "points": points, "summary": summary}
+
+
+def chart_points(trades: list[dict], closes_eur: pd.Series) -> dict:
+    """Cours en euros jour par jour, points d'achat et de vente, et PRU après chaque opération.
+    trades : {date (ISO), type, quantity, price (euros par action, frais exclus), cost (net payé ou encaissé)}."""
+    series = closes_eur.dropna()
+    quantity = cost = 0.0
+    pru = []
+    for t in sorted(trades, key=lambda t: t["date"]):
+        if t["type"] == "Achat":
+            quantity += t["quantity"]
+            cost += t["cost"]
+        elif t["type"] == "Vente" and quantity > 0:
+            sold = min(t["quantity"], quantity)
+            cost -= cost / quantity * sold  # le PRU des titres restants ne bouge pas
+            quantity -= sold
+        pru.append({"date": t["date"], "pru": round(cost / quantity, 4) if quantity > 1e-9 else None})
+    return {
+        "points": [[d.date().isoformat(), round(float(v), 4)] for d, v in series.items()],
+        "trades": sorted(trades, key=lambda t: t["date"]),
+        "pru": pru,
+    }
+
+
+def position_chart(sheet_id: str, ticker: str) -> dict:
+    """Graphique d'une ligne : cours depuis un mois avant le premier achat, en euros (comme les prix
+    d'achat de l'onglet Opérations, frais exclus), avec chaque achat, vente et le PRU."""
+    from datetime import timedelta
+
+    from .realized import read_operations
+
+    operations, _, _ = read_operations(sheet_id)
+    ticker = ticker.upper()
+    ops = [op for op in operations if op.ticker == ticker and op.kind in ("Achat", "Vente") and op.quantity]
+    if not ops:
+        raise ValueError(f"Aucun achat de {ticker} dans l'onglet Opérations")
+    _, currencies = read_trades(sheet_id)
+    start = (min(op.day for op in ops) - timedelta(days=30)).isoformat()
+    closes = download_closes([ticker], start)[[ticker]].dropna(how="all")
+    currency = currencies.get(ticker, "EUR")
+    fx = pd.DataFrame(index=closes.index)
+    base = "GBP" if currency == "GBp" else currency
+    if base != "EUR":
+        fx = download_closes([f"{base}EUR=X"], start)
+        fx.columns = [base]
+        fx = fx.reindex(closes.index).ffill().bfill()
+    closes_eur = _eur_prices(closes, fx, {ticker: currency})[ticker]
+    trades = [{"date": op.day.isoformat(), "type": op.kind, "quantity": op.quantity, "account": op.account,
+               "price": round(op.gross / op.quantity, 4), "cost": round(op.net, 2)} for op in ops]
+    return {"ticker": ticker, "currency": "EUR", **chart_points(trades, closes_eur)}
