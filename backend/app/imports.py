@@ -4,7 +4,8 @@ fichiers, tickers retrouvés, doublons signalés), puis écriture des lignes val
 
 Formats reconnus :
 - Trade Republic : export CSV des transactions. Achats, ventes,
-  plans d'investissement et dividendes ; le reste (carte, intérêts, virements) est ignoré ;
+  plans d'investissement et dividendes ; le reste (carte, intérêts, virements, Saveback et Stockperk
+  versés en espèces) est ignoré, ainsi que la crypto, que l'appli ne suit pas ;
 - Boursorama : avis d'opéré PDF, un par ordre (Espace client > Documents > Avis d'opéré).
 
 Les montants sont en euros tels que facturés par le courtier : taux de change 1, même pour une
@@ -53,15 +54,19 @@ def _num(text) -> float:
     return float(text)
 
 
-def parse_trade_republic_csv(text: str, source: str) -> list[ParsedOperation]:
+def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None) -> list[ParsedOperation]:
     reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
     if not reader.fieldnames or not {"category", "type", "symbol", "shares", "amount"} <= set(reader.fieldnames):
         raise OperationError(f"{source} : colonnes de l'export Trade Republic introuvables")
     operations = []
     for row in reader:
         kind = {"BUY": "Achat", "SELL": "Vente", "DIVIDEND": "Dividende"}.get(row["type"])
-        shares = _num(row["shares"])
+        shares = abs(_num(row["shares"]))  # négatif sur les ventes
         if not kind or not row["symbol"] or not shares:
+            continue
+        if row.get("asset_class") == "CRYPTO":
+            if skipped is not None:
+                skipped["crypto"] = skipped.get("crypto", 0) + 1
             continue
         amount, fee, tax = _num(row["amount"]), abs(_num(row.get("fee"))), abs(_num(row.get("tax")))
         if kind == "Dividende":
@@ -116,7 +121,7 @@ def parse_boursorama_text(text: str, source: str) -> ParsedOperation:
     )
 
 
-def parse_file(name: str, content: bytes) -> list[ParsedOperation]:
+def parse_file(name: str, content: bytes, skipped: dict | None = None) -> list[ParsedOperation]:
     if len(content) > MAX_FILE_BYTES:
         raise OperationError(f"{name} : fichier trop gros")
     if content[:4] == b"%PDF":
@@ -124,12 +129,30 @@ def parse_file(name: str, content: bytes) -> list[ParsedOperation]:
 
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(content)).pages)
         return [parse_boursorama_text(text, name)]
-    return parse_trade_republic_csv(content.decode("utf-8-sig", errors="replace"), name)
+    return parse_trade_republic_csv(content.decode("utf-8-sig", errors="replace"), name, skipped)
+
+
+# Codes de place OpenFIGI -> suffixe Yahoo, par ordre de préférence
+FIGI_EXCHANGES = {"US": "", "FP": ".PA", "NA": ".AS", "GY": ".DE", "BB": ".BR", "IM": ".MI", "SM": ".MC", "SW": ".SW", "LN": ".L"}
+
+
+def _figi_ticker(isin: str) -> str | None:
+    """Repli quand Yahoo ne connaît pas l'ISIN (Alphabet classe A) : API publique OpenFIGI."""
+    import requests
+
+    try:
+        response = requests.post("https://api.openfigi.com/v3/mapping", json=[{"idType": "ID_ISIN", "idValue": isin}], timeout=20)
+        data = response.json()[0].get("data", [])
+    except Exception:
+        return None
+    listings = [d for d in data if d.get("exchCode") in FIGI_EXCHANGES and d.get("ticker")]
+    listings.sort(key=lambda d: list(FIGI_EXCHANGES).index(d["exchCode"]))
+    return listings[0]["ticker"].replace("/", "-") + FIGI_EXCHANGES[listings[0]["exchCode"]] if listings else None
 
 
 def find_ticker(isin: str, known: dict[str, str]) -> str | None:
-    """Ticker Yahoo d'un ISIN : déjà vu (fichier ISIN du screener), sinon recherche Yahoo,
-    en préférant Paris puis les places européennes (cotation en euros)."""
+    """Ticker Yahoo d'un ISIN : déjà vu (fichier ISIN du screener), sinon recherche Yahoo en
+    préférant Paris puis les places européennes (cotation en euros), sinon OpenFIGI."""
     if isin in known:
         return known[isin]
     import yfinance as yf
@@ -137,11 +160,11 @@ def find_ticker(isin: str, known: dict[str, str]) -> str | None:
     try:
         quotes = yf.Search(isin, max_results=8, news_count=0).quotes
     except Exception:
-        return None
+        quotes = []
     quotes = [q for q in quotes if q.get("symbol") and q.get("quoteType") in ("EQUITY", "ETF")]
     preference = ["PAR", "AMS", "GER", "BRU", "MIL", "NMS", "NYQ", "NGM", "NCM", "ASE", "PCX", "BTS", "LSE"]
     quotes.sort(key=lambda q: preference.index(q.get("exchange")) if q.get("exchange") in preference else len(preference))
-    return quotes[0]["symbol"] if quotes else None
+    return quotes[0]["symbol"] if quotes else _figi_ticker(isin)
 
 
 def _duplicate_key(day: str, account: str, kind: str, quantity: float) -> tuple:
@@ -153,10 +176,10 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
     """files : [{name, content (base64)}]. Rien n'est écrit."""
     if not files or len(files) > MAX_FILES:
         raise OperationError(f"Entre 1 et {MAX_FILES} fichiers")
-    parsed, errors = [], []
+    parsed, errors, skipped = [], [], {}
     for f in files:
         try:
-            parsed += parse_file(f["name"], base64.b64decode(f["content"]))
+            parsed += parse_file(f["name"], base64.b64decode(f["content"]), skipped)
         except OperationError as e:
             errors.append(str(e))
         except Exception as e:
@@ -173,6 +196,8 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
         op.status = "duplicate" if key in seen else "new" if op.ticker else "no_ticker"
         seen.add(key)  # le même ordre présent dans deux fichiers
     operations = [asdict(op) for op in sorted(parsed, key=lambda o: o.date)]
+    if skipped.get("crypto"):
+        errors.append(f"{skipped['crypto']} opérations crypto ignorées (l'appli ne suit pas la crypto)")
     return {"operations": operations, "errors": errors,
             "counts": {s: sum(o["status"] == s for o in operations) for s in ("new", "duplicate", "no_ticker")}}
 

@@ -11,9 +11,10 @@ from app.realized import Operation
 TR_CSV = '''"datetime","date","account_type","category","type","asset_class","name","symbol","shares","price","amount","fee","tax","currency","original_amount","original_currency","fx_rate","description","transaction_id","counterparty_name","counterparty_iban","payment_reference","mcc_code"
 "2026-06-01T03:58:30Z","2026-06-01","DEFAULT","CASH","INTEREST_PAYMENT","","","","","","0.030000","","","EUR","","","","Interest payment","id1","","","",""
 "2026-06-01T08:29:55Z","2026-06-01","DEFAULT","CASH","DIVIDEND","STOCK","Visa","US92826C8394","0.5000000000","","0.300000","","-0.12","EUR","0.35","USD","0.86","Cash Dividend for ISIN US92826C8394","id2","","","",""
+"2026-08-10T09:00:00Z","2026-08-10","DEFAULT","TRADING","BUY","CRYPTO","Bitcoin","BTC","0.0001000000","70000.0000000000","-7.00","","","EUR","","","","Savings plan execution BTC","id6","","","",""
 "2026-08-18T13:57:56Z","2026-08-18","DEFAULT","CASH","CARD_TRANSACTION","","CAFE","","","","-4.000000","","","EUR","","","","CAFE","id3","","","","5813"
 "2026-08-24T14:13:52Z","2026-08-24","DEFAULT","TRADING","BUY","STOCK","NVIDIA","US67066G1040","0.0055670000","179.6000000000","-1.00","","","EUR","","","","Savings plan execution US67066G1040 NVIDIA CORP., quantity: 0.005567","id4","","","",""
-"2026-09-02T10:00:00Z","2026-09-02","DEFAULT","TRADING","SELL","STOCK","Visa","US92826C8394","0.2000000000","300.0000000000","59.00","-1.00","","EUR","","","","Market order","id5","","","",""
+"2026-09-02T10:00:00Z","2026-09-02","DEFAULT","TRADING","SELL","STOCK","Visa","US92826C8394","-0.2000000000","300.0000000000","59.00","-1.00","","EUR","","","","Market order","id5","","","",""
 '''
 
 BOURSO_BUY = """OPERATION DE BOURSE
@@ -51,6 +52,13 @@ def test_trade_republic_csv_keeps_trades_and_dividends():
     assert dividend.price == pytest.approx(0.6) and dividend.taxes == 0.12 and dividend.order_type == ""
     assert plan.order_type == "Plan d'investissement" and plan.quantity == 0.005567 and plan.price == 179.6
     assert sale.fees == 1.0 and sale.order_type == "Ordre"
+    assert sale.quantity == 0.2  # quantité négative dans l'export pour une vente
+
+
+def test_trade_republic_crypto_skipped_and_reported():
+    skipped = {}
+    ops = parse_trade_republic_csv(TR_CSV, "tr.csv", skipped)
+    assert "BTC" not in {o.isin for o in ops} and skipped == {"crypto": 1}
 
 
 def test_trade_republic_wrong_file():
