@@ -50,7 +50,8 @@ def test_dividends_by_year_and_cto_tax_estimate():
     years = {y["year"]: y for y in compute_realized(ops, ENVELOPES)["years"]}
     assert list(years) == [2026, 2025]
     assert years[2026]["envelopes"]["CTO"]["dividends_net"] == pytest.approx(4.42)
-    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.2 * 0.30)
+    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.2 * 0.314, abs=0.005)  # PFU 31,4 % depuis 2026
+    assert years[2025]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.0 * 0.30)
     assert years[2026]["envelopes"]["PEA"]["dividends_gross"] == pytest.approx(6.0)
 
 

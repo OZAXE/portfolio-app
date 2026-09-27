@@ -6,7 +6,7 @@ Plus-value d'une vente = montant net encaissé (frais et taxes déduits) - quant
 Le PRU suit la méthode du prix moyen pondéré (règle fiscale française), par compte et par titre,
 frais d'achat inclus : une vente ne modifie pas le PRU des titres restants.
 
-L'estimation d'impôt ne concerne que le CTO (prélèvement forfaitaire unique de 30 %) : le PEA
+L'estimation d'impôt ne concerne que le CTO (prélèvement forfaitaire unique, 31,4 % depuis 2026) : le PEA
 n'est pas imposé tant qu'on n'en retire rien. Elle reste indicative (moins-values reportables,
 option pour le barème, prélèvements déjà faits à la source...).
 """
@@ -17,7 +17,13 @@ from datetime import date
 
 from .sheets import UNFORMATTED, _open_sheet, _serial_to_iso, _worksheet
 
-FLAT_TAX = 0.30  # PFU : 12,8 % d'impôt sur le revenu + 17,2 % de prélèvements sociaux
+# PFU : 12,8 % d'impôt sur le revenu + prélèvements sociaux (17,2 %, puis 18,6 % depuis la hausse de CSG de 2026)
+FLAT_TAX = 0.30
+FLAT_TAX_2026 = 0.314
+
+
+def flat_tax_rate(year: int) -> float:
+    return FLAT_TAX_2026 if year >= 2026 else FLAT_TAX
 
 
 @dataclass
@@ -120,12 +126,13 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
             if envelope == "CTO":
                 # Base indicative : plus-values nettes de l'année (si positives) + dividendes bruts
                 base = max(b["realized_gain"], 0.0) + b["dividends_gross"]
-                rounded["estimated_tax"] = round(base * FLAT_TAX, 2)
+                rounded["flat_tax_rate"] = flat_tax_rate(year)
+                rounded["estimated_tax"] = round(base * flat_tax_rate(year), 2)
             envelopes_out[envelope] = rounded
         result.append({"year": year, "envelopes": envelopes_out,
                        "sales": sorted(summary.sales, key=lambda s: s["date"], reverse=True),
                        "dividends": sorted(summary.dividends, key=lambda d: d["date"], reverse=True)})
-    return {"years": result, "flat_tax_rate": FLAT_TAX}
+    return {"years": result, "flat_tax_rate": flat_tax_rate(date.today().year)}
 
 
 def realized_summary(sheet_id: str) -> dict:

@@ -86,6 +86,17 @@
     .analysis { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
     .analysis .row { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); gap: 8px; }
     .analysis .row span:last-child { color: var(--text); text-align: right; }
+    .analysis .row > span:first-child { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+    #term-dialog { border: 0; padding: 0; width: 100%; max-width: 720px; margin: auto auto 0; border-radius: 16px 16px 0 0; background: var(--card); color: var(--text); }
+    #term-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+    #term-dialog .inner { padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); font-size: 14px; line-height: 1.5; }
+    #term-dialog p { margin: 0 0 10px; }
+    .term-title { font-weight: 600; font-size: 17px; margin-bottom: 8px; }
+    .lexicon h3 { font-size: 13px; color: var(--accent); margin: 16px 0 4px; }
+    .lexicon h3:first-child { margin-top: 0; }
+    .lexicon details { border-top: 1px solid var(--line); padding: 10px 0; }
+    .lexicon summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+    .lexicon p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
     .analysis .unreliable { color: var(--muted) !important; font-style: italic; }
     .analysis .hypotheses { margin-top: 8px; font-size: 12px; color: var(--muted); }
     .analysis ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
@@ -415,8 +426,22 @@
         <p class="help" id="hyp-status"></p>
         <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
       </div>
+
+      <h2>Lexique des indicateurs</h2>
+      <div class="card">
+        <p class="help">Dans les fiches, touche un libellé souligné (PER, ROE…) pour afficher son explication.</p>
+        <div class="lexicon" id="lexicon"></div>
+      </div>
     </section>
   </main>
+
+  <dialog id="term-dialog">
+    <div class="inner">
+      <div class="term-title" id="term-title"></div>
+      <div id="term-body"></div>
+      <form method="dialog"><button class="btn">Fermer</button></form>
+    </div>
+  </dialog>
 
   <nav class="tabbar" id="tabbar">
     <button data-view="portfolio" class="active">
@@ -1503,7 +1528,7 @@
           <div class="perf">plus-values réalisées${e.sales ? ` · ${e.sales} vente${e.sales > 1 ? "s" : ""}` : ""}</div>
           <div class="amount" style="margin-top:6px">${eur.format(e.dividends_net)}</div>
           <div class="perf">dividendes nets${e.dividends_taxes ? ` (brut ${eur.format(e.dividends_gross)}, retenues ${eur.format(e.dividends_taxes)})` : ""}</div>
-          ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">Impôt estimé (flat tax ${Math.round(realized.flat_tax_rate * 100)} %) : ${eur.format(e.estimated_tax)}</div>` : ""}
+          ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">Impôt estimé (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(e.estimated_tax)}</div>` : ""}
         </div>`).join("");
       const sales = y.sales.map((s) => `
         <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · ${num(s.quantity, 4)} × PRU ${money(s.unit_cost, "€")}</span></div>
@@ -1582,6 +1607,81 @@
     document.getElementById("briefs-back").addEventListener("click", () => {
       document.getElementById("briefs-reader").hidden = true;
       document.getElementById("briefs-list-view").hidden = false;
+    });
+
+    // --- Lexique : explication de chaque indicateur (toucher un libellé, ou Réglages > Lexique) ---
+    const GLOSSARY = [
+      ["Ton portefeuille", {
+        "Investi": "<p>Ce que tu as payé pour cette ligne, frais d'achat compris : quantité × PRU.</p><p>C'est la base de calcul de la plus-value.</p>",
+        "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
+        "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
+        "Plus-value latente": "<p>Valeur actuelle − montant investi, affichée sous chaque ligne et pour tout le portefeuille.</p><p>« Latente » : tant que tu n'as pas vendu, rien n'est gagné ni perdu, et rien n'est imposé.</p>",
+        "Plus-value réalisée": "<p>Gain ou perte constaté au moment d'une vente : montant encaissé − PRU des actions vendues, frais inclus.</p><p>Sur le CTO, elle est imposée l'année de la vente (flat tax). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent.</p>",
+        "Poche": "<p>Catégorie que tu choisis pour chaque titre (colonne Poche de l'onglet Titres) : par exemple « Cœur ETF », « Dividendes », « Croissance ».</p><p>Sert à la répartition du portefeuille et à l'allocation cible.</p>",
+        "Allocation cible": "<p>Le poids que tu veux donner à chaque poche (onglet Allocation du Sheet). L'appli compare avec la répartition actuelle et propose comment répartir un nouvel apport pour s'en rapprocher, sans rien vendre.</p>",
+        "Comparaison à un indice": "<p>Ce qu'aurait donné le même argent, aux mêmes dates, placé dans un indice (MSCI World, S&amp;P 500, CAC 40…).</p><p>Si tu fais moins bien que l'indice sur la durée, un simple ETF aurait mieux marché.</p>",
+        "TTF": "<p>Taxe sur les transactions financières : 0,4 % du montant à l'achat d'actions françaises de plus d'un milliard d'euros de capitalisation (LVMH, Air Liquide…). Pas sur les ventes, ni sur les ETF.</p>",
+      }],
+      ["Prix et taille", {
+        "Cours": "<p>Prix d'une action à la dernière clôture de bourse, dans la devise de cotation.</p>",
+        "Capitalisation": "<p>Valeur totale de l'entreprise en bourse : cours × nombre d'actions.</p><p>Repères : plus de 10 milliards = grande entreprise, moins de 2 milliards = petite, souvent plus volatile.</p>",
+      }],
+      ["Valorisation : cher ou pas cher ?", {
+        "PER": "<p>Price Earnings Ratio : cours ÷ bénéfice par action des 12 derniers mois. Combien d'années de bénéfices tu paies.</p><p>Repère : 15 est dans la moyenne. Plus bas = moins cher, mais souvent parce que le marché attend peu de croissance ; plus haut = cher, sauf si les bénéfices grossissent vite. À comparer à des entreprises du même secteur.</p>",
+        "PER prévisionnel": "<p>Même calcul que le PER, mais avec le bénéfice attendu par les analystes pour les 12 prochains mois.</p><p>S'il est nettement plus bas que le PER, les analystes prévoient une hausse des bénéfices.</p>",
+        "Cours / valeur comptable": "<p>Cours ÷ capitaux propres par action (ce que l'entreprise possède moins ce qu'elle doit, selon son bilan).</p><p>Surtout utile pour les banques et assurances : en dessous de 1, tu paies l'entreprise moins que sa valeur comptable.</p>",
+        "VE / EBITDA": "<p>Valeur d'entreprise (capitalisation + dette nette) ÷ EBITDA (bénéfice avant intérêts, impôts et amortissements).</p><p>Comme le PER, mais en tenant compte de la dette : utile pour comparer des entreprises plus ou moins endettées. Repère : autour de 10, au-dessus de 15 c'est cher.</p>",
+        "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, pas un prix juste. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
+        "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",
+        "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Réglages.</p>",
+      }],
+      ["Qualité de l'entreprise", {
+        "ROE": "<p>Return on Equity : bénéfice net ÷ capitaux propres. Ce que l'entreprise gagne avec l'argent de ses actionnaires.</p><p>Repère : au-dessus de 15 % c'est bien, au-dessus de 20 % excellent. Attention, une grosse dette gonfle artificiellement le ROE.</p>",
+        "Marge opérationnelle": "<p>Résultat d'exploitation ÷ chiffre d'affaires : ce qui reste de 100 € de ventes une fois payés les coûts de l'activité.</p><p>Une marge élevée et stable signale souvent un avantage durable (marque, brevets). Elle dépend beaucoup du secteur : 25 % est courant dans le logiciel, rare dans la distribution.</p>",
+        "Dette / fonds propres": "<p>Dette totale ÷ capitaux propres, en %.</p><p>Repère : sous 50 % l'entreprise est peu endettée, au-dessus de 200 % elle l'est beaucoup (normal pour les services publics ou l'immobilier, plus risqué ailleurs).</p>",
+        "Score qualité": "<p>Note sur 20 calculée par l'appli, sur 5 critères notés chacun sur 5 : ROE, marge opérationnelle, dette / fonds propres, PER, et cours / valeur comptable pour les banques.</p><p>Les seuils dépendent du secteur (une banque n'est pas jugée comme une entreprise tech). Un critère sans donnée est ignoré, la note reste ramenée sur 20. Au-dessus de 14, l'entreprise coche la plupart des cases.</p>",
+      }],
+      ["Dividende", {
+        "Rendement": "<p>Dividendes versés sur un an ÷ cours. 3 % = 3 € par an pour 100 € investis.</p><p>Un rendement très élevé (plus de 7 %) est souvent un signal d'alerte : le cours a chuté, et le dividende risque d'être réduit.</p>",
+        "Versé sur 12 mois": "<p>Total des dividendes versés par action sur les 12 derniers mois, avant impôts.</p>",
+        "Taux de distribution": "<p>Part du bénéfice reversée en dividendes.</p><p>Repère : entre 30 et 60 %, le dividende est tenable et il reste de quoi investir. Au-dessus de 80 % (sauf foncières et services publics), il est fragile.</p>",
+        "Années de hausse": "<p>Nombre d'années consécutives où le dividende a augmenté. Plus de 10 ans montre une vraie régularité, plus de 25 ans c'est l'élite (« aristocrates du dividende »).</p>",
+        "Croissance 5 ans": "<p>Hausse moyenne du dividende par an sur les 5 dernières années. Au-dessus de l'inflation (2 à 3 %), tes revenus progressent vraiment.</p>",
+        "Croissance 10 ans": "<p>Même chose sur 10 ans : plus fiable, car une ou deux bonnes années pèsent moins.</p>",
+      }],
+      ["Comptes annuels", {
+        "Chiffre d'affaires": "<p>Total des ventes de l'année. Sa croissance régulière est le premier signe d'une entreprise en bonne santé.</p>",
+        "Résultat net": "<p>Bénéfice final, une fois tous les coûts, intérêts et impôts payés. Il peut être faussé une année par un élément exceptionnel (cession, dépréciation).</p>",
+        "Cash-flow libre": "<p>Argent réellement généré par l'activité, une fois payés les investissements. C'est lui qui finance dividendes, rachats d'actions et remboursement de dette, et qui sert au calcul de la valeur intrinsèque.</p>",
+        "Bénéfice par action": "<p>Résultat net ÷ nombre d'actions (BPA). S'il monte plus vite que le résultat net, l'entreprise rachète ses actions.</p>",
+        "Marge nette": "<p>Résultat net ÷ chiffre d'affaires : ce qui reste en bénéfice final sur 100 € de ventes.</p>",
+        "Dette à long terme": "<p>Emprunts à rembourser dans plus d'un an. À comparer au cash-flow libre : moins de 3 ans de cash-flow pour tout rembourser, c'est confortable.</p>",
+        "Nombre d'actions": "<p>S'il baisse, l'entreprise rachète ses actions : chaque action restante représente une plus grosse part. S'il monte, tes parts sont diluées.</p>",
+      }],
+      ["Marché", {
+        "Super investisseurs": "<p>Fonds suivis de grands investisseurs (Buffett, etc.), d'après leurs déclarations trimestrielles à la SEC. Ces déclarations arrivent jusqu'à 45 jours après la fin du trimestre : ce ne sont pas leurs positions du jour.</p>",
+        "Bêta": "<p>Sensibilité d'une action aux mouvements du marché : 1 = bouge comme le marché, 1,5 = amplifie de 50 %, 0,6 = plus calme. Il sert à fixer le taux d'actualisation du DCF.</p>",
+      }],
+    ];
+    const TERMS = Object.assign({}, ...GLOSSARY.map(([, terms]) => terms));
+
+    function showTerm(term) {
+      document.getElementById("term-title").textContent = term;
+      document.getElementById("term-body").innerHTML = TERMS[term];
+      document.getElementById("term-dialog").showModal();
+    }
+
+    document.getElementById("lexicon").innerHTML = GLOSSARY.map(([group, terms]) => `
+      <h3>${escapeHtml(group)}</h3>
+      ${Object.entries(terms).map(([term, text]) => `<details><summary>${escapeHtml(term)}</summary>${text}</details>`).join("")}`).join("");
+
+    // Libellés des fiches (PER, ROE...) : un toucher ouvre l'explication
+    document.addEventListener("click", (e) => {
+      const label = e.target.closest(".analysis .row > span:first-child");
+      if (label && TERMS[label.textContent.trim()]) showTerm(label.textContent.trim());
+    });
+    document.getElementById("term-dialog").addEventListener("click", (e) => {
+      if (e.target.id === "term-dialog") e.target.close();  // toucher hors de la fenêtre
     });
 
     // --- Réglages ---
