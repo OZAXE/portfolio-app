@@ -194,6 +194,14 @@
     .div-bars { display: flex; align-items: flex-end; gap: 3px; height: 60px; margin-top: 8px; }
     .div-bars span { flex: 1; background: var(--series-cto); border-radius: 2px 2px 0 0; min-height: 1px; }
     .div-years { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .cal-total { font-size: 22px; font-weight: 700; }
+    .cal-bars, .cal-months { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+    .cal-bars { align-items: end; height: 80px; margin-top: 14px; }
+    .cal-bars .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; cursor: pointer; }
+    .cal-bars .bar { background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; }
+    .cal-bars .col.selected .bar { background: var(--series-pea); }
+    .cal-months { font-size: 10px; color: var(--muted); text-align: center; margin-top: 3px; }
+    #cal-detail { min-height: 1.4em; margin: 8px 0 4px; }
 
     /* Briefs */
     .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
@@ -304,6 +312,11 @@
         <h2>Positions</h2>
         <div class="positions" id="positions"></div>
         <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
+
+        <h2>Dividendes à venir</h2>
+        <div class="card" id="dividends-card">
+          <div id="dividends-body" class="help">Chargement…</div>
+        </div>
 
         <h2>Plus-values réalisées et dividendes</h2>
         <div class="card" id="realized">
@@ -897,6 +910,7 @@
       renderSavings();
 
       loadReturns();
+      loadDividends();
       loadWatchlist();
       loadAlerts();
       loadRealized();
@@ -1548,6 +1562,72 @@
     // --- Plus-values réalisées et dividendes perçus, par année ---
     let realized = null;
 
+    // --- Dividendes à venir : projection des 12 derniers mois de versements, quantités actuelles ---
+    let dividendCalendar = null;
+    const monthShort = new Intl.DateTimeFormat("fr-FR", { month: "narrow" });
+    const monthLong = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+    const eventDate = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    const monthDate = (key) => new Date(key + "-15T12:00:00");
+
+    async function loadDividends() {
+      const body = document.getElementById("dividends-body");
+      try {
+        dividendCalendar = await api("/portfolio/dividends");
+      } catch (e) {
+        body.textContent = "Indisponible : " + e.message;
+        return;
+      }
+      if (!dividendCalendar) { document.getElementById("dividends-card").previousElementSibling.hidden = true; document.getElementById("dividends-card").hidden = true; return; }
+      renderDividends();
+    }
+
+    function eventRow(e) {
+      return `<div class="rank-row"><div>${escapeHtml(e.name)}
+          <div class="who">${escapeHtml(eventDate.format(new Date(e.date + "T12:00:00")))} · ${escapeHtml(e.envelope)} · ${escapeHtml(e.frequency)}</div></div>
+        <div class="right">${eur.format(e.gross)}</div></div>`;
+    }
+
+    function renderDividends() {
+      const c = dividendCalendar;
+      const body = document.getElementById("dividends-body");
+      body.className = "";
+      const missing = c.missing.length ? `<p class="help">Taux de change indisponible pour ${escapeHtml(c.missing.join(", "))} : non compté.</p>` : "";
+      if (!c.events.length) {
+        body.innerHTML = `<p class="help" style="margin:0">Aucun dividende attendu sur les 12 prochains mois d'après l'historique de tes titres (les ETF capitalisants n'en versent pas, ils les réinvestissent).</p>${missing}`;
+        return;
+      }
+      const value = overview?.total?.value;
+      const max = Math.max(...c.months.map((m) => m.gross));
+      const upcoming = c.events.slice(0, 6);
+      const rest = c.events.slice(6);
+      body.innerHTML = `
+        <div class="cal-total"><span data-term="Revenu projeté">${eur.format(c.annual_gross)}</span> <span class="muted" style="font-size:14px;font-weight:400">sur 12 mois</span></div>
+        <div class="help" style="margin-top:4px">Net estimé ${eur.format(c.annual_net)} · ${eur.format(c.annual_gross / 12)} par mois en moyenne${value ? ` · ${pctPlain(c.annual_gross / value)} de rendement sur le portefeuille` : ""}</div>
+        <div class="cal-bars">${c.months.map((m) => `
+          <div class="col" data-month="${m.month}" title="${escapeHtml(monthLong.format(monthDate(m.month)))} : ${eur.format(m.gross)}">
+            <div class="bar" style="height:${max ? (m.gross / max) * 100 : 0}%"></div></div>`).join("")}
+        </div>
+        <div class="cal-months">${c.months.map((m) => `<span>${escapeHtml(monthShort.format(monthDate(m.month)).toUpperCase())}</span>`).join("")}</div>
+        <div class="help" id="cal-detail">Touche un mois pour le détail.</div>
+        <div class="div-title" style="margin-bottom:6px">Prochains <span data-term="Date de détachement">détachements</span></div>
+        ${upcoming.map(eventRow).join("")}
+        ${rest.length ? `<details class="realized-list"><summary>Tout le calendrier (${c.events.length})</summary>${rest.map(eventRow).join("")}</details>` : ""}
+        ${missing}
+        <p class="help" style="margin-top:10px">Projection : les dividendes des 12 derniers mois, répétés à la même date et au même montant, avec tes quantités actuelles. Montants bruts en euros ; net estimé : rien n'est prélevé dans le PEA, flat tax sur le CTO.</p>`;
+    }
+
+    document.getElementById("dividends-body").addEventListener("click", (e) => {
+      const col = e.target.closest(".cal-bars .col");
+      if (!col) return;
+      document.querySelectorAll(".cal-bars .col").forEach((c) => c.classList.toggle("selected", c === col));
+      const month = col.dataset.month;
+      const events = dividendCalendar.events.filter((ev) => ev.date.startsWith(month));
+      const total = events.reduce((sum, ev) => sum + ev.gross, 0);
+      document.getElementById("cal-detail").textContent = `${monthLong.format(monthDate(month))} : ` + (events.length
+        ? `${eur.format(total)} (${events.map((ev) => ev.name).join(", ")})`
+        : "aucun dividende");
+    });
+
     async function loadRealized() {
       const body = document.getElementById("realized-body");
       try {
@@ -1669,6 +1749,8 @@
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",
+        "Revenu projeté": "<p>Les dividendes que tes titres devraient te verser sur les 12 prochains mois, avant impôts : chaque dividende de l'an dernier, répété à la même date et au même montant, multiplié par ta quantité actuelle.</p><p>C'est une estimation prudente : elle ne compte pas les hausses de dividende, ni les achats à venir. Un dividende réduit ou supprimé la rend trop optimiste.</p>",
+        "Date de détachement": "<p>Le jour où le dividende est « détaché » de l'action (ex-date) : il faut détenir l'action la veille au soir pour le toucher. Ce jour-là, le cours baisse d'environ le montant du dividende.</p><p>Le versement sur ton compte arrive quelques jours à quelques semaines plus tard. Les dates affichées sont estimées d'après l'an dernier.</p>",
         "Plus-value latente": "<p>Valeur actuelle − montant investi, affichée sous chaque ligne et pour tout le portefeuille.</p><p>« Latente » : tant que tu n'as pas vendu, rien n'est gagné ni perdu, et rien n'est imposé.</p>",
         "Plus-value réalisée": "<p>Gain ou perte constaté au moment d'une vente : montant encaissé − PRU des actions vendues, frais inclus.</p><p>Sur le CTO, elle est imposée l'année de la vente (flat tax). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent.</p>",
         "Poche": "<p>Catégorie que tu choisis pour chaque titre (colonne Poche de l'onglet Titres) : par exemple « Cœur ETF », « Dividendes », « Croissance ».</p><p>Sert à la répartition du portefeuille et à l'allocation cible.</p>",

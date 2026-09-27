@@ -10,6 +10,7 @@ Endpoints prévus pour le MVP :
 - GET /watchlist            -> actions surveillées (onglet Watchlist du Sheet) ; POST / DELETE /watchlist/{ticker}
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
+- GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -341,6 +342,7 @@ def post_operation(payload: dict = Body(...), user: User = Depends(require_acces
     result = _operation_call(lambda: add_operation(user.sheet_id, payload, stock.get("sector", ""), stock.get("country", "")))
     for key in [k for k in _performance_cache if k[0] == user.sheet_id]:
         _performance_cache.pop(key)  # la courbe comparée doit intégrer la nouvelle opération
+    _dividends_cache.pop(user.sheet_id, None)
     return result
 
 
@@ -396,3 +398,20 @@ def get_returns(user: User = Depends(require_access)):
     from .returns import returns_summary
 
     return _sheet_call(lambda: returns_summary(user.sheet_id))
+
+
+# --- Dividendes à venir (historique Yahoo de chaque titre : une requête par titre, gardé 12 h) ---
+DIVIDENDS_CACHE_SECONDS = 12 * 3600
+_dividends_cache: dict[str, tuple[float, dict | None]] = {}
+
+
+@app.get("/portfolio/dividends")
+def get_dividend_calendar(user: User = Depends(require_access)):
+    from .dividend_calendar import dividend_calendar
+
+    cached = _dividends_cache.get(user.sheet_id)
+    if cached and time.monotonic() - cached[0] < DIVIDENDS_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: dividend_calendar(user.sheet_id))
+    _dividends_cache[user.sheet_id] = (time.monotonic(), result)
+    return result
