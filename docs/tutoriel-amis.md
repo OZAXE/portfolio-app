@@ -83,6 +83,17 @@ Pour que la courbe d'évolution se remplisse toute seule chaque samedi :
 3. En haut, choisis la fonction **`installerDeclencheur`** et clique sur **Exécuter**, puis accepte les
    autorisations (Paramètres avancés > Accéder au projet).
 
+## Étape 7 (facultatif) : les notifications
+
+Chaque nuit, l'appli peut t'envoyer tes alertes (forte baisse d'une position, action surveillée qui
+passe sous sa valeur intrinsèque, alertes de prix) :
+
+1. Installe l'appli gratuite **ntfy** (Play Store ou App Store).
+2. Dans Portfolio Insights, **Réglages > Notifications** : **Générer un sujet**, puis **Enregistrer**.
+3. Dans ntfy, bouton **+**, colle ce sujet et abonne-toi. **Envoyer un test** pour vérifier.
+
+Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de prix**.
+
 ## En cas de souci
 
 | Message | Solution |

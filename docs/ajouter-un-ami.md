@@ -75,4 +75,5 @@ Il peut aussi retirer le partage de son Sheet avec le compte de service.
 - Leur portefeuille, leur watchlist et leurs alertes dans l'appli, à partir de leur propre Sheet.
 - Le screener, les super investisseurs et les comptes annuels, communs à tous.
 - Les briefs publics si leur ligne a `"briefs_folder"` vers le dossier « Briefs publics », jamais tes briefs perso.
-- Les notifications nocturnes ne concernent pour l'instant que le propriétaire.
+- Leurs propres notifications nocturnes (alertes et alertes de prix), sur le sujet ntfy qu'ils choisissent
+  dans Réglages > Notifications. Rien à configurer de ton côté.
