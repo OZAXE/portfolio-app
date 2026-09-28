@@ -22,10 +22,12 @@ Endpoints prévus pour le MVP :
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
 
+import copy
 import logging
 import re
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Request
@@ -98,9 +100,27 @@ def get_portfolio(user: User = Depends(require_access)):
     return [p.__dict__ for p in _load_positions(user)]
 
 
+# Fondamentaux Yahoo gardés quelques heures : ils ne changent qu'aux publications trimestrielles,
+# et chaque ouverture de l'appli interrogeait Yahoo pour chaque ligne. Les échecs ne sont pas gardés.
+FINANCIALS_CACHE_SECONDS = 3 * 3600
+ANALYSIS_WORKERS = 4  # requêtes Yahoo en parallèle (davantage déclenche leur limite de débit)
+_financials_cache: dict[str, tuple[float, object]] = {}
+
+
+def cached_financials(ticker: str):
+    key = ticker.strip().upper()
+    cached = _financials_cache.get(key)
+    if cached and time.monotonic() - cached[0] < FINANCIALS_CACHE_SECONDS:
+        return copy.deepcopy(cached[1])
+    cf = fetch_company_financials(ticker)
+    if not cf.raw_error:
+        _financials_cache[key] = (time.monotonic(), copy.deepcopy(cf))
+    return cf
+
+
 @app.get("/analysis/{ticker}")
 def get_analysis(ticker: str):
-    cf = fetch_company_financials(ticker)
+    cf = cached_financials(ticker)
     if cf.raw_error == INVALID_TICKER_ERROR:
         raise HTTPException(status_code=404, detail=f"{INVALID_TICKER_ERROR} : {ticker}")
     if cf.raw_error == SOURCE_UNAVAILABLE_ERROR:
@@ -117,9 +137,10 @@ def get_analysis(ticker: str):
 @app.get("/portfolio/analysis")
 def get_portfolio_analysis(user: User = Depends(require_access)):
     positions = _load_positions(user)
+    with ThreadPoolExecutor(max_workers=ANALYSIS_WORKERS) as pool:
+        financials = list(pool.map(cached_financials, [pos.ticker for pos in positions]))
     output = []
-    for pos in positions:
-        cf = fetch_company_financials(pos.ticker)
+    for pos, cf in zip(positions, financials):
         result = evaluate_company(cf)
         output.append(
             {

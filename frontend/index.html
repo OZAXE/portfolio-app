@@ -42,6 +42,9 @@
     .negative { color: var(--accent-neg); }
     .muted { color: var(--muted); }
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
+    .stale { font-size: 12px; color: var(--muted); margin: -4px 0 10px; display: flex; align-items: center; gap: 6px; }
+    .stale .spin { width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Synthèse */
     .hero .label { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
@@ -279,6 +282,7 @@
       <header><h1>Mon portefeuille</h1></header>
       <div class="status" id="portfolio-status">Chargement…</div>
       <div id="portfolio-content" hidden>
+        <div class="stale" id="portfolio-stale" hidden></div>
         <div class="card hero">
           <div class="label"><span>Valeur des placements</span><button class="privacy-toggle" id="privacy-toggle" aria-label="Masquer les montants" title="Masquer les montants"></button></div>
           <div class="value" id="total-value"></div>
@@ -1119,12 +1123,45 @@
       document.getElementById("savings-block").hidden = false;
     }
 
+    // --- Dernier portefeuille connu, gardé sur l'appareil : affiché tout de suite pendant que le serveur
+    // gratuit se réveille (30 s à 1 min), puis remplacé par les valeurs fraîches ---
+    const SNAPSHOT_KEY = "portfolio-insights-snapshot";
+    const tokenTag = () => [...(settings.token || "")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7).toString(36);
+    const snapshotTime = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+    function readSnapshot() {
+      try {
+        const snap = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || "null");
+        return snap && snap.tag === tokenTag() && snap.overview ? snap : null;
+      } catch { return null; }
+    }
+    function saveSnapshot() {
+      if (!overview) return;
+      try {
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify({ tag: tokenTag(), at: Date.now(), overview, returns, analyses: portfolioAnalyses }));
+      } catch { /* stockage plein ou indisponible : l'appli marche sans */ }
+    }
+    function showStale(text, loading) {
+      const el = document.getElementById("portfolio-stale");
+      el.hidden = !text;
+      el.innerHTML = text ? `${loading ? '<i class="spin"></i>' : ""}<span>${escapeHtml(text)}</span>` : "";
+    }
+    function renderPortfolioSections() {
+      renderSummary();
+      renderChart();
+      renderPositions(portfolioAnalyses);
+      renderSectors();
+      renderAllocation();
+      renderSavings();
+    }
+
     async function loadReturns() {
       try {
         returns = await api("/portfolio/returns");
       } catch {
         return;  // indicateur secondaire : la page reste utilisable sans lui
       }
+      saveSnapshot();
       renderReturns();
       renderSummary();
       renderPositions(portfolioAnalyses);
@@ -1132,20 +1169,35 @@
 
     async function loadPortfolio() {
       const statusEl = document.getElementById("portfolio-status");
+      const snap = overview ? null : readSnapshot();
+      const since = snap ? `Valeurs du ${snapshotTime.format(new Date(snap.at))}` : "";
+      if (snap) {
+        overview = snap.overview;
+        returns = snap.returns;
+        portfolioAnalyses = snap.analyses || {};
+        statusEl.hidden = true;
+        document.getElementById("portfolio-content").hidden = false;
+        try {
+          renderPortfolioSections();
+          if (returns) renderReturns();
+        } catch { /* ancien format gardé par une version précédente : on attend les valeurs fraîches */ }
+        showStale(`${since} · mise à jour…`, true);
+      }
       try {
         overview = await api("/portfolio/overview");
       } catch (e) {
+        if (snap && e.status !== 401) { showStale(`${since} · serveur injoignable (${e.message})`, false); return; }
+        overview = null;
+        document.getElementById("portfolio-content").hidden = true;
+        statusEl.hidden = false;
         statusEl.textContent = "Erreur de chargement : " + e.message;
         return;
       }
+      showStale("");
       statusEl.hidden = true;
       document.getElementById("portfolio-content").hidden = false;
-      renderSummary();
-      renderChart();
-      renderPositions();
-      renderSectors();
-      renderAllocation();
-      renderSavings();
+      renderPortfolioSections();
+      saveSnapshot();
       loadLookthrough();
 
       loadReturns();
@@ -1164,6 +1216,7 @@
         portfolioAnalyses = Object.fromEntries(analyses.map((a) => [a.ticker, a]));
         renderPositions(portfolioAnalyses);
         analysisStatus.hidden = true;
+        saveSnapshot();
       } catch (e) {
         analysisStatus.textContent = "Analyses indisponibles : " + e.message;
       }
