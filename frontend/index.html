@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Portfolio Insights</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="icon" id="app-favicon" href="icon-192.png" />
+  <link rel="apple-touch-icon" id="app-touch-icon" href="icon-192.png" />
   <meta name="theme-color" content="#0f172a" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
   <style>
@@ -20,8 +22,35 @@
       --series-total: #e2e8f0;
       --series-pea: #38bdf8;
       --series-cto: #f59e0b;
+      --positive: #22c55e;
+      --tabbar-bg: rgba(15, 23, 42, 0.96);
       --tabbar-h: 64px;
+      color-scheme: dark;
     }
+    /* Apparence (Réglages) : thème, couleur d'accent, taille du texte */
+    html[data-mode="light"] {
+      --bg: #f1f5f9; --card: #ffffff; --card-2: #e8edf3; --line: #cbd5e1; --text: #0f172a; --muted: #64748b;
+      --accent-neg: #dc2626; --positive: #16a34a; --series-total: #0f172a; --series-pea: #0284c7; --series-cto: #d97706;
+      --tabbar-bg: rgba(255, 255, 255, 0.96); color-scheme: light;
+    }
+    html[data-mode="black"] {
+      --bg: #000000; --card: #111214; --card-2: #1c1d21; --line: #2a2c31; --text: #f1f5f9; --muted: #9ca3af;
+      --tabbar-bg: rgba(0, 0, 0, 0.96);
+    }
+    html[data-accent="green"] { --accent: #22c55e; }
+    html[data-accent="blue"] { --accent: #3b82f6; }
+    html[data-accent="violet"] { --accent: #a78bfa; }
+    html[data-accent="orange"] { --accent: #fb923c; }
+    html[data-accent="pink"] { --accent: #f472b6; }
+    html[data-accent="teal"] { --accent: #2dd4bf; }
+    html[data-mode="light"][data-accent="green"] { --accent: #16a34a; }
+    html[data-mode="light"][data-accent="blue"] { --accent: #2563eb; }
+    html[data-mode="light"][data-accent="violet"] { --accent: #7c3aed; }
+    html[data-mode="light"][data-accent="orange"] { --accent: #ea580c; }
+    html[data-mode="light"][data-accent="pink"] { --accent: #db2777; }
+    html[data-mode="light"][data-accent="teal"] { --accent: #0d9488; }
+    html[data-size="grand"] body { zoom: 1.1; }
+    html[data-size="tres-grand"] body { zoom: 1.2; }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
@@ -38,7 +67,7 @@
     h2 { font-size: 15px; margin: 24px 0 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
 
     .card { background: var(--card); border-radius: 14px; padding: 16px; }
-    .positive { color: var(--accent); }
+    .positive { color: var(--positive); }
     .negative { color: var(--accent-neg); }
     .muted { color: var(--muted); }
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
@@ -181,6 +210,17 @@
     .imp-row.skip { opacity: 0.55; }
     .imp-ticker { background: var(--card-2); border: 1px solid var(--accent-neg); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; padding: 4px 6px; width: 110px; margin-top: 4px; }
 
+    /* Apparence */
+    .appearance-row { margin-top: 12px; }
+    .appearance-row > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset; }
+    .icon-choices { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .icon-choice { border: 2px solid transparent; background: none; padding: 2px; border-radius: 16px; cursor: pointer; }
+    .icon-choice img { width: 100%; display: block; border-radius: 12px; }
+    .icon-choice.active { border-color: var(--accent); }
+
     /* Éditeurs (allocation, comptes, frais) */
     .edit-row { display: grid; grid-template-columns: 1fr 76px 28px; gap: 8px; align-items: center; margin-top: 8px; }
     .edit-row.acct { grid-template-columns: 1fr 66px 1fr 28px; }
@@ -280,7 +320,7 @@
       position: fixed; left: 0; right: 0; bottom: 0;
       height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
       padding-bottom: env(safe-area-inset-bottom, 0px);
-      background: rgba(15, 23, 42, 0.96); border-top: 1px solid var(--line);
+      background: var(--tabbar-bg); border-top: 1px solid var(--line);
       display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
     }
     nav.tabbar button[hidden] { display: none; }
@@ -291,6 +331,25 @@
     nav.tabbar button.active { color: var(--accent); }
     nav.tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   </style>
+  <script>
+    const APP_ICONS = [["barres", "Barres"], ["courbe", "Courbe"], ["anneau", "Anneau"], ["euro", "Euro"], ["clair", "Clair"], ["violet", "Violet"]];
+    const iconUrl = (id, size) => (id && id !== "barres" && APP_ICONS.some(([k]) => k === id) ? `icons/${id}-${size}.png` : `icon-${size}.png`);
+    function applyAppearance(prefs) {
+      const root = document.documentElement;
+      const theme = prefs.theme || "dark";
+      const systemLight = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches;
+      root.dataset.mode = theme === "auto" ? (systemLight ? "light" : "dark") : theme;
+      root.dataset.accent = prefs.accent || "green";
+      root.dataset.size = prefs.textSize || "normal";
+      const bg = getComputedStyle(root).getPropertyValue("--bg").trim();
+      document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
+      document.getElementById("app-favicon").href = iconUrl(prefs.icon, 192);
+      document.getElementById("app-touch-icon").href = iconUrl(prefs.icon, 192);
+      // Le service worker s'en sert pour l'icône et les couleurs de l'appli installée (manifest.json)
+      if (window.caches) caches.open("prefs-v1").then((c) => c.put("appearance", new Response(JSON.stringify({ icon: prefs.icon || "barres", bg })))).catch(() => {});
+    }
+    try { applyAppearance(JSON.parse(localStorage.getItem("portfolio-insights-settings") || "{}")); } catch { applyAppearance({}); }
+  </script>
 </head>
 <body>
   <main>
@@ -518,6 +577,34 @@
       <h2>Aide</h2>
       <div class="card">
         <p class="help" style="margin:0">Comment tout marche, étape par étape : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/guide-utilisation.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'utilisation</a> · pour installer l'appli et créer un compte : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/tutoriel-amis.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'installation</a>. Les mots soulignés en pointillés s'expliquent quand tu les touches.</p>
+      </div>
+
+      <h2>Apparence</h2>
+      <div class="card" id="appearance">
+        <div class="appearance-row" style="margin-top:0"><span>Thème</span>
+          <div class="segmented" data-pref="theme">
+            <button data-value="auto">Auto</button><button data-value="dark">Sombre</button><button data-value="light">Clair</button><button data-value="black">Noir</button>
+          </div>
+        </div>
+        <div class="appearance-row"><span>Couleur</span>
+          <div class="swatches" data-pref="accent">
+            <button class="swatch" data-value="green" style="background:#22c55e" aria-label="Vert"></button>
+            <button class="swatch" data-value="blue" style="background:#3b82f6" aria-label="Bleu"></button>
+            <button class="swatch" data-value="violet" style="background:#8b5cf6" aria-label="Violet"></button>
+            <button class="swatch" data-value="orange" style="background:#f97316" aria-label="Orange"></button>
+            <button class="swatch" data-value="pink" style="background:#ec4899" aria-label="Rose"></button>
+            <button class="swatch" data-value="teal" style="background:#14b8a6" aria-label="Turquoise"></button>
+          </div>
+        </div>
+        <div class="appearance-row"><span>Taille du texte</span>
+          <div class="segmented" data-pref="textSize">
+            <button data-value="normal">Normale</button><button data-value="grand">Grande</button><button data-value="tres-grand">Très grande</button>
+          </div>
+        </div>
+        <div class="appearance-row"><span>Icône de l'appli</span>
+          <div class="icon-choices" data-pref="icon" id="icon-choices"></div>
+        </div>
+        <p class="help" style="margin-top:10px">« Auto » suit le mode clair ou sombre du téléphone. Les gains restent en vert et les pertes en rouge quelle que soit la couleur. Nouvelle icône : supprime l'appli de l'écran d'accueil puis ajoute-la à nouveau (sur Android, elle peut aussi se mettre à jour toute seule d'ici un jour).</p>
       </div>
 
       <h2>Code d'accès</h2>
@@ -2615,6 +2702,32 @@
     document.getElementById("term-dialog").addEventListener("click", (e) => {
       if (e.target.id === "term-dialog") e.target.close();  // toucher hors de la fenêtre
     });
+
+    // --- Apparence : thème, couleur, taille du texte, icône (mémorisés sur l'appareil) ---
+    const PREF_DEFAULTS = { theme: "dark", accent: "green", textSize: "normal", icon: "barres" };
+    document.getElementById("icon-choices").innerHTML = APP_ICONS
+      .map(([id, label]) => `<button class="icon-choice" data-value="${id}" aria-label="Icône ${label}" title="${label}"><img src="${iconUrl(id, 192)}" alt="" /></button>`).join("");
+    function renderAppearance() {
+      document.querySelectorAll("#appearance [data-pref]").forEach((group) => {
+        const value = settings[group.dataset.pref] || PREF_DEFAULTS[group.dataset.pref];
+        group.querySelectorAll("[data-value]").forEach((b) => b.classList.toggle("active", b.dataset.value === value));
+      });
+    }
+    document.getElementById("appearance").addEventListener("click", (e) => {
+      const button = e.target.closest("[data-value]");
+      const group = button?.closest("[data-pref]");
+      if (!group) return;
+      settings[group.dataset.pref] = button.dataset.value;
+      saveSettings();
+      applyAppearance(settings);
+      renderAppearance();
+      if (overview) renderChart();  // couleurs des courbes lues dans le thème
+    });
+    // Thème « Auto » : suit le téléphone quand il passe en mode clair ou sombre
+    window.matchMedia?.("(prefers-color-scheme: light)").addEventListener?.("change", () => {
+      if (settings.theme === "auto") { applyAppearance(settings); if (overview) renderChart(); }
+    });
+    renderAppearance();
 
     // --- Réglages ---
     const tokenInput = document.getElementById("settings-token");

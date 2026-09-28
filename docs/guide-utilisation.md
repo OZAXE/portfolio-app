@@ -207,6 +207,10 @@ un sujet pour apprendre et l'agenda de la semaine.
 
 ## 7. Réglages
 
+- **Apparence** : le thème (**Auto** suit le mode clair ou sombre du téléphone, **Sombre**, **Clair**,
+  **Noir** pour les écrans OLED), la couleur des boutons et onglets, la taille du texte et l'icône de
+  l'appli. Les gains restent en vert et les pertes en rouge quelle que soit la couleur. Pour voir la
+  nouvelle icône sur l'écran d'accueil, supprime l'appli de l'écran d'accueil puis ajoute-la à nouveau.
 - **Code d'accès** : à saisir une fois par appareil. Perdu ? Refais l'inscription avec le même Sheet.
 - **Mes comptes et courtiers** : tes comptes et les grilles de frais de tes banques.
 - **Hypothèses du DCF** : pour les curieux, remplace les hypothèses automatiques (croissance,
