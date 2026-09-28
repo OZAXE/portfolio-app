@@ -78,3 +78,29 @@ def test_delete_checks_rows_and_goes_bottom_up(monkeypatch):
     assert tabs["Opérations"].deleted == [4, 2]
     with pytest.raises(OperationError, match="a changé"):
         duplicates.delete_operations("sheet", [{**row(3), "ticker": "NVDA"}])
+
+
+def test_undated_purchase_replaced_by_dated_imports():
+    from app.duplicates import find_undated_replacements
+
+    placeholder = Entry(date(2026, 5, 5), "PEA", "Achat", "AI.PA", 3, 480.0, row=4, note="Date à préciser (achat antérieur au suivi)")
+    imports = [Entry(date(2024, 3, day), "PEA", "Achat", "AI.PA", 1, 160.0, row=20 + day, note="Import avis.pdf") for day in (1, 2, 3)]
+    other = Entry(date(2024, 3, 1), "PEA", "Achat", "DG.PA", 5, 500.0, row=40, note="Import avis.pdf")
+    [result] = find_undated_replacements([placeholder, *imports, other], extra_rows=set())
+    assert result["placeholder"]["row"] == 4 and result["covered"] == 3 and result["complete"]
+    [partial] = find_undated_replacements([placeholder, *imports[:2]], extra_rows=set())
+    assert partial["covered"] == 2 and not partial["complete"]  # un achat ancien manque dans les relevés
+    [ignored] = find_undated_replacements([placeholder, *imports], extra_rows={21})  # doublon déjà proposé
+    assert ignored["covered"] == 2
+
+
+def test_approximate_dates_are_proposed_separately(monkeypatch):
+    entries = [Entry(date(2025, 3, 1), "PEA", "Achat", "AI.PA", 2, 300.0, row=2, note=""),  # saisi « début mars »
+               Entry(date(2025, 3, 18), "PEA", "Achat", "AI.PA", 2, 312.0, row=9, note="Import avis.pdf"),
+               Entry(date(2025, 3, 18), "PEA", "Achat", "MC.PA", 2, 1380.0, row=10, note="Import avis.pdf")]
+    monkeypatch.setattr(duplicates, "_open_sheet", lambda sheet_id, write=False: object())
+    monkeypatch.setattr(duplicates, "read_entries", lambda sheet: entries)
+    found = duplicates.list_duplicates("sheet")
+    assert found["pairs"] == [] and found["undated"] == []
+    [loose] = found["loose"]
+    assert (loose["keep"]["row"], loose["extra"]["row"], loose["days"]) == (2, 9, 17)  # pas MC.PA : autre titre

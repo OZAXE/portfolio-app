@@ -96,6 +96,11 @@ supprimer, de préférence celle qui vient d'un import. Vérifie la liste : deux
 jour peuvent être réels, décoche-les alors. **Supprimer** retire les lignes de l'onglet Opérations et
 recalcule la courbe.
 
+L'outil propose aussi, **décochées**, les lignes du même titre et de même quantité à quelques semaines
+d'écart (date saisie approximativement) : coche-les si c'est bien la même opération. Et il repère les
+achats **« Date à préciser »** (achats antérieurs au suivi, repris de l'ancien Sheet) : cochés quand tes
+relevés importés contiennent les vrais achats datés du même titre, pour la même quantité au moins.
+
 ### Ajouter une banque ou corriger des frais
 
 **Réglages > Mes comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA),

@@ -2329,23 +2329,34 @@
     }
 
     // --- Doublons dans l'onglet Opérations : la copie (de préférence importée) est proposée à la suppression ---
+    // Chaque proposition : { remove : ligne à supprimer, checked, html }
     let duplicates = [];
     async function searchDuplicates() {
       const status = opEl("dup-status");
       status.textContent = "Recherche…";
       opEl("dup-list").innerHTML = "";
       opEl("dup-delete").hidden = true;
-      try { duplicates = await api("/operations/duplicates"); } catch (e) { status.textContent = e.message; return; }
-      if (!duplicates.length) { status.textContent = "Aucun doublon trouvé dans l'onglet Opérations."; return; }
-      status.textContent = `${duplicates.length} opération${duplicates.length > 1 ? "s" : ""} en double. La copie cochée sera supprimée de l'onglet Opérations ; l'autre est gardée. Vérifie avant : deux ordres identiques le même jour peuvent être réels (décoche-les alors).`;
+      let found;
+      try { found = await api("/operations/duplicates"); } catch (e) { status.textContent = e.message; return; }
       const line = (o) => `${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${escapeHtml(o.account)} · ${num(o.quantity, 6)} · ${eur.format(o.amount)} · ligne ${o.row}${o.note ? ` · ${escapeHtml(o.note)}` : ""}`;
+      duplicates = [
+        ...found.pairs.map((d) => ({ remove: d.extra, checked: true, html: `${escapeHtml(d.extra.type)} · ${escapeHtml(d.extra.ticker)}
+            <div class="who">À supprimer : ${line(d.extra)}</div><div class="who">Gardée : ${line(d.keep)}</div>` })),
+        ...found.loose.map((d) => ({ remove: d.extra, checked: false, html: `${escapeHtml(d.extra.type)} · ${escapeHtml(d.extra.ticker)} · <span class="negative">dates éloignées de ${d.days} jours</span>
+            <div class="who">À supprimer : ${line(d.extra)}</div><div class="who">Gardée : ${line(d.keep)}</div>
+            <div class="who">Même titre et même quantité : coche si c'est la même opération saisie avec une date approximative.</div>` })),
+        ...found.undated.map((u) => ({ remove: u.placeholder, checked: u.complete, html: `${escapeHtml(u.placeholder.ticker)} · achat sans date précise
+            <div class="who">À supprimer : ${line(u.placeholder)}</div>
+            <div class="who ${u.complete ? "" : "negative"}">${u.complete
+              ? `Remplacé par ${u.imports} achat${u.imports > 1 ? "s" : ""} importé${u.imports > 1 ? "s" : ""} et daté${u.imports > 1 ? "s" : ""} (${num(u.covered, 6)} au total)`
+              : `Les imports ne couvrent que ${num(u.covered, 6)} sur ${num(u.placeholder.quantity, 6)} : garde cette ligne s'il manque des achats anciens dans tes relevés`}</div>` })),
+      ];
+      if (!duplicates.length) { status.textContent = "Aucun doublon trouvé dans l'onglet Opérations."; return; }
+      status.textContent = `${duplicates.length} ligne${duplicates.length > 1 ? "s" : ""} en trop probable${duplicates.length > 1 ? "s" : ""}. Les lignes cochées seront supprimées de l'onglet Opérations. Vérifie avant : deux ordres identiques le même jour peuvent être réels (décoche-les alors).`;
       opEl("dup-list").innerHTML = duplicates.map((d, i) => `
         <div class="imp-row" data-i="${i}">
-          <input type="checkbox" data-dup-check="${i}" checked />
-          <div>${escapeHtml(d.extra.type)} · ${escapeHtml(d.extra.ticker)}
-            <div class="who">À supprimer : ${line(d.extra)}</div>
-            <div class="who">Gardée : ${line(d.keep)}</div>
-          </div>
+          <input type="checkbox" data-dup-check="${i}" ${d.checked ? "checked" : ""} />
+          <div>${d.html}</div>
           <div class="right"></div>
         </div>`).join("");
       updateDuplicateButton();
@@ -2360,7 +2371,7 @@
     opEl("dup-search").addEventListener("click", searchDuplicates);
     opEl("dup-list").addEventListener("change", updateDuplicateButton);
     opEl("dup-delete").addEventListener("click", async () => {
-      const rows = duplicates.filter((d, i) => document.querySelector(`[data-dup-check="${i}"]`)?.checked).map((d) => d.extra);
+      const rows = duplicates.filter((d, i) => document.querySelector(`[data-dup-check="${i}"]`)?.checked).map((d) => d.remove);
       if (!rows.length || !confirm(`Supprimer ${rows.length} ligne${rows.length > 1 ? "s" : ""} de l'onglet Opérations ?`)) return;
       const status = opEl("dup-status");
       status.textContent = "Suppression…";

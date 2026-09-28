@@ -7,6 +7,11 @@ Deux lignes décrivent la même opération quand elles ont le même type et la m
 - achat ou vente : une quantité à 1 % près, et le même titre ou un montant à 3 % près (un titre
   saisi sous un autre ticker, TNO.PA / TNOW.MI, reste reconnu) ;
 - dividende : le même titre (montant brut ou net selon la source, quantité parfois inconnue).
+
+Cas à part, les achats sans date précise : la migration de l'ancien Sheet a daté du 5 mai 2026 les
+achats antérieurs au suivi (note « Date à préciser »), parfois regroupés en une ligne. Quand des
+relevés importés contiennent les vrais achats datés du même titre, la ligne provisoire fait double
+emploi : elle est proposée à la suppression si les imports couvrent au moins sa quantité.
 """
 
 from dataclasses import dataclass
@@ -16,6 +21,7 @@ from .operations import OperationError
 from .sheets import SHEETS_EPOCH, UNFORMATTED, _open_sheet, _worksheet
 
 DATE_TOLERANCE_DAYS = 4
+LOOSE_DATE_TOLERANCE_DAYS = 45  # dates approximatives saisies à la main : proposé, jamais coché d'office
 QUANTITY_TOLERANCE = 0.01
 AMOUNT_TOLERANCE = 0.03
 
@@ -38,10 +44,12 @@ def _base(ticker: str) -> str:
     return ticker.upper().split(".")[0].split("-")[0]
 
 
-def same_operation(a: Entry, b: Entry) -> bool:
-    if a.kind != b.kind or a.envelope != b.envelope or abs((a.day - b.day).days) > DATE_TOLERANCE_DAYS:
+def same_operation(a: Entry, b: Entry, days: int = DATE_TOLERANCE_DAYS, same_ticker_only: bool = False) -> bool:
+    if a.kind != b.kind or a.envelope != b.envelope or abs((a.day - b.day).days) > days:
         return False
     same_ticker = bool(a.ticker and b.ticker and (a.ticker.upper() == b.ticker.upper() or _base(a.ticker) == _base(b.ticker)))
+    if same_ticker_only and not same_ticker:
+        return False
     if a.kind == "Dividende":
         return same_ticker
     if abs(a.quantity - b.quantity) > max(0.0005, QUANTITY_TOLERANCE * max(abs(a.quantity), abs(b.quantity))):
@@ -85,15 +93,16 @@ def read_entries(sheet) -> list[Entry]:
     return entries
 
 
-def find_duplicate_pairs(entries: list[Entry]) -> list[tuple[Entry, Entry]]:
+def find_duplicate_pairs(entries: list[Entry], days: int = DATE_TOLERANCE_DAYS, same_ticker_only: bool = False,
+                         used: set | None = None) -> list[tuple[Entry, Entry]]:
     """(ligne gardée, ligne en trop) : la copie à supprimer est de préférence une ligne importée
     (note « Import … »), sinon la plus récente dans l'onglet."""
-    pairs, used = [], set()
+    pairs, used = [], used if used is not None else set()
     for i, a in enumerate(entries):
         if a.row in used:
             continue
         for b in entries[i + 1:]:
-            if b.row in used or not same_operation(a, b):
+            if b.row in used or not same_operation(a, b, days, same_ticker_only):
                 continue
             keep, extra = (b, a) if a.note.startswith("Import") and not b.note.startswith("Import") else (a, b)
             pairs.append((keep, extra))
@@ -102,14 +111,40 @@ def find_duplicate_pairs(entries: list[Entry]) -> list[tuple[Entry, Entry]]:
     return pairs
 
 
+UNDATED_NOTE = "Date à préciser"
+
+
+def find_undated_replacements(entries: list[Entry], extra_rows: set[int]) -> list[dict]:
+    """Achats « Date à préciser » et achats importés datés du même titre et de la même enveloppe
+    (hors lignes déjà proposées comme doublons) : complete si les imports couvrent la quantité."""
+    results = []
+    for p in entries:
+        if p.kind != "Achat" or UNDATED_NOTE not in p.note:
+            continue
+        imported = [e for e in entries if e.kind == "Achat" and e.note.startswith("Import") and e.envelope == p.envelope
+                    and e.row not in extra_rows and (e.ticker == p.ticker or _base(e.ticker) == _base(p.ticker))]
+        covered = sum(e.quantity for e in imported)
+        results.append({"placeholder": _describe(p), "covered": round(covered, 6), "imports": len(imported),
+                        "complete": covered >= p.quantity * (1 - QUANTITY_TOLERANCE)})
+    return results
+
+
 def _describe(e: Entry) -> dict:
     return {"row": e.row, "date": e.day.isoformat(), "account": e.account, "type": e.kind, "ticker": e.ticker,
             "quantity": e.quantity, "amount": round(e.amount, 2), "note": e.note}
 
 
-def list_duplicates(sheet_id: str) -> list[dict]:
-    pairs = find_duplicate_pairs(read_entries(_open_sheet(sheet_id)))
-    return [{"keep": _describe(keep), "extra": _describe(extra)} for keep, extra in pairs]
+def list_duplicates(sheet_id: str) -> dict:
+    entries = read_entries(_open_sheet(sheet_id))
+    # Les lignes « Date à préciser » ne se comparent pas par date : traitées à part
+    dated = [e for e in entries if UNDATED_NOTE not in e.note]
+    used: set = set()
+    pairs = find_duplicate_pairs(dated, used=used)
+    # Puis, parmi les autres, le même titre et la même quantité à quelques semaines d'écart
+    loose = find_duplicate_pairs(dated, LOOSE_DATE_TOLERANCE_DAYS, same_ticker_only=True, used=used)
+    describe = lambda keep, extra: {"keep": _describe(keep), "extra": _describe(extra), "days": abs((keep.day - extra.day).days)}
+    return {"pairs": [describe(k, x) for k, x in pairs], "loose": [describe(k, x) for k, x in loose],
+            "undated": [u for u in find_undated_replacements(entries, {x.row for _, x in pairs + loose}) if u["imports"]]}
 
 
 def delete_operations(sheet_id: str, rows: list[dict]) -> dict:
