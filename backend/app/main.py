@@ -521,6 +521,27 @@ def post_delete_operations(payload: dict = Body(...), user: User = Depends(requi
     return result
 
 
+# Repartir de zéro (avec sauvegarde dans le Sheet) et annulation, voir reset.py
+@app.post("/operations/reset")
+def post_reset_operations(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .reset import reset_operations
+
+    result = _operation_call(lambda: reset_operations(user.sheet_id, payload.get("account") or None,
+                                                      bool(payload.get("imported_only")), bool(payload.get("dry_run"))))
+    if not payload.get("dry_run"):
+        _forget_operations(user.sheet_id)
+    return result
+
+
+@app.post("/operations/restore")
+def post_restore_operations(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .reset import restore_backup
+
+    result = _operation_call(lambda: restore_backup(user.sheet_id, payload.get("backup"), payload.get("history_backup")))
+    _forget_operations(user.sheet_id)
+    return result
+
+
 @app.post("/operations/import")
 def write_operations_import(payload: dict = Body(...), user: User = Depends(require_access)):
     from .imports import write_import

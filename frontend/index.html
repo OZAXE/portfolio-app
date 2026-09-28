@@ -390,6 +390,17 @@
             <div id="dup-list"></div>
             <button class="btn" id="dup-delete" hidden></button>
           </div>
+          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:10px">
+            <div class="edit-sub" style="margin-top:0">Repartir de zéro</div>
+            <p class="help">Efface des opérations pour réimporter tes relevés proprement. Une sauvegarde est d'abord créée dans ton Sheet : tu peux tout annuler.</p>
+            <div class="op-grid">
+              <label class="wide">Opérations à effacer<select id="reset-account"></select></label>
+              <label class="wide" style="flex-direction:row; align-items:center; gap:8px; font-size:13px; color:var(--text)"><input type="checkbox" id="reset-imported" checked style="width:auto" /> Seulement les lignes importées (garder mes saisies à la main)</label>
+            </div>
+            <button class="btn" id="reset-go">Effacer et repartir de zéro</button>
+            <button class="btn" id="reset-undo" hidden>Annuler : remettre mes opérations</button>
+            <p class="help" id="reset-status" style="margin-top:8px"></p>
+          </div>
         </div>
         <div class="card" id="op-form" hidden>
           <div class="op-grid">
@@ -2391,6 +2402,47 @@
       }
     });
 
+    // --- Repartir de zéro : effacement avec sauvegarde, puis annulation possible ---
+    let lastReset = null;
+    function fillResetAccounts() {
+      opEl("reset-account").innerHTML = `<option value="">Tous mes comptes</option>`
+        + (opSettings?.accounts || []).map((a) => `<option>${escapeHtml(a.name)}</option>`).join("");
+    }
+    opEl("reset-go").addEventListener("click", async () => {
+      const status = opEl("reset-status");
+      const scope = { account: opEl("reset-account").value, imported_only: opEl("reset-imported").checked };
+      try {
+        const preview = await postJson("/operations/reset", { ...scope, dry_run: true });
+        if (!preview.count) { status.textContent = "Aucune opération à effacer avec ces choix."; return; }
+        const what = `${preview.count} opération${preview.count > 1 ? "s" : ""}${scope.account ? ` du compte « ${scope.account} »` : ""}${scope.imported_only ? " importée" + (preview.count > 1 ? "s" : "") : ""}`;
+        if (!confirm(`Effacer ${what} ?${preview.everything ? " La courbe d'évolution sera aussi effacée, puis reconstituée après ton prochain import." : ""} Une sauvegarde sera créée dans ton Sheet.`)) return;
+        status.textContent = "Sauvegarde et effacement…";
+        lastReset = await postJson("/operations/reset", scope);
+        status.textContent = `${lastReset.count} opération${lastReset.count > 1 ? "s" : ""} effacée${lastReset.count > 1 ? "s" : ""}. Sauvegarde : onglet « ${lastReset.backup} » de ton Sheet. Réimporte maintenant tes relevés ci-dessus.`;
+        opEl("reset-undo").hidden = false;
+        opSettings = null;
+        loadPortfolio();
+        if (!lastReset.everything) rebuildHistory(null);
+      } catch (e) {
+        status.textContent = e.message;
+      }
+    });
+    opEl("reset-undo").addEventListener("click", async () => {
+      if (!lastReset || !confirm("Remettre les opérations telles qu'elles étaient avant l'effacement ? Ce que tu as importé depuis sera remplacé.")) return;
+      const status = opEl("reset-status");
+      status.textContent = "Restauration…";
+      try {
+        const r = await postJson("/operations/restore", { backup: lastReset.backup, history_backup: lastReset.history_backup });
+        status.textContent = `${r.restored} ligne${r.restored > 1 ? "s" : ""} remise${r.restored > 1 ? "s" : ""} en place. L'onglet de sauvegarde reste dans ton Sheet, tu peux le supprimer.`;
+        opEl("reset-undo").hidden = true;
+        lastReset = null;
+        opSettings = null;
+        loadPortfolio();
+      } catch (e) {
+        status.textContent = e.message;
+      }
+    });
+
     // --- Historique reconstitué à partir des opérations (cours de clôture de chaque jour) ---
     async function rebuildHistory(since) {
       const status = document.getElementById("history-status");
@@ -2420,6 +2472,7 @@
         try { opSettings = await api("/settings"); } catch (e) { opEl("imp-status").textContent = e.message; return; }
       }
       opEl("imp-account").innerHTML = opSettings.accounts.map((a) => `<option>${escapeHtml(a.name)}</option>`).join("");
+      fillResetAccounts();
     }
 
     const readBase64 = (file) => new Promise((resolve, reject) => {

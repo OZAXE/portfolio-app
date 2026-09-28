@@ -101,6 +101,16 @@ d'écart (date saisie approximativement) : coche-les si c'est bien la même opé
 achats **« Date à préciser »** (achats antérieurs au suivi, repris de l'ancien Sheet) : cochés quand tes
 relevés importés contiennent les vrais achats datés du même titre, pour la même quantité au moins.
 
+### Repartir de zéro
+
+Si tes opérations sont trop emmêlées : **Importer un relevé**, section **Repartir de zéro**. Choisis
+les opérations à effacer (tous tes comptes ou un seul) et si tu gardes tes saisies à la main (case
+« Seulement les lignes importées »). Pour tout reprendre depuis tes relevés, y compris les lignes de
+l'ancien Sheet, décoche la case. L'appli copie d'abord ton onglet Opérations (et ta courbe) dans un
+onglet « Sauvegarde … » de ton Sheet, puis efface. Réimporte ensuite tous tes relevés : la courbe est
+reconstituée. Tu t'es trompé ? **Annuler : remettre mes opérations** remet tout comme avant. Les onglets
+de sauvegarde restent dans ton Sheet : supprime-les quand tout est bon.
+
 ### Ajouter une banque ou corriger des frais
 
 **Réglages > Mes comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA),
