@@ -1,6 +1,7 @@
 """
 Inscription libre : n'importe qui peut relier sa copie du Sheet modèle à l'appli, sans passer par
-le propriétaire (les utilisateurs de USERS_JSON restent gérés à la main).
+le propriétaire. Les amis déclarés dans USERS_JSON (non administrateurs) sont recopiés dans le même
+registre avec leur code actuel : ils sont traités exactement comme les inscrits.
 
 1. La personne copie le Sheet modèle et le partage en Éditeur avec le compte de service.
 2. POST /signup/start : l'appli vérifie l'accès et renvoie un code de vérification, à coller dans
@@ -101,13 +102,28 @@ def registry_sheet_id() -> str:
     return os.environ.get("REGISTRY_SHEET_ID") or next(u.sheet_id for u in users.USERS if u.admin)
 
 
+def public_briefs_folder() -> str | None:
+    """Briefs publics des utilisateurs : PUBLIC_BRIEFS_FOLDER, ou à défaut le dossier déjà donné
+    à un ami dans USERS_JSON."""
+    from . import users
+
+    return os.environ.get("PUBLIC_BRIEFS_FOLDER") or next(
+        (u.briefs_folder for u in users.USERS if not u.admin and u.briefs_folder), None)
+
+
+def as_member(user: User) -> User:
+    """Ami de USERS_JSON vu comme un inscrit : mêmes droits, mêmes briefs."""
+    return User(name=user.name, token=None, sheet_id=user.sheet_id, token_hash=token_hash(user.token),
+                briefs_folder=public_briefs_folder())
+
+
 def parse_registry(rows: list[list]) -> list[User]:
     registered = []
     for row in rows[1:]:
         row = (row + [""] * 4)[:4]
         if row[0] and row[1] and row[2]:
             registered.append(User(name=str(row[0]).strip(), token=None, sheet_id=str(row[2]).strip(), token_hash=str(row[1]).strip(),
-                                   briefs_folder=os.environ.get("PUBLIC_BRIEFS_FOLDER")))
+                                   briefs_folder=public_briefs_folder()))
     return registered
 
 
@@ -120,12 +136,28 @@ def _registry_worksheet(create: bool):
     return ws
 
 
+def missing_members(rows: list[list]) -> list[list]:
+    """Lignes à ajouter au registre pour les amis de USERS_JSON qui n'y sont pas encore."""
+    from . import users
+
+    known = {str(r[2]).strip() for r in rows[1:] if len(r) > 2}
+    return [[u.name, token_hash(u.token), u.sheet_id, date.today().isoformat()]
+            for u in users.USERS if not u.admin and u.token and u.sheet_id not in known]
+
+
 def registered_users(refresh: bool = False) -> list[User]:
     with _lock:
         if refresh or time.time() - _cache["at"] > CACHE_SECONDS:
             try:
                 ws = _registry_worksheet(create=False)
-                _cache["users"] = parse_registry(ws.get_values()) if ws is not None else []
+                rows = ws.get_values() if ws is not None else [REGISTRY_HEADERS]
+                missing = missing_members(rows)
+                if missing:
+                    ws = _registry_worksheet(create=True)  # lu en lecture seule : rouvert en écriture
+                    for row in missing:
+                        ws.append_row(row, value_input_option="RAW")
+                    rows = rows + missing
+                _cache["users"] = parse_registry(rows)
             except Exception:  # registre illisible : on garde la dernière version connue
                 pass
             _cache["at"] = time.time()
@@ -138,8 +170,8 @@ def _check_sheet(sheet_id: str):
 
     if sheet_id == TEMPLATE_SHEET_ID:
         raise SignupError("C'est le Sheet modèle : fais-en d'abord une copie (Fichier > Créer une copie).")
-    if any(u.sheet_id == sheet_id for u in users.USERS):
-        raise SignupError("Ce Sheet est déjà relié à un compte géré par l'administrateur : demande-lui ton code.")
+    if any(u.sheet_id == sheet_id for u in users.admins()):
+        raise SignupError("Ce Sheet est celui de l'administrateur de l'appli.")
     try:
         sheet = _open_sheet(sheet_id, write=True)
     except Exception:
@@ -192,7 +224,7 @@ def finish(sheet_url: str, name: str, today: date | None = None) -> dict:
     if existing is None:
         if not NAME_PATTERN.match(name):
             raise SignupError("Prénom ou pseudo : 2 à 30 lettres, chiffres ou espaces.")
-        taken = {u.name.lower() for u in users.USERS + registered}
+        taken = {u.name.lower() for u in users.admins() + registered}
         if name.lower() in taken:
             raise SignupError("Ce nom est déjà pris : ajoute une initiale par exemple.")
         if len(registered) >= max_signups():

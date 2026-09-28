@@ -60,17 +60,30 @@ def resolve(token: str | None) -> User | None:
         return USERS[0]
     if not token:
         return None
-    for user in USERS:
+    for user in admins():
         if user.token and secrets.compare_digest(token, user.token):
             return user
-    from .signup import registered_users, token_hash
+    from .signup import token_hash
 
     digest = token_hash(token)
-    return next((u for u in registered_users() if secrets.compare_digest(digest, u.token_hash)), None)
+    return next((u for u in members() if secrets.compare_digest(digest, u.token_hash)), None)
+
+
+def admins() -> list[User]:
+    return [u for u in USERS if u.admin]
+
+
+def members(refresh: bool = False) -> list[User]:
+    """Tous les utilisateurs non administrateurs, traités de la même façon qu'ils viennent de
+    l'inscription libre ou de USERS_JSON (recopiés dans le registre, voir signup.py)."""
+    from .signup import as_member, registered_users
+
+    registered = registered_users(refresh=refresh)
+    known = {u.sheet_id for u in registered}
+    # Registre illisible ou pas encore à jour : l'ami de USERS_JSON garde l'accès, avec les mêmes droits
+    return registered + [as_member(u) for u in USERS if not u.admin and u.token and u.sheet_id not in known]
 
 
 def all_users() -> list[User]:
-    """Utilisateurs de USERS_JSON puis comptes créés par inscription libre (job nocturne)."""
-    from .signup import registered_users
-
-    return USERS + registered_users(refresh=True)
+    """Administrateurs puis tous les autres utilisateurs (job nocturne)."""
+    return admins() + members(refresh=True)

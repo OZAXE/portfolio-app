@@ -10,7 +10,10 @@ supprime le compte (pris en compte en une minute). Réglages possibles sur Rende
 `PUBLIC_BRIEFS_FOLDER` (identifiant du dossier « Briefs publics ») pour leur donner les briefs.
 
 La méthode manuelle ci-dessous reste possible : les codes et les Sheets sont alors déclarés
-dans la variable `USERS_JSON` du service backend sur Render.
+dans la variable `USERS_JSON` du service backend sur Render. Au démarrage, l'API recopie ces amis
+dans l'onglet « Utilisateurs » avec leur code actuel : ils sont ensuite traités exactement comme les
+inscrits (mêmes briefs, récupération d'un code perdu). Pour supprimer l'un d'eux, retire-le de
+`USERS_JSON` **et** efface sa ligne dans « Utilisateurs ». Seule ta ligne (`admin: true`) reste à part.
 
 ## 1. Préparer le Sheet modèle (une seule fois)
 

@@ -154,3 +154,29 @@ def test_signup_endpoints(world, monkeypatch):
     token = client.post("/signup/finish", json={"sheet": SHEET, "name": "Paul"}).json()["token"]
     assert client.get("/me", headers={"X-Access-Token": token}).json() == {"name": "Paul", "admin": False, "briefs": False}
     assert client.post("/signup/start", json={"sheet": SHEET}).status_code == 429
+
+
+def test_users_json_friend_is_a_regular_member(world, monkeypatch):
+    """Un ami de USERS_JSON est recopié dans le registre avec son code actuel, sans aucune différence."""
+    evan_sheet = "1EvanSheetIdentifiant_0123456789abcdef"
+    world[evan_sheet] = FakeSheet([FakeWorksheet("Opérations", [])])
+    monkeypatch.setattr(users, "USERS", [User("Enzo", "code-enzo", "sheet-owner", admin=True),
+                                         User("Evan", "code-evan", evan_sheet, briefs_folder="briefs-publics")])
+    evan = users.resolve("code-evan")
+    assert evan.name == "Evan" and not evan.admin and evan.token is None and evan.briefs_folder == "briefs-publics"
+    registry = world["sheet-owner"].tabs["Utilisateurs"].rows
+    assert registry[1][:3] == ["Evan", token_hash("code-evan"), evan_sheet]
+
+    # Inscription d'un autre ami : mêmes droits, mêmes briefs que Evan
+    type_code(world[SHEET], signup.start(SHEET, TODAY)["code"])
+    paul = users.resolve(signup.finish(SHEET, "Paul", TODAY)["token"])
+    assert (paul.admin, paul.briefs_folder) == (evan.admin, evan.briefs_folder)
+    assert [u.name for u in users.all_users()] == ["Enzo", "Evan", "Paul"]
+
+    # Evan peut aussi récupérer un code perdu, et n'est recopié qu'une fois
+    started = signup.start(evan_sheet, TODAY)
+    assert started["existing"] == "Evan"
+    type_code(world[evan_sheet], started["code"])
+    new_code = signup.finish(evan_sheet, "", TODAY)["token"]
+    assert users.resolve(new_code).name == "Evan"
+    assert [r[0] for r in registry[1:]] == ["Evan", "Paul"]
