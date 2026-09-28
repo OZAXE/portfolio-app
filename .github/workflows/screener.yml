@@ -43,6 +43,14 @@ jobs:
             mkdir -p data
           fi
 
+      # En premier : les cours de la veille sont prêts et la notification de la semaine part tôt
+      - name: Relevé quotidien du patrimoine et plus-value de la semaine
+        continue-on-error: true
+        env:
+          APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python screener/snapshot.py
+
       - name: Super investisseurs (13F de la SEC)
         continue-on-error: true
         run: python screener/superinvestors.py --data-dir data

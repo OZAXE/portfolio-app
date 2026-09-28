@@ -12,13 +12,14 @@ watchlist, alertes et briefs marchés hebdomadaires.
 
 | Onglet | Contenu |
 |---|---|
-| **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
+| **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
 | **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / score / dividende / super investisseurs / watchlist, tris) et fiche par action : ratios, score qualité calibré par secteur, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Briefs** | Briefs marchés hebdomadaires déposés par une tâche Claude Cowork dans un dossier Google Drive. |
 | **Réglages** | Code d'accès, hypothèses personnelles du DCF (recalcul instantané de toutes les valeurs). |
 
 Notifications chaque nuit sur le téléphone (appli ntfy) : action sous sa valeur intrinsèque, forte baisse,
-score en baisse, dividende réduit, mouvement d'un super investisseur sur une action suivie.
+score en baisse, dividende réduit, mouvement d'un super investisseur sur une action suivie, alertes de prix,
+et chaque vendredi soir la plus-value de la semaine (apports exclus).
 
 ## Architecture
 
@@ -41,7 +42,6 @@ frontend/ (site statique sur Render, installable sur téléphone)
 - **`frontend/index.html`** : toute l'appli (HTML, CSS, JS, graphiques Chart.js).
 - **`screener/`** : scripts du calcul nocturne. `build_universe.py` construit la liste des actions
   (`universe.csv`) à partir des indices ; à relancer à la main de temps en temps.
-- **`sheet-template/historique.gs`** : script Google Apps Script du relevé hebdomadaire, à installer dans chaque Sheet.
 - **`tests/`** : tests automatiques, lancés par GitHub à chaque modification (`.github/workflows/tests.yml`).
 
 ### Sources de données
@@ -82,7 +82,8 @@ utilisateur et le dossier Drive des briefs sont partagés avec son adresse, en �
 
 ## Workflows GitHub
 
-- **Screener** (chaque nuit vers 3 h, ou à la main) : super investisseurs, screener, comptes annuels,
+- **Screener** (chaque nuit vers 3 h, ou à la main) : relevé du jour dans l'onglet Historique de chaque
+  utilisateur (`screener/snapshot.py`, plus-value de la semaine le vendredi), super investisseurs, screener, comptes annuels,
   notifications, puis publication sur la branche `screener-data`.
 - **Tests** : à chaque modification de `main`.
 - **Admin** (à la main) : construit un Sheet modèle vide, ou migre un ancien Sheet vers le modèle.

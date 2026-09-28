@@ -96,6 +96,9 @@ class HistoryPoint:
     cto_pct: float | None = None
     total_value: float | None = None
     total_pct: float | None = None
+    pea_invested: float | None = None  # montants investis : format v2 seulement
+    cto_invested: float | None = None
+    total_invested: float | None = None
 
 
 @dataclass
@@ -274,7 +277,8 @@ def parse_history_v2(rows: list[list]) -> list[HistoryPoint]:
         ratio = lambda v, i: v / i - 1 if v is not None and i else None
         total, total_in = pea + cto, (pea_in or 0) + (cto_in or 0)
         points.append(HistoryPoint(date=iso, pea_value=pea, pea_pct=ratio(pea, pea_in), cto_value=cto,
-                                   cto_pct=ratio(cto, cto_in), total_value=total, total_pct=ratio(total, total_in)))
+                                   cto_pct=ratio(cto, cto_in), total_value=total, total_pct=ratio(total, total_in),
+                                   pea_invested=pea_in, cto_invested=cto_in, total_invested=total_in))
     return sorted(points, key=lambda p: p.date)
 
 

@@ -44,7 +44,11 @@
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
 
     /* Synthèse */
-    .hero .label { font-size: 13px; color: var(--muted); }
+    .hero .label { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    .privacy-toggle { border: 0; background: transparent; color: var(--muted); padding: 4px; margin: -4px; cursor: pointer; line-height: 0; }
+    .privacy-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    /* Mode discret : montants floutés, pourcentages visibles */
+    body.private .amt { filter: blur(7px); user-select: none; }
     .hero .value { font-size: 32px; font-weight: 700; margin-top: 4px; }
     .hero .gain { font-size: 15px; margin-top: 4px; }
     .hero .returns { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
@@ -272,7 +276,7 @@
       <div class="status" id="portfolio-status">Chargement…</div>
       <div id="portfolio-content" hidden>
         <div class="card hero">
-          <div class="label">Valeur des placements</div>
+          <div class="label"><span>Valeur des placements</span><button class="privacy-toggle" id="privacy-toggle" aria-label="Masquer les montants" title="Masquer les montants"></button></div>
           <div class="value" id="total-value"></div>
           <div class="gain" id="total-gain"></div>
           <div class="returns" id="total-returns" hidden></div>
@@ -552,7 +556,9 @@
   <script>
     const API_BASE_URL = "https://portfolio-app-blvx.onrender.com";
 
-    const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+    const eurFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+    // HTML : chaque montant est floutable (mode discret). Texte brut et graphiques : eurFmt
+    const eur = { format: (v) => `<span class="amt">${eurFmt.format(v)}</span>` };
     const pctFmt = new Intl.NumberFormat("fr-FR", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
     const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
     const signClass = (x) => (x == null ? "" : x >= 0 ? "positive" : "negative");
@@ -642,6 +648,24 @@
       if (btn) showView(btn.dataset.view);
     });
 
+    // --- Mode discret : floute les montants (pour montrer l'appli sans dévoiler son capital) ---
+    const EYE_OPEN = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_CLOSED = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.6 4.9-1.4M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+    function applyPrivacy() {
+      document.body.classList.toggle("private", !!settings.privacy);
+      const btn = document.getElementById("privacy-toggle");
+      btn.innerHTML = settings.privacy ? EYE_CLOSED : EYE_OPEN;
+      btn.setAttribute("aria-label", settings.privacy ? "Afficher les montants" : "Masquer les montants");
+      btn.title = btn.getAttribute("aria-label");
+    }
+    document.getElementById("privacy-toggle").addEventListener("click", () => {
+      settings.privacy = !settings.privacy;
+      saveSettings();
+      applyPrivacy();
+      if (overview) renderChart();
+    });
+    applyPrivacy();
+
     // --- Portefeuille ---
     let overview = null;
     let portfolioAnalyses = {};
@@ -680,10 +704,10 @@
 
     function renderSummary() {
       const t = overview.total;
-      document.getElementById("total-value").textContent = eur.format(t.value);
+      document.getElementById("total-value").innerHTML = eur.format(t.value);
       const gainEl = document.getElementById("total-gain");
       gainEl.className = `gain ${signClass(t.gain)}`;
-      gainEl.textContent = `${signedEur(t.gain)} (${pctFmt.format(t.gain_pct)}) sur ${eur.format(t.invested)} investis`;
+      gainEl.innerHTML = `${signedEur(t.gain)} (${pctFmt.format(t.gain_pct)}) sur ${eur.format(t.invested)} investis`;
 
       const colors = { PEA: "var(--series-pea)", CTO: "var(--series-cto)" };
       document.getElementById("envelopes").innerHTML = Object.entries(overview.envelopes)
@@ -732,8 +756,11 @@
         : "";
     }
 
+    const chartAmount = (v) => (settings.privacy ? "•••• €" : eurFmt.format(v));
+    const chartTick = (v) => (settings.privacy ? "" : `${Math.round(v / 100) / 10} k€`);
+
     function drawLineChart(datasets, pct) {
-      const fmt = pct ? (v) => pctFmt.format(v) : (v) => eur.format(v);
+      const fmt = pct ? (v) => pctFmt.format(v) : chartAmount;
       const xs = datasets.flatMap((d) => d.data.map((p) => p.x));
       if (chart) chart.destroy();
       chart = new Chart(document.getElementById("history-chart"), {
@@ -752,7 +779,7 @@
           },
           scales: {
             x: { type: "linear", min: Math.min(...xs), max: Math.max(...xs), ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => dateFmt.format(new Date(v)) }, grid: { display: false } },
-            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: pct ? (v) => pctFmt.format(v) : (v) => `${Math.round(v / 100) / 10} k€` }, grid: { color: cssVar("--line") } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: pct ? (v) => pctFmt.format(v) : chartTick }, grid: { color: cssVar("--line") } },
           },
         },
       });
@@ -776,11 +803,11 @@
         borderColor: cssVar(color),
         backgroundColor: cssVar(color),
         borderWidth: label === "Total" ? 2.5 : 1.8,
-        pointRadius: 2.5,
+        pointRadius: points.length > 60 ? 0 : 2.5,
         pointHoverRadius: 5,
         tension: 0.25,
       }));
-      const fmt = chartMode === "value" ? (v) => eur.format(v) : (v) => pctFmt.format(v);
+      const fmt = chartMode === "value" ? chartAmount : (v) => pctFmt.format(v);
 
       if (chart) chart.destroy();
       chart = new Chart(document.getElementById("history-chart"), {
@@ -811,7 +838,7 @@
               ticks: {
                 color: cssVar("--muted"),
                 maxTicksLimit: 5,
-                callback: chartMode === "value" ? (v) => `${Math.round(v / 100) / 10} k€` : (v) => pctFmt.format(v),
+                callback: chartMode === "value" ? chartTick : (v) => pctFmt.format(v),
               },
               grid: { color: cssVar("--line") },
             },
@@ -865,7 +892,7 @@
       if (!a) {
         return `<div class="analysis">${investedRow}<div class="hypotheses">Analyse en cours de chargement ou indisponible.</div></div>`;
       }
-      const extra = `${investedRow}<div class="row"><span>Quantité</span><span>${a.quantity}</span></div>`;
+      const extra = `${investedRow}<div class="row"><span>Quantité</span><span class="amt">${a.quantity}</span></div>`;
       return renderStockDetail(analysisToRecord(a, a.ticker), extra, false);
     }
 
@@ -1686,7 +1713,7 @@
             tooltip: { callbacks: { label: (ctx) => {
               if (ctx.raw == null) return null;
               const trades = (ctx.datasetIndex === 2 ? buys : ctx.datasetIndex === 3 ? sells : null)?.info[ctx.dataIndex];
-              if (trades) return trades.map((t) => `${t.type} ${num(t.quantity, 6)} × ${money(t.price, "€")}`);
+              if (trades) return trades.map((t) => `${t.type} ${settings.privacy ? "•••" : num(t.quantity, 6)} × ${money(t.price, "€")}`);
               return `${ctx.dataset.label} : ${money(ctx.raw, "€")}`;
             } } },
           },
@@ -1941,7 +1968,7 @@
       }
       const net = type === "Achat" ? costs.amount + opNum("op-fees") + opNum("op-taxes") : costs.amount - opNum("op-fees") - opNum("op-taxes");
       opEl("op-summary").textContent = costs.amount
-        ? `Montant brut ${eur.format(costs.amount)} · ${type === "Achat" ? "coût total" : "montant net"} ${eur.format(net)}`
+        ? `Montant brut ${eurFmt.format(costs.amount)} · ${type === "Achat" ? "coût total" : "montant net"} ${eurFmt.format(net)}`
           + (costs.ttf && !opEdited.has("op-taxes") ? " · TTF de 0,4 % incluse" : "")
           + (type === "Dividende" ? " · indique en taxes la retenue à la source ou le prélèvement" : "")
           + " · les champs en pointillés sont calculés, tu peux les corriger."
@@ -2040,7 +2067,7 @@
         <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
-            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${num(o.quantity, 6)} × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · <span class="amt">${num(o.quantity, 6)}</span> × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
               ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${o.status === "no_ticker" ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
@@ -2152,7 +2179,7 @@
         <div class="cal-total"><span data-term="Revenu projeté">${eur.format(c.annual_gross)}</span> <span class="muted" style="font-size:14px;font-weight:400">sur 12 mois</span></div>
         <div class="help" style="margin-top:4px">Net estimé ${eur.format(c.annual_net)} · ${eur.format(c.annual_gross / 12)} par mois en moyenne${value ? ` · ${pctPlain(c.annual_gross / value)} de rendement sur le portefeuille` : ""}</div>
         <div class="cal-bars">${c.months.map((m) => `
-          <div class="col" data-month="${m.month}" title="${escapeHtml(monthLong.format(monthDate(m.month)))} : ${eur.format(m.gross)}">
+          <div class="col" data-month="${m.month}" title="${escapeHtml(monthLong.format(monthDate(m.month)))}${settings.privacy ? "" : ` : ${eurFmt.format(m.gross)}`}">
             <div class="bar" style="height:${max ? (m.gross / max) * 100 : 0}%"></div></div>`).join("")}
         </div>
         <div class="cal-months">${c.months.map((m) => `<span>${escapeHtml(monthShort.format(monthDate(m.month)).toUpperCase())}</span>`).join("")}</div>
@@ -2171,8 +2198,8 @@
       const month = col.dataset.month;
       const events = dividendCalendar.events.filter((ev) => ev.date.startsWith(month));
       const total = events.reduce((sum, ev) => sum + ev.gross, 0);
-      document.getElementById("cal-detail").textContent = `${monthLong.format(monthDate(month))} : ` + (events.length
-        ? `${eur.format(total)} (${events.map((ev) => ev.name).join(", ")})`
+      document.getElementById("cal-detail").innerHTML = `${monthLong.format(monthDate(month))} : ` + (events.length
+        ? `${eur.format(total)} (${escapeHtml(events.map((ev) => ev.name).join(", "))})`
         : "aucun dividende");
     });
 
@@ -2210,7 +2237,7 @@
           ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">Impôt estimé (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(e.estimated_tax)}</div>` : ""}
         </div>`).join("");
       const sales = y.sales.map((s) => `
-        <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · ${num(s.quantity, 4)} × PRU ${money(s.unit_cost, "€")}</span></div>
+        <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · <span class="amt">${num(s.quantity, 4)}</span> × PRU ${money(s.unit_cost, "€")}</span></div>
           <div class="right ${signClass(s.gain)}">${signedEur(s.gain)}</div></div>`).join("");
       const dividends = y.dividends.map((d) => `
         <div class="rank-row"><div>${escapeHtml(d.name)} <span class="muted">${new Date(d.date).toLocaleDateString("fr-FR")} · ${escapeHtml(d.envelope)}</span></div>

@@ -16,6 +16,7 @@ Endpoints prévus pour le MVP :
 - GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy de l'utilisateur
 - GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
 - GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
+- POST /history/snapshot    -> relevé quotidien de l'onglet Historique (job nocturne, admin)
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -533,6 +534,27 @@ def notification_users():
                 "price_alerts": [a for a in list_price_alerts(u.sheet_id) if not a["triggered"]],
             })
         except Exception as e:  # un Sheet inaccessible ne bloque pas les autres
+            result.append({"name": u.name, "admin": u.admin, "error": str(e)})
+    return result
+
+
+# Relevé quotidien de l'onglet Historique de chaque utilisateur (job nocturne, code du propriétaire)
+@app.post("/history/snapshot", dependencies=[Depends(require_admin)])
+def history_snapshot(day: str):
+    from datetime import date
+
+    from .history import record_snapshot
+    from .notifications import get_topic
+
+    try:
+        when = date.fromisoformat(day)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date attendue au format AAAA-MM-JJ")
+    result = []
+    for u in users_config.USERS:
+        try:
+            result.append({"name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id), **record_snapshot(u.sheet_id, when)})
+        except Exception as e:  # un Sheet illisible ou un cours en erreur ne bloque pas les autres
             result.append({"name": u.name, "admin": u.admin, "error": str(e)})
     return result
 

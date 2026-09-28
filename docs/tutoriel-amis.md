@@ -73,15 +73,16 @@ une ligne existante.
 
 L'onglet **Positions** du Sheet se calcule tout seul (quantité, PRU frais inclus, valeur, plus-value).
 
-## Étape 6 (facultatif) : l'historique hebdomadaire
+## Étape 6 : l'historique
 
-Pour que la courbe d'évolution se remplisse toute seule chaque samedi :
+Rien à faire : chaque nuit après un jour de bourse, l'appli ajoute une ligne à l'onglet **Historique**
+de ton Sheet, et la courbe d'évolution se remplit toute seule.
 
-1. Dans ton Sheet : **Extensions > Apps Script**.
-2. Remplace le contenu par celui du fichier
-   [`sheet-template/historique.gs`](../sheet-template/historique.gs), puis enregistre.
-3. En haut, choisis la fonction **`installerDeclencheur`** et clique sur **Exécuter**, puis accepte les
-   autorisations (Paramètres avancés > Accéder au projet).
+Si tu avais installé l'ancien script Apps Script du relevé hebdomadaire, supprime-le : dans ton Sheet,
+**Extensions > Apps Script**, icône d'horloge **Déclencheurs** à gauche, supprime le déclencheur `releveHebdo`.
+
+Pour montrer l'appli sans dévoiler ton capital, touche l'œil à côté de « Valeur des placements » :
+les montants sont floutés, les pourcentages restent visibles.
 
 ## Étape 7 (facultatif) : les notifications
 
@@ -93,6 +94,9 @@ passe sous sa valeur intrinsèque, alertes de prix) :
 3. Dans ntfy, bouton **+**, colle ce sujet et abonne-toi. **Envoyer un test** pour vérifier.
 
 Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de prix**.
+
+Chaque vendredi soir (dans la nuit), tu reçois aussi ta plus-value de la semaine, sans compter
+l'argent versé entre-temps.
 
 ## En cas de souci
 
