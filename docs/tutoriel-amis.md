@@ -42,17 +42,22 @@ Dans ta copie :
 
 ## Étape 3 : partager ton Sheet avec l'appli (1 min)
 
-1. Bouton **Partager** en haut à droite de ta copie.
-2. Ajoute l'adresse du compte de service qu'on t'a donnée (elle se termine par `.iam.gserviceaccount.com`),
-   rôle **Éditeur**, décoche « Envoyer une notification » (le robot ne lit pas ses mails), puis **Partager**.
-3. Envoie le **lien de ta copie** à la personne qui t'a invité. Elle te renverra ton **code d'accès personnel**.
-
-## Étape 4 : ouvrir l'appli (2 min)
-
 1. Sur ton téléphone, ouvre https://portfolio-front-8t6m.onrender.com
-   (la première ouverture peut prendre jusqu'à une minute : le serveur gratuit se réveille).
-2. Onglet **Réglages > Code d'accès** : colle ton code, **Enregistrer**.
-3. Installe-la sur l'écran d'accueil :
+   (la première ouverture peut prendre jusqu'à une minute : le serveur gratuit se réveille),
+   onglet **Réglages > Pas encore de compte ?** : l'adresse du robot de l'appli y est affichée
+   (elle se termine par `.iam.gserviceaccount.com`).
+2. Dans ta copie, bouton **Partager** en haut à droite : ajoute cette adresse, rôle **Éditeur**,
+   décoche « Envoyer une notification » (le robot ne lit pas ses mails), puis **Partager**.
+
+## Étape 4 : créer ton compte (2 min)
+
+1. Dans l'appli, **Réglages > Pas encore de compte ?** : colle le lien de ta copie, **Vérifier mon Sheet**.
+2. L'appli affiche un code (`PI-…`) : dans ton Sheet, onglet **Réglages**, colle-le dans la case à droite
+   de `code_inscription`. C'est la preuve que ce Sheet est bien à toi.
+3. Indique ton prénom ou un pseudo, puis **Créer mon compte**. Ton **code d'accès personnel** s'affiche
+   et reste enregistré sur ce téléphone : note-le pour tes autres appareils. Code perdu ? Refais ces
+   étapes avec le même Sheet, tu en recevras un nouveau.
+4. Installe l'appli sur l'écran d'accueil :
    - Android (Chrome) : menu ⋮ > **Ajouter à l'écran d'accueil** ;
    - iPhone (Safari) : bouton Partager > **Sur l'écran d'accueil**.
 
@@ -103,6 +108,8 @@ l'argent versé entre-temps.
 | Message | Solution |
 |---|---|
 | « code d'accès requis » | Saisis ou recolle ton code dans Réglages. |
+| « L'appli n'a pas accès à ce Sheet » | Refais l'étape 3 : partage en Éditeur avec l'adresse du robot. |
+| « Code de vérification absent ou incorrect » | Colle le code `PI-…` dans l'onglet Réglages de ton Sheet, à droite de `code_inscription`, sans espace. |
 | « Le compte de service doit être Éditeur du Google Sheet » | Refais l'étape 3 avec le rôle Éditeur. |
 | « Compte inconnu » à la saisie | Ajoute le compte dans l'onglet Comptes. |
 | Une position sans cours dans le Sheet | Vérifie son ticker Google dans l'onglet Titres (ex. `EPA:MC`, `NASDAQ:AAPL`). |

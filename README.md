@@ -80,6 +80,10 @@ Le frontend est un site statique Render (répertoire `frontend`, sans commande d
 Un compte de service (Google Cloud, API Google Sheets et Google Drive activées) : chaque Sheet
 utilisateur et le dossier Drive des briefs sont partagés avec son adresse, en Éditeur pour le Sheet.
 
+Inscription libre depuis Réglages (`backend/app/signup.py`) : la personne copie le Sheet modèle, le partage
+avec le compte de service et prouve qu'il est à elle en y collant un code ; les comptes sont rangés dans
+l'onglet « Utilisateurs » du Sheet du propriétaire.
+
 ## Workflows GitHub
 
 - **Screener** (chaque nuit vers 3 h, ou à la main) : relevé du jour dans l'onglet Historique de chaque

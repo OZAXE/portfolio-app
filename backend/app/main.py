@@ -17,6 +17,7 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
 - GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
 - POST /history/snapshot    -> relevé quotidien de l'onglet Historique (job nocturne, admin)
+- GET /signup/info, POST /signup/start, /signup/finish -> inscription libre (signup.py)
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -27,7 +28,7 @@ import time
 from collections import defaultdict
 from dataclasses import asdict
 
-from fastapi import Body, Depends, FastAPI, Header, HTTPException
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import requests
@@ -525,7 +526,7 @@ def notification_users():
     from .notifications import get_topic, list_price_alerts
 
     result = []
-    for u in users_config.USERS:
+    for u in users_config.all_users():
         try:
             result.append({
                 "name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id),
@@ -536,6 +537,52 @@ def notification_users():
         except Exception as e:  # un Sheet inaccessible ne bloque pas les autres
             result.append({"name": u.name, "admin": u.admin, "error": str(e)})
     return result
+
+
+# --- Inscription libre (voir signup.py) : sans code d'accès, limitée par adresse IP ---
+_signup_hits: dict[str, list[float]] = defaultdict(list)
+SIGNUP_LIMIT = 20  # tentatives par heure et par adresse
+
+
+def _signup_call(request: Request, call):
+    from .signup import SignupError
+
+    # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
+    now = time.time()
+    _signup_hits[ip] = [t for t in _signup_hits[ip] if now - t < 3600] + [now]
+    if len(_signup_hits[ip]) > SIGNUP_LIMIT:
+        raise HTTPException(status_code=429, detail="Trop de tentatives : réessaie dans une heure.")
+    try:
+        return call()
+    except SignupError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except SheetNotConfiguredError as e:
+        raise HTTPException(status_code=503, detail=f"Compte de service non configuré : {e}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Écriture dans le Sheet impossible (partagé en Éditeur ?) : {e}")
+
+
+@app.get("/signup/info")
+def signup_info():
+    from .signup import TEMPLATE_SHEET_ID, service_account_email, signup_open
+
+    return {"open": signup_open(), "service_account": service_account_email(),
+            "template_copy_url": f"https://docs.google.com/spreadsheets/d/{TEMPLATE_SHEET_ID}/copy"}
+
+
+@app.post("/signup/start")
+def signup_start(request: Request, payload: dict = Body(...)):
+    from .signup import start
+
+    return _signup_call(request, lambda: start(str(payload.get("sheet") or "")))
+
+
+@app.post("/signup/finish")
+def signup_finish(request: Request, payload: dict = Body(...)):
+    from .signup import finish
+
+    return _signup_call(request, lambda: finish(str(payload.get("sheet") or ""), str(payload.get("name") or "")))
 
 
 # Relevé quotidien de l'onglet Historique de chaque utilisateur (job nocturne, code du propriétaire)
@@ -551,7 +598,7 @@ def history_snapshot(day: str):
     except ValueError:
         raise HTTPException(status_code=400, detail="Date attendue au format AAAA-MM-JJ")
     result = []
-    for u in users_config.USERS:
+    for u in users_config.all_users():
         try:
             result.append({"name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id), **record_snapshot(u.sheet_id, when)})
         except Exception as e:  # un Sheet illisible ou un cours en erreur ne bloque pas les autres
@@ -565,7 +612,7 @@ def mark_alerts_triggered(payload: dict = Body(...)):
 
     from .notifications import set_alert_triggered
 
-    target = next((u for u in users_config.USERS if u.name == payload.get("user")), None)
+    target = next((u for u in users_config.all_users() if u.name == payload.get("user")), None)
     if target is None:
         raise HTTPException(status_code=404, detail="Utilisateur inconnu")
     return _operation_call(lambda: set_alert_triggered(target.sheet_id, payload.get("ids") or [], payload.get("date") or date.today().isoformat()))

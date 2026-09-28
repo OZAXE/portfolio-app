@@ -1,6 +1,15 @@
 # Ajouter un ami à l'appli (propriétaire)
 
-Chaque utilisateur a son code d'accès et son Google Sheet. Les codes et les Sheets sont déclarés
+Chaque utilisateur a son code d'accès et son Google Sheet.
+
+**Le plus simple : l'inscription libre.** Envoie le lien de l'appli et le guide `docs/tutoriel-amis.md` :
+chacun crée son compte depuis Réglages, sans rien à faire de ton côté. Les comptes créés ainsi sont
+dans l'onglet « Utilisateurs » de ton Sheet (nom, empreinte du code, Sheet) ; supprimer une ligne
+supprime le compte (pris en compte en une minute). Réglages possibles sur Render :
+`SIGNUP_OPEN=0` pour fermer les inscriptions, `MAX_SIGNUPS` (50 par défaut),
+`PUBLIC_BRIEFS_FOLDER` (identifiant du dossier « Briefs publics ») pour leur donner les briefs.
+
+La méthode manuelle ci-dessous reste possible : les codes et les Sheets sont alors déclarés
 dans la variable `USERS_JSON` du service backend sur Render.
 
 ## 1. Préparer le Sheet modèle (une seule fois)

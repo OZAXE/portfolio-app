@@ -247,6 +247,10 @@
       color: var(--text); font: inherit; padding: 8px; text-align: right;
     }
     .custom-flag { color: var(--series-cto); }
+    #signup ol { margin: 8px 0; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+    #signup a { color: var(--accent); }
+    .signup-code { font: 700 22px ui-monospace, monospace; letter-spacing: 1px; margin: 6px 0; user-select: all; }
+    #signup .search { margin-top: 8px; }
 
     /* Onglets */
     .view[hidden] { display: none; }
@@ -498,6 +502,25 @@
         <span class="help" id="settings-token-status"></span>
       </div>
 
+      <h2>Pas encore de compte ?</h2>
+      <div class="card" id="signup">
+        <p class="help">Gratuit, en 5 minutes. Tes données restent dans <b>ton</b> Google Sheet, que l'appli lit et complète. L'administrateur de l'appli gère le robot Google qui y accède : il a donc techniquement accès à ton Sheet.</p>
+        <ol>
+          <li><a id="signup-template" href="#" target="_blank" rel="noopener">Copie le Sheet modèle</a> dans ton Google Drive.</li>
+          <li>Dans ta copie, bouton <b>Partager</b> : ajoute <b id="signup-robot" style="user-select:all;word-break:break-all">l'adresse du robot</b> en <b>Éditeur</b> (décoche « Envoyer une notification »).</li>
+          <li>Colle ici le lien de ta copie.</li>
+        </ol>
+        <input class="search" id="signup-sheet" type="url" placeholder="https://docs.google.com/spreadsheets/d/…" autocomplete="off" />
+        <button class="btn" id="signup-start">Vérifier mon Sheet</button>
+        <div id="signup-step2" hidden>
+          <p class="help" style="margin-top:12px">Pour prouver que ce Sheet est à toi, ouvre son onglet <b>Réglages</b> et colle ce code dans la case à droite de <b>code_inscription</b> :</p>
+          <div class="signup-code" id="signup-code"></div>
+          <input class="search" id="signup-name" placeholder="Ton prénom ou pseudo" maxlength="30" autocomplete="given-name" />
+          <button class="btn" id="signup-finish">Créer mon compte</button>
+        </div>
+        <p class="help" id="signup-status" style="margin-top:8px"></p>
+      </div>
+
       <h2>Hypothèses du DCF</h2>
       <div class="card">
         <p class="help">Laisse un champ vide pour garder le calcul automatique : croissance tirée de l'historique de cash-flow de chaque entreprise, actualisation selon son bêta. Une valeur saisie s'applique à toutes les actions, dans le portefeuille comme dans le screener.</p>
@@ -579,7 +602,7 @@
     async function api(path) {
       const headers = settings.token ? { "X-Access-Token": settings.token } : {};
       const res = await fetch(`${API_BASE_URL}${path}`, { headers });
-      if (res.status === 401) throw Object.assign(new Error("code d'accès requis : saisis-le dans l'onglet Réglages"), { status: 401 });
+      if (res.status === 401) throw Object.assign(new Error("code d'accès requis : saisis-le dans l'onglet Réglages, ou crée ton compte gratuit au même endroit"), { status: 401 });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Erreur API : ${res.status}`);
@@ -2424,6 +2447,48 @@
       } catch (e) {
         status.textContent = e.message;
       }
+    });
+
+    // --- Inscription libre ---
+    const signupEl = (id) => document.getElementById(id);
+    let signupSheet = "";
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/signup/info`);
+        const info = await res.json();
+        if (!info.open) { signupEl("signup").innerHTML = `<p class="help">Les inscriptions sont fermées pour le moment.</p>`; return; }
+        signupEl("signup-template").href = info.template_copy_url;
+        if (info.service_account) signupEl("signup-robot").textContent = info.service_account;
+      } catch { /* serveur endormi : les liens se rempliront au prochain chargement */ }
+    })();
+    signupEl("signup-start").addEventListener("click", async () => {
+      const status = signupEl("signup-status");
+      status.textContent = "Vérification (jusqu'à une minute si le serveur se réveille)…";
+      try {
+        signupSheet = signupEl("signup-sheet").value.trim();
+        const r = await postJson("/signup/start", { sheet: signupSheet });
+        signupEl("signup-code").textContent = r.code;
+        signupEl("signup-name").hidden = !!r.existing;
+        signupEl("signup-finish").textContent = r.existing ? `Recevoir un nouveau code pour ${r.existing}` : "Créer mon compte";
+        signupEl("signup-step2").hidden = false;
+        status.textContent = r.existing ? "Ce Sheet a déjà un compte : après vérification, tu recevras un nouveau code d'accès (l'ancien ne marchera plus)." : "";
+      } catch (e) { status.textContent = e.message; }
+    });
+    signupEl("signup-finish").addEventListener("click", async () => {
+      const status = signupEl("signup-status");
+      status.textContent = "Vérification du code…";
+      try {
+        const r = await postJson("/signup/finish", { sheet: signupSheet, name: signupEl("signup-name").value });
+        settings.token = r.token;
+        saveSettings();
+        tokenInput.value = r.token;
+        signupEl("signup-step2").hidden = true;
+        status.innerHTML = `Bienvenue ${escapeHtml(r.name)} ! Ton code d'accès, enregistré sur cet appareil :<div class="signup-code">${escapeHtml(r.token)}</div>Note-le pour tes autres appareils. Perdu ? Refais l'inscription avec le même Sheet.`;
+        overview = null;
+        signupEl("portfolio-status").hidden = false;
+        signupEl("portfolio-status").textContent = "Chargement…";
+        loadPortfolio();
+      } catch (e) { status.textContent = e.message; }
     });
 
     function rerenderValuations() {

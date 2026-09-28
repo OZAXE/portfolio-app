@@ -27,6 +27,7 @@ class User:
     sheet_id: str
     admin: bool = False
     briefs_folder: str | None = None
+    token_hash: str | None = None  # comptes créés par inscription libre (signup.py) : empreinte seulement
 
 
 def load_users() -> list[User]:
@@ -62,4 +63,14 @@ def resolve(token: str | None) -> User | None:
     for user in USERS:
         if user.token and secrets.compare_digest(token, user.token):
             return user
-    return None
+    from .signup import registered_users, token_hash
+
+    digest = token_hash(token)
+    return next((u for u in registered_users() if secrets.compare_digest(digest, u.token_hash)), None)
+
+
+def all_users() -> list[User]:
+    """Utilisateurs de USERS_JSON puis comptes créés par inscription libre (job nocturne)."""
+    from .signup import registered_users
+
+    return USERS + registered_users(refresh=True)
