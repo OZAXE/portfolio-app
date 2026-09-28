@@ -21,7 +21,8 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 ## Étape 2 : décrire tes comptes et tes frais (3 min)
 
-Dans ta copie :
+Le plus simple : une fois ton compte créé (étape 4), dans l'appli, **Réglages > Mes comptes et courtiers**.
+Tu peux y ajouter n'importe quelle banque. Sinon, directement dans ta copie :
 
 1. Onglet **Comptes** : une ligne par compte-titres (les deux lignes présentes sont des exemples,
    remplace-les par les tiens). Exemple :
@@ -113,3 +114,9 @@ l'argent versé entre-temps.
 | « Le compte de service doit être Éditeur du Google Sheet » | Refais l'étape 3 avec le rôle Éditeur. |
 | « Compte inconnu » à la saisie | Ajoute le compte dans l'onglet Comptes. |
 | Une position sans cours dans le Sheet | Vérifie son ticker Google dans l'onglet Titres (ex. `EPA:MC`, `NASDAQ:AAPL`). |
+
+## Allocation cible (facultatif)
+
+Dans l'onglet Portefeuille, section **Allocation cible** : **Définir mes cibles**. Crée tes poches
+(ex : « ETF Monde » 60 %, « Actions » 40 %), choisis la poche de chaque ligne, puis **Enregistrer**.
+L'appli compare ta répartition réelle à ces cibles et te dit où placer tes prochains versements.

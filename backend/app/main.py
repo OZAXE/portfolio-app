@@ -15,6 +15,7 @@ Endpoints prévus pour le MVP :
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
 - GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy de l'utilisateur
 - GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
+- POST /settings/accounts, /settings/fees, /allocation -> comptes, frais et allocation cible
 - GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
 - POST /history/snapshot    -> relevé quotidien de l'onglet Historique (job nocturne, admin)
 - GET /signup/info, POST /signup/start, /signup/finish -> inscription libre (signup.py)
@@ -362,6 +363,28 @@ def _operation_call(call):
 def get_settings(user: User = Depends(require_access)):
     """Comptes, barèmes de frais et titres du Sheet, pour pré-remplir le formulaire d'opération."""
     return _operation_call(lambda: read_settings(user.sheet_id))
+
+
+# Comptes, grilles de frais et allocation cible modifiables depuis l'appli (voir setup_edit.py)
+@app.post("/settings/accounts")
+def post_accounts(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .setup_edit import save_accounts
+
+    return _operation_call(lambda: save_accounts(user.sheet_id, list(payload.get("accounts") or [])))
+
+
+@app.post("/settings/fees")
+def post_fees(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .setup_edit import save_fees
+
+    return _operation_call(lambda: save_fees(user.sheet_id, list(payload.get("fees") or [])))
+
+
+@app.post("/allocation")
+def post_allocation(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .setup_edit import save_allocation
+
+    return _operation_call(lambda: save_allocation(user.sheet_id, list(payload.get("targets") or []), dict(payload.get("pockets") or {})))
 
 
 @app.post("/operations")

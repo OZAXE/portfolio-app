@@ -181,6 +181,23 @@
     .imp-row.skip { opacity: 0.55; }
     .imp-ticker { background: var(--card-2); border: 1px solid var(--accent-neg); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; padding: 4px 6px; width: 110px; margin-top: 4px; }
 
+    /* Éditeurs (allocation, comptes, frais) */
+    .edit-row { display: grid; grid-template-columns: 1fr 76px 28px; gap: 8px; align-items: center; margin-top: 8px; }
+    .edit-row.acct { grid-template-columns: 1fr 66px 1fr 28px; }
+    .edit-row.assign { grid-template-columns: 1fr 1fr; font-size: 13px; }
+    .edit-row input, .edit-row select, .fee-block input, .fee-block select {
+      background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
+      font: inherit; font-size: 14px; padding: 7px; width: 100%; min-width: 0;
+    }
+    .edit-row .pct { text-align: right; }
+    .icon-btn { border: 0; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0; }
+    .edit-sub { font-size: 12px; color: var(--muted); margin: 16px 0 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .fee-block { border-top: 1px solid var(--line); padding: 10px 0 2px; margin-top: 8px; }
+    .fee-block .op-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .fee-head { display: grid; grid-template-columns: 1fr 1fr 28px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .edit-total { font-size: 13px; margin-top: 8px; }
+    .edit-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
     /* Allocation cible */
     .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .alloc-table th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0 6px; }
@@ -537,6 +554,9 @@
         <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
       </div>
 
+      <h2>Mes comptes et courtiers</h2>
+      <div class="card" id="accounts-editor"><p class="help">Saisis ton code d'accès pour gérer tes comptes.</p></div>
+
       <h2>Notifications</h2>
       <div class="card">
         <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
@@ -669,6 +689,7 @@
       window.scrollTo(0, 0);
       history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
       if (view === "market") { loadMarket(); loadInvestors(); }
+      if (view === "settings") loadAccountsEditor();
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-view]");
@@ -820,6 +841,11 @@
         <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
         <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>`;
       const points = overview.history;
+      if (!points.length) {  // nouveau compte : premier relevé la nuit suivant un jour de bourse
+        if (chart) { chart.destroy(); chart = null; }
+        document.getElementById("bench-summary").textContent = "La courbe se remplira toute seule : un relevé est ajouté chaque nuit après un jour de bourse.";
+        return;
+      }
       const x = (p) => new Date(p.date).getTime();
       const series = chartMode === "value"
         ? [["Total", "total_value", "--series-total"], ["PEA", "pea_value", "--series-pea"], ["CTO", "cto_value", "--series-cto"]]
@@ -1071,8 +1097,10 @@
       const el = document.getElementById("allocation");
       const targets = overview.targets || [];
       if (!overview.breakdowns) { el.innerHTML = `<p class="help">Disponible avec le Sheet modèle.</p>`; return; }
+      if (allocDraft) { renderAllocationEditor(); return; }
       if (!targets.length) {
-        el.innerHTML = `<p class="help">Définis tes objectifs dans l'onglet <b>Allocation</b> du Sheet : une ligne par poche avec sa cible en % (par exemple « ETF Monde » 60 %, « Actions France » 20 %, « Actions US » 20 %), et indique la poche de chaque titre dans la colonne <b>Poche</b> de l'onglet Titres. L'appli comparera ta répartition réelle à ces cibles et te dira où placer tes prochains versements.</p>`;
+        el.innerHTML = `<p class="help">Fixe tes objectifs : des « poches » (par exemple « ETF Monde » 60 %, « Actions France » 20 %, « Actions US » 20 %) et la poche de chaque ligne. L'appli comparera ta répartition réelle à ces cibles et te dira où placer tes prochains versements.</p>
+          <button class="btn" id="alloc-edit">Définir mes cibles</button>`;
         return;
       }
       const current = Object.fromEntries(overview.breakdowns.pocket.map((r) => [r.label, r.value]));
@@ -1092,7 +1120,8 @@
         </table>
         ${Math.abs(sumTargets - 1) > 0.005 ? `<p class="help" style="margin-top:8px">Tes cibles font ${pctPlain(sumTargets)} au total : elles sont ramenées à 100 % pour le calcul.</p>` : ""}
         <div class="alloc-input">Je vais investir <input id="alloc-amount" type="number" min="0" step="10" inputmode="decimal" placeholder="500" /> €</div>
-        <div id="alloc-split" class="realized-list"></div>`;
+        <div id="alloc-split" class="realized-list"></div>
+        <button class="btn" id="alloc-edit">Modifier mes cibles</button>`;
       const input = document.getElementById("alloc-amount");
       input.addEventListener("input", () => {
         const amount = parseFloat(input.value.replace(",", ".")) || 0;
@@ -1104,6 +1133,112 @@
           + `<p class="help" style="margin-top:8px">Pour te rapprocher de tes cibles sans rien vendre.</p>`;
       });
     }
+
+    // --- Éditeur d'allocation : poches, cibles en %, poche de chaque ligne ---
+    let allocDraft = null;
+
+    function startAllocationEdit() {
+      const targets = overview.targets || [];
+      const pockets = targets.length
+        ? targets.map((t) => ({ name: t.pocket, pct: +(t.target * 100).toFixed(1) }))
+        : (overview.breakdowns?.pocket || []).map((r) => ({ name: r.label, pct: Math.round((r.weight || 0) * 100) }));
+      const assign = Object.fromEntries(overview.holdings.map((h) => [h.yahoo_ticker || h.ticker, h.pocket || ""]));
+      allocDraft = { pockets: pockets.length ? pockets : [{ name: "", pct: 100 }], assign, status: "" };
+      renderAllocationEditor();
+    }
+
+    function renderAllocationEditor() {
+      const d = allocDraft;
+      const names = d.pockets.map((p) => p.name.trim()).filter(Boolean);
+      const total = d.pockets.reduce((sum, p) => sum + (parseFloat(String(p.pct).replace(",", ".")) || 0), 0);
+      const holdings = [...overview.holdings].sort((a, b) => (b.value || 0) - (a.value || 0));
+      document.getElementById("allocation").innerHTML = `
+        <div class="edit-sub" style="margin-top:0">Poches et cibles</div>
+        ${d.pockets.map((p, i) => `<div class="edit-row">
+            <input data-pocket-name="${i}" value="${escapeHtml(p.name)}" placeholder="ex : ETF Monde" maxlength="40" />
+            <input class="pct" data-pocket-pct="${i}" value="${escapeHtml(p.pct)}" type="number" min="0" max="100" step="1" inputmode="decimal" />
+            <button class="icon-btn" data-pocket-del="${i}" aria-label="Supprimer la poche">✕</button>
+          </div>`).join("")}
+        <div class="edit-total">Total : <b class="${Math.abs(total - 100) < 0.5 ? "positive" : "negative"}" id="alloc-total">${num(total)} %</b> (doit faire 100 %)</div>
+        <button class="btn" id="alloc-add">+ Ajouter une poche</button>
+        <div class="edit-sub">Poche de chaque ligne</div>
+        ${holdings.map((h) => {
+          const key = h.yahoo_ticker || h.ticker;
+          const current = d.assign[key] || "";
+          return `<div class="edit-row assign"><span>${escapeHtml(h.name || key)}</span>
+            <select data-assign="${escapeHtml(key)}">
+              <option value="">— aucune —</option>
+              ${names.map((n) => `<option ${n === current ? "selected" : ""}>${escapeHtml(n)}</option>`).join("")}
+            </select></div>`;
+        }).join("")}
+        <div class="edit-actions">
+          <button class="btn" id="alloc-save">Enregistrer</button>
+          <button class="btn" id="alloc-cancel">Annuler</button>
+        </div>
+        <p class="help" id="alloc-status" style="margin-top:8px">${escapeHtml(d.status)}</p>`;
+    }
+
+    document.getElementById("allocation").addEventListener("input", (e) => {
+      if (!allocDraft) return;
+      const t = e.target;
+      if (t.dataset.pocketPct != null) {
+        allocDraft.pockets[+t.dataset.pocketPct].pct = t.value;
+        const total = allocDraft.pockets.reduce((sum, p) => sum + (parseFloat(String(p.pct).replace(",", ".")) || 0), 0);
+        const el = document.getElementById("alloc-total");
+        el.textContent = `${num(total)} %`;
+        el.className = Math.abs(total - 100) < 0.5 ? "positive" : "negative";
+      }
+      if (t.dataset.pocketName != null) allocDraft.pockets[+t.dataset.pocketName].name = t.value;
+    });
+    document.getElementById("allocation").addEventListener("change", (e) => {
+      if (!allocDraft) return;
+      const t = e.target;
+      if (t.dataset.assign != null) allocDraft.assign[t.dataset.assign] = t.value;
+      if (t.dataset.pocketName != null) {  // renommage : les lignes suivent leur poche
+        const i = +t.dataset.pocketName;
+        const before = allocDraft.pockets[i].previous ?? t.defaultValue;
+        for (const k of Object.keys(allocDraft.assign)) if (allocDraft.assign[k] === before) allocDraft.assign[k] = t.value.trim();
+        allocDraft.pockets[i].previous = t.value.trim();
+        // Listes des lignes mises à jour sur place (tout redessiner ferait perdre le champ en cours)
+        const names = allocDraft.pockets.map((p) => p.name.trim()).filter(Boolean);
+        document.querySelectorAll("#allocation select[data-assign]").forEach((sel) => {
+          const current = allocDraft.assign[sel.dataset.assign] || "";
+          sel.innerHTML = `<option value="">— aucune —</option>` + names.map((n) => `<option ${n === current ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+        });
+      }
+    });
+    document.getElementById("allocation").addEventListener("click", async (e) => {
+      const t = e.target;
+      if (t.id === "alloc-edit") { startAllocationEdit(); return; }
+      if (!allocDraft) return;
+      if (t.id === "alloc-add") { allocDraft.pockets.push({ name: "", pct: 0 }); renderAllocationEditor(); return; }
+      if (t.dataset.pocketDel != null) {
+        const [removed] = allocDraft.pockets.splice(+t.dataset.pocketDel, 1);
+        for (const k of Object.keys(allocDraft.assign)) if (allocDraft.assign[k] === removed.name.trim()) allocDraft.assign[k] = "";
+        renderAllocationEditor();
+        return;
+      }
+      if (t.id === "alloc-cancel") { allocDraft = null; renderAllocation(); return; }
+      if (t.id === "alloc-save") {
+        const pockets = allocDraft.pockets.filter((p) => p.name.trim());
+        const payload = {
+          targets: pockets.map((p) => ({ pocket: p.name.trim(), target: (parseFloat(String(p.pct).replace(",", ".")) || 0) / 100 })),
+          pockets: allocDraft.assign,
+        };
+        const status = document.getElementById("alloc-status");
+        status.textContent = "Enregistrement dans le Sheet…";
+        try {
+          await postJson("/allocation", payload);
+          overview = await api("/portfolio/overview");
+          allocDraft = null;
+          renderPortfolioSections();
+          saveSnapshot();
+        } catch (err) {
+          allocDraft.status = err.message;
+          status.textContent = err.message;
+        }
+      }
+    });
 
     document.getElementById("breakdown-mode").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-dim]");
@@ -2542,6 +2677,109 @@
         signupEl("portfolio-status").textContent = "Chargement…";
         loadPortfolio();
       } catch (e) { status.textContent = e.message; }
+    });
+
+    // --- Comptes et courtiers : n'importe quelle banque, avec sa grille de frais ---
+    let acctDraft = null;
+    const pctIn = (x) => (x ? +(x * 100).toFixed(4) : 0);
+    const numIn = (v) => parseFloat(String(v ?? "").replace(",", ".")) || 0;
+
+    async function loadAccountsEditor(force = false) {
+      const el = document.getElementById("accounts-editor");
+      if (acctDraft && !force) return;
+      if (!settings.token) return;
+      el.innerHTML = `<p class="help">Chargement…</p>`;
+      try {
+        const s = await api("/settings");
+        acctDraft = {
+          accounts: s.accounts.map((a) => ({ ...a })),
+          fees: s.fees.map((f) => ({ ...f, percent: pctIn(f.percent), fx_percent: pctIn(f.fx_percent) })),
+          orderTypes: s.order_types, status: "",
+        };
+        renderAccountsEditor();
+      } catch (e) {
+        el.innerHTML = `<p class="help">${escapeHtml(e.message)}</p>`;
+      }
+    }
+
+    function renderAccountsEditor() {
+      const d = acctDraft;
+      const brokers = [...new Set([...d.accounts.map((a) => a.broker), ...d.fees.map((f) => f.broker)].filter(Boolean))];
+      const missing = [...new Set(d.accounts.map((a) => a.broker).filter((b) => b && !d.fees.some((f) => f.broker === b)))];
+      document.getElementById("accounts-editor").innerHTML = `
+        <p class="help">Un compte par enveloppe et par banque (ex : « PEA Fortuneo », « CTO Degiro »). Un compte qui a déjà des opérations ne peut être ni supprimé ni renommé.</p>
+        <datalist id="broker-list">${brokers.map((b) => `<option value="${escapeHtml(b)}">`).join("")}</datalist>
+        <div class="edit-sub">Comptes</div>
+        ${d.accounts.map((a, i) => `<div class="edit-row acct">
+            <input data-acct="${i}" data-field="name" value="${escapeHtml(a.name)}" placeholder="Nom du compte" maxlength="50" />
+            <select data-acct="${i}" data-field="envelope">${["PEA", "CTO"].map((e) => `<option ${e === a.envelope ? "selected" : ""}>${e}</option>`).join("")}</select>
+            <input data-acct="${i}" data-field="broker" value="${escapeHtml(a.broker)}" placeholder="Banque" list="broker-list" maxlength="40" />
+            <button class="icon-btn" data-acct-del="${i}" aria-label="Supprimer le compte">✕</button>
+          </div>`).join("")}
+        <div class="edit-actions">
+          <button class="btn" id="acct-add">+ Ajouter un compte</button>
+          <button class="btn" id="acct-save">Enregistrer les comptes</button>
+        </div>
+        <div class="edit-sub">Frais de chaque banque</div>
+        <p class="help">Frais d'un ordre = le plus grand entre le <b>minimum</b> et <b>fixe + pourcentage × montant</b>, plus les frais de change pour un titre en devise. Recopie-les depuis la grille tarifaire de ta banque : ils servent à pré-remplir les frais à la saisie, que tu peux toujours corriger.</p>
+        ${missing.length ? `<p class="help negative">Sans grille de frais : ${missing.map(escapeHtml).join(", ")}.</p>` : ""}
+        ${d.fees.map((f, i) => `<div class="fee-block">
+            <div class="fee-head">
+              <input data-fee="${i}" data-field="broker" value="${escapeHtml(f.broker)}" placeholder="Banque" list="broker-list" maxlength="40" />
+              <select data-fee="${i}" data-field="order_type">${d.orderTypes.map((t) => `<option ${t === f.order_type ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}</select>
+              <button class="icon-btn" data-fee-del="${i}" aria-label="Supprimer la grille">✕</button>
+            </div>
+            <div class="op-grid">
+              <label>Fixe €<input data-fee="${i}" data-field="fixed" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(f.fixed)}" /></label>
+              <label>Pourcentage %<input data-fee="${i}" data-field="percent" type="number" min="0" max="10" step="0.01" inputmode="decimal" value="${escapeHtml(f.percent)}" /></label>
+              <label>Minimum €<input data-fee="${i}" data-field="minimum" type="number" min="0" step="0.01" inputmode="decimal" value="${escapeHtml(f.minimum)}" /></label>
+              <label>Change %<input data-fee="${i}" data-field="fx_percent" type="number" min="0" max="5" step="0.01" inputmode="decimal" value="${escapeHtml(f.fx_percent)}" /></label>
+              <label class="wide" style="grid-column: span 2">Note<input data-fee="${i}" data-field="note" value="${escapeHtml(f.note || "")}" maxlength="200" /></label>
+            </div>
+          </div>`).join("")}
+        <div class="edit-actions">
+          <button class="btn" id="fee-add">+ Ajouter une grille</button>
+          <button class="btn" id="fee-save">Enregistrer les frais</button>
+        </div>
+        <p class="help" id="acct-status" style="margin-top:8px">${escapeHtml(d.status)}</p>`;
+    }
+
+    const accountsEl = document.getElementById("accounts-editor");
+    accountsEl.addEventListener("input", (e) => {
+      const t = e.target;
+      if (t.dataset.acct != null) acctDraft.accounts[+t.dataset.acct][t.dataset.field] = t.value;
+      if (t.dataset.fee != null) acctDraft.fees[+t.dataset.fee][t.dataset.field] = t.value;
+    });
+    accountsEl.addEventListener("click", async (e) => {
+      const t = e.target;
+      if (!acctDraft) return;
+      const done = (message) => { acctDraft.status = message; renderAccountsEditor(); };
+      if (t.id === "acct-add") { acctDraft.accounts.push({ name: "", envelope: "PEA", broker: "" }); done(""); }
+      else if (t.dataset.acctDel != null) { acctDraft.accounts.splice(+t.dataset.acctDel, 1); done("Suppression prise en compte à l'enregistrement."); }
+      else if (t.id === "fee-add") {
+        const broker = acctDraft.accounts.map((a) => a.broker).find((b) => b && !acctDraft.fees.some((f) => f.broker === b)) || "";
+        acctDraft.fees.push({ broker, order_type: "Ordre", fixed: 0, percent: 0, minimum: 0, fx_percent: 0, note: "" });
+        done("");
+      }
+      else if (t.dataset.feeDel != null) { acctDraft.fees.splice(+t.dataset.feeDel, 1); done("Suppression prise en compte à l'enregistrement."); }
+      else if (t.id === "acct-save" || t.id === "fee-save") {
+        document.getElementById("acct-status").textContent = "Enregistrement dans le Sheet…";
+        try {
+          if (t.id === "acct-save") {
+            await postJson("/settings/accounts", { accounts: acctDraft.accounts });
+          } else {
+            await postJson("/settings/fees", { fees: acctDraft.fees.map((f) => ({
+              ...f, fixed: numIn(f.fixed), minimum: numIn(f.minimum), percent: numIn(f.percent) / 100, fx_percent: numIn(f.fx_percent) / 100,
+            })) });
+          }
+          opSettings = null;  // formulaire de saisie et import relisent comptes et frais
+          await loadAccountsEditor(true);
+          acctDraft.status = t.id === "acct-save" ? "Comptes enregistrés." : "Frais enregistrés.";
+          renderAccountsEditor();
+        } catch (err) {
+          done(err.message);
+        }
+      }
     });
 
     function rerenderValuations() {
