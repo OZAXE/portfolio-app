@@ -6,6 +6,11 @@ Formats reconnus :
 - Trade Republic : export CSV des transactions. Achats, ventes,
   plans d'investissement et dividendes ; le reste (carte, intérêts, virements, Saveback et Stockperk
   versés en espèces) est ignoré, ainsi que la crypto, que l'appli ne suit pas ;
+- Trade Republic : relevé de compte PDF (Profil > Documents). Une section par compte (« Compte
+  courant » pour le CTO, « Compte PEA ») : chaque opération est rangée dans le compte de la même
+  enveloppe. Le relevé ne donne qu'un montant par ligne : les frais d'un ordre sont comptés 1 €
+  (tarif Trade Republic, 0 € pour un plan d'investissement) et un dividende est enregistré net
+  de la retenue à la source, pour la quantité détenue d'après les achats du relevé ;
 - Boursorama : avis d'opéré PDF, un par ordre (Espace client > Documents > Avis d'opéré).
 
 Les montants sont en euros tels que facturés par le courtier : taux de change 1, même pour une
@@ -41,7 +46,9 @@ class ParsedOperation:
     order_type: str
     source: str  # fichier d'origine
     ticker: str | None = None
-    status: str = "new"  # new / duplicate / no_ticker
+    status: str = "new"  # new / duplicate / no_ticker / no_account
+    envelope: str | None = None  # PEA / CTO quand le fichier l'indique (relevé Trade Republic)
+    account: str | None = None  # compte où l'opération sera écrite
 
 
 def _num(text) -> float:
@@ -121,6 +128,72 @@ def parse_boursorama_text(text: str, source: str) -> ParsedOperation:
     )
 
 
+# --- Relevé de compte PDF de Trade Republic ---
+TR_MONTHS = {"janv": 1, "févr": 2, "mars": 3, "avr": 4, "mai": 5, "juin": 6, "juil": 7, "août": 8,
+             "sept": 9, "oct": 10, "nov": 11, "déc": 12}
+TR_DATE = re.compile(r"\b(\d{2}) (janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.? (\d{4})\b")
+TR_ISIN = r"([A-Z]{2}[A-Z0-9]{9}\d)"
+TR_TRADE = re.compile(r"(Buy trade|Sell trade|Savings plan execution) " + TR_ISIN + r" (.+?), quantity: ([\d.]+)")
+TR_DIVIDEND = re.compile(r"Cash Dividend for ISIN " + TR_ISIN)
+TR_AMOUNT = re.compile(r"(-?\d{1,3}(?:\.\d{3})+,\d{2}|-?\d+,\d{2}) ?€")  # 11705,27 ou 1.242,21, jamais d'espace
+TR_PAGE_HEADER = re.compile(r"TRADE REPUBLIC BANK GMBH.*?Page\s+\d+\s+de\s+\d+", re.DOTALL | re.IGNORECASE)
+TR_ORDER_FEE = 1.0  # frais d'un ordre Trade Republic ; plans d'investissement sans frais
+
+
+def parse_trade_republic_statement(text: str, source: str, skipped: dict | None = None) -> list[ParsedOperation]:
+    skipped = skipped if skipped is not None else {}
+    flat = re.sub(r"\s+", " ", TR_PAGE_HEADER.sub(" ", text))
+    flat = re.sub(r"DATE TYPE DESCRIPTION ENTRÉE D'ARGENT SORTIE D'ARGENT SOLDE", " ", flat)
+    operations = []
+    for section in flat.split("SYNTHÈSE DU RELEVÉ DE COMPTE")[1:]:
+        product = re.search(r"SOLDE FIN DE PÉRIODE (.+?) -?\d", section)
+        envelope = "PEA" if product and "PEA" in product.group(1).upper() else "CTO"
+        body = section.split("TRANSACTIONS", 1)[-1].split("REMARQUES SUR LE RELEVÉ", 1)[0]
+        dates = list(TR_DATE.finditer(body))
+        held: dict[str, float] = {}  # quantité détenue, pour répartir un dividende par action
+        for i, d in enumerate(dates):
+            chunk = body[d.end(): dates[i + 1].start() if i + 1 < len(dates) else len(body)]
+            amounts = TR_AMOUNT.findall(chunk)
+            if len(amounts) < 2:
+                continue
+            amount = abs(_num(amounts[-2]))  # avant-dernier : montant ; dernier : solde
+            day = f"{d.group(3)}-{TR_MONTHS[d.group(2)]:02d}-{d.group(1)}"
+            trade, dividend = TR_TRADE.search(chunk), TR_DIVIDEND.search(chunk)
+            if trade:
+                label, isin, name, quantity = trade.group(1), trade.group(2), trade.group(3).strip(), float(trade.group(4))
+                if isin.startswith("XF000"):  # crypto (Bitcoin, Ethereum...) : non suivie
+                    skipped["crypto"] = skipped.get("crypto", 0) + 1
+                    continue
+                if not quantity:
+                    continue
+                kind = "Vente" if label == "Sell trade" else "Achat"
+                plan = label == "Savings plan execution"
+                fee = 0.0 if plan else TR_ORDER_FEE
+                price = (amount - fee if kind == "Achat" else amount + fee) / quantity
+                held[isin] = held.get(isin, 0.0) + (quantity if kind == "Achat" else -quantity)
+                operations.append(ParsedOperation(
+                    date=day, type=kind, isin=isin, name=name, quantity=quantity, price=round(price, 6),
+                    fees=fee, taxes=0.0, order_type="Plan d'investissement" if plan else "Ordre",
+                    source=source, envelope=envelope))
+            elif dividend:
+                isin = dividend.group(1)
+                quantity = round(held.get(isin, 0.0), 6)
+                quantity = quantity if quantity > 0 else 1.0  # titre acheté avant la période du relevé
+                operations.append(ParsedOperation(
+                    date=day, type="Dividende", isin=isin, name=isin, quantity=quantity,
+                    price=round(amount / quantity, 6), fees=0.0, taxes=0.0, order_type="",
+                    source=source, envelope=envelope))
+            elif "Corporate action" in chunk:
+                skipped["corporate"] = skipped.get("corporate", 0) + 1
+    if not operations and not skipped:
+        raise OperationError(f"{source} : aucune opération trouvée dans le relevé Trade Republic")
+    names = {op.isin: op.name for op in operations if op.type != "Dividende"}
+    for op in operations:  # un dividende porte le nom du titre quand le relevé contient ses achats
+        if op.type == "Dividende":
+            op.name = names.get(op.isin, op.isin)
+    return operations
+
+
 def parse_file(name: str, content: bytes, skipped: dict | None = None) -> list[ParsedOperation]:
     if len(content) > MAX_FILE_BYTES:
         raise OperationError(f"{name} : fichier trop gros")
@@ -128,8 +201,27 @@ def parse_file(name: str, content: bytes, skipped: dict | None = None) -> list[P
         from pypdf import PdfReader
 
         text = "\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(content)).pages)
-        return [parse_boursorama_text(text, name)]
+        if "TRADE REPUBLIC" in text.upper():
+            return parse_trade_republic_statement(text, name, skipped)
+        if "BOURSORAMA" in text.upper() or "Code ISIN" in text:
+            return [parse_boursorama_text(text, name)]
+        raise OperationError(f"{name} : PDF non reconnu (relevé de compte Trade Republic ou avis d'opéré Boursorama attendus)")
     return parse_trade_republic_csv(content.decode("utf-8-sig", errors="replace"), name, skipped)
+
+
+def route_accounts(operations: list[ParsedOperation], chosen: str, accounts: list[dict]) -> None:
+    """Compte de chaque opération : celui choisi, sauf quand le fichier indique une autre enveloppe
+    (relevé Trade Republic avec PEA et CTO) : on prend alors un compte de cette enveloppe, de préférence
+    chez le même courtier que le compte choisi."""
+    by_name = {a["name"]: a for a in accounts}
+    chosen_account = by_name.get(chosen, {})
+    for op in operations:
+        if not op.envelope or chosen_account.get("envelope") == op.envelope:
+            op.account = chosen
+            continue
+        same = [a for a in accounts if a["envelope"] == op.envelope]
+        same.sort(key=lambda a: a.get("broker") != chosen_account.get("broker"))
+        op.account = same[0]["name"] if same else None
 
 
 # Codes de place OpenFIGI -> suffixe Yahoo, par ordre de préférence
@@ -185,6 +277,9 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
         except Exception as e:
             errors.append(f"{f.get('name')} : lecture impossible ({e})")
 
+    from .operations import read_settings
+
+    route_accounts(parsed, account, read_settings(sheet_id)["accounts"])
     existing, _, _ = read_operations(sheet_id)
     seen = {_duplicate_key(op.day.isoformat(), op.account, op.kind, op.quantity) for op in existing}
     tickers: dict[str, str | None] = {}
@@ -192,14 +287,18 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
         if op.isin not in tickers:
             tickers[op.isin] = find_ticker(op.isin, known_isins)
         op.ticker = tickers[op.isin]
-        key = _duplicate_key(op.date, account, op.type, op.quantity)
-        op.status = "duplicate" if key in seen else "new" if op.ticker else "no_ticker"
+        key = _duplicate_key(op.date, op.account, op.type, op.quantity)
+        op.status = ("no_account" if not op.account else "duplicate" if key in seen
+                     else "new" if op.ticker else "no_ticker")
         seen.add(key)  # le même ordre présent dans deux fichiers
     operations = [asdict(op) for op in sorted(parsed, key=lambda o: o.date)]
     if skipped.get("crypto"):
         errors.append(f"{skipped['crypto']} opérations crypto ignorées (l'appli ne suit pas la crypto)")
+    if skipped.get("corporate"):
+        errors.append(f"{skipped['corporate']} opérations sur titres ignorées (attribution d'actions gratuites, "
+                      "rompus...) : ajoute à la main les actions reçues")
     return {"operations": operations, "errors": errors,
-            "counts": {s: sum(o["status"] == s for o in operations) for s in ("new", "duplicate", "no_ticker")}}
+            "counts": {s: sum(o["status"] == s for o in operations) for s in ("new", "duplicate", "no_ticker", "no_account")}}
 
 
 def write_import(sheet_id: str, account: str, operations: list[dict], titres_info=describe_for_titres) -> dict:
@@ -207,15 +306,17 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
     from .operations import read_settings
 
     settings = read_settings(sheet_id)
-    if account not in {a["name"] for a in settings["accounts"]}:
-        raise OperationError("Compte inconnu : ajoute-le d'abord dans l'onglet Comptes du Sheet")
+    known_accounts = {a["name"] for a in settings["accounts"]}
     clean = []
     for op in operations:
         ticker = str(op.get("ticker") or "").strip().upper()
         if not ticker or op.get("type") not in ("Achat", "Vente", "Dividende"):
             raise OperationError("Chaque opération doit avoir un ticker et un type")
+        op_account = op.get("account") or account
+        if op_account not in known_accounts:
+            raise OperationError(f"Compte inconnu : {op_account}. Ajoute-le dans Réglages > Mes comptes et courtiers")
         clean.append({
-            "date": date.fromisoformat(op["date"]), "account": account, "type": op["type"], "ticker": ticker,
+            "date": date.fromisoformat(op["date"]), "account": op_account, "type": op["type"], "ticker": ticker,
             "quantity": float(op["quantity"]), "price": float(op["price"]), "currency": "EUR", "fx": 1,
             "fees": float(op.get("fees") or 0), "taxes": float(op.get("taxes") or 0),
             "order_type": op.get("order_type") or ("" if op["type"] == "Dividende" else "Ordre"), "why": "", "term": "", "note": f"Import {op.get('source', '')}".strip(),

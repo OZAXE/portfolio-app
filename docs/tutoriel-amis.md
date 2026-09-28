@@ -57,7 +57,9 @@ Dans l'appli, **Réglages > Mes comptes et courtiers** :
 ## Étape 5 : saisir tes positions
 
 Le plus rapide : onglet **Portefeuille**, bouton **Importer un relevé**. Choisis le compte, puis :
-- **Trade Republic** : l'export CSV des transactions, sur toute la période depuis l'ouverture du compte ;
+- **Trade Republic** : le **relevé de compte PDF** (dans l'appli Trade Republic : Profil > Documents,
+  sur toute la période depuis l'ouverture). Il contient ton CTO et ton PEA : chaque opération va dans le
+  bon compte, à condition d'avoir créé les deux à l'étape 4. L'export CSV des transactions marche aussi ;
 - **Boursorama** : les avis d'opéré PDF (Espace client > Documents), tous d'un coup.
 
 L'appli affiche les opérations trouvées avant d'écrire quoi que ce soit : décoche ce que tu ne veux pas,

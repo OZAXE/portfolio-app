@@ -87,9 +87,10 @@ def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
     existing = [Operation(date(2026, 8, 24), "CTO Trade Republic", "Achat", "NVDA", 0.005567, 1.0, 0, 0, 1.0)]
     monkeypatch.setattr(imports, "read_operations", lambda sheet_id: (existing, {}, {}))
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: {"US67066G1040": "NVDA"}.get(isin))
+    monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": [{"name": "CTO Trade Republic", "envelope": "CTO", "broker": "Trade Republic"}]})
     files = [{"name": "tr.csv", "content": base64.b64encode(TR_CSV.encode()).decode()}]
     result = preview_import("sheet", "CTO Trade Republic", files, {})
     statuses = {(o["type"], o["isin"]): o["status"] for o in result["operations"]}
     assert statuses[("Achat", "US67066G1040")] == "duplicate"  # déjà saisi à la main
     assert statuses[("Dividende", "US92826C8394")] == "no_ticker"
-    assert result["counts"] == {"new": 0, "duplicate": 1, "no_ticker": 2}
+    assert result["counts"] == {"new": 0, "duplicate": 1, "no_ticker": 2, "no_account": 0}

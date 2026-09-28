@@ -71,7 +71,11 @@ Pour un **dividende** : mets le montant brut, et en taxes la retenue ou le prél
 ### Importer un relevé de ta banque
 
 Bouton **Importer un relevé**, choisis le compte puis le ou les fichiers :
-- **Trade Republic** : export CSV des transactions (depuis l'ouverture du compte) ;
+- **Trade Republic** : relevé de compte PDF (Profil > Documents) ou export CSV des transactions, depuis
+  l'ouverture du compte. Le relevé PDF contient le CTO et le PEA : chaque opération est rangée dans le
+  compte de la bonne enveloppe. Il ne donne qu'un montant par ligne : les frais sont comptés 1 € par
+  ordre (0 € pour un plan d'investissement) et les dividendes sont enregistrés nets de la retenue à la
+  source. Les cryptos et les attributions d'actions gratuites ne sont pas importées (à saisir à la main) ;
 - **Boursorama** : avis d'opéré PDF (Espace client > Documents), tous d'un coup.
 
 Touche **Analyser** : l'appli liste les opérations trouvées **sans rien écrire**. Les opérations déjà

@@ -479,12 +479,18 @@ ISIN_TICKERS_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/main/s
 _isin_cache: dict[str, str] = {}
 
 
+def yahoo_symbol(bloomberg: str, suffix: str) -> str:
+    """Code Bloomberg du fichier ISIN -> ticker Yahoo, comme screener/build_universe.py :
+    « RR/ » (Rolls-Royce) -> RR.L, « BT/A » -> BT-A.L."""
+    return bloomberg.rstrip("/").replace("/", "-").replace(" ", "-") + suffix
+
+
 def _known_isins() -> dict[str, str]:
     """ISIN -> ticker Yahoo des actions européennes du screener (évite une recherche Yahoo par titre)."""
     if not _isin_cache:
         try:
             data = requests.get(ISIN_TICKERS_URL, timeout=30).json()
-            _isin_cache.update({isin: f"{v[0]}{v[1]}" for isin, v in data.items()})
+            _isin_cache.update({isin: yahoo_symbol(v[0], v[1]) for isin, v in data.items()})
         except Exception:
             pass
     return _isin_cache

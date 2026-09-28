@@ -372,7 +372,7 @@
           <button class="btn more" id="imp-open">Importer un relevé</button>
         </div>
         <div class="card" id="imp-panel" hidden>
-          <p class="help" style="margin-top:0"><b>Trade Republic</b> : export CSV des transactions, sur toute la période depuis l'ouverture du compte. <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
+          <p class="help" style="margin-top:0"><b>Trade Republic</b> : le relevé de compte PDF (Profil &gt; Documents, ou le relevé envoyé chaque mois), qui contient aussi ton PEA, ou l'export CSV des transactions. <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
           <div class="op-grid">
             <label class="wide">Compte<select id="imp-account"></select></label>
             <label class="wide">Fichiers (CSV ou PDF)<input id="imp-files" type="file" accept=".csv,.pdf,text/csv,application/pdf" multiple /></label>
@@ -2319,7 +2319,7 @@
 
     // --- Import de relevés (Trade Republic CSV, avis d'opéré Boursorama PDF) : aperçu, puis écriture ---
     let importPreview = null;
-    const IMPORT_STATUS = { new: "", duplicate: "déjà dans le Sheet", no_ticker: "ticker introuvable" };
+    const IMPORT_STATUS = { new: "", duplicate: "déjà dans le Sheet", no_ticker: "ticker introuvable", no_account: "aucun compte de cette enveloppe : ajoute-le dans Réglages" };
 
     async function openImport() {
       opEl("imp-panel").hidden = false;
@@ -2360,7 +2360,7 @@
         return;
       }
       const c = importPreview.counts;
-      status.textContent = `${importPreview.operations.length} opération${importPreview.operations.length > 1 ? "s" : ""} lue${importPreview.operations.length > 1 ? "s" : ""} : ${c.new} nouvelle${c.new > 1 ? "s" : ""}, ${c.duplicate} déjà dans le Sheet (décochée${c.duplicate > 1 ? "s" : ""}), ${c.no_ticker} sans ticker (à compléter).`
+      status.textContent = `${importPreview.operations.length} opération${importPreview.operations.length > 1 ? "s" : ""} lue${importPreview.operations.length > 1 ? "s" : ""} : ${c.new} nouvelle${c.new > 1 ? "s" : ""}, ${c.duplicate} déjà dans le Sheet (décochée${c.duplicate > 1 ? "s" : ""}), ${c.no_ticker} sans ticker (à compléter)${c.no_account ? `, ${c.no_account} sans compte correspondant` : ""}.`
         + (importPreview.errors.length ? ` Fichiers ignorés : ${importPreview.errors.join(" ; ")}` : "");
       renderImport();
     }
@@ -2371,7 +2371,7 @@
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
             <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · <span class="amt">${num(o.quantity, 6)}</span> × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
-              ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${o.status === "no_ticker" ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
+              ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${o.account && o.account !== opEl("imp-account").value ? ` · <b>${escapeHtml(o.account)}</b>` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${["no_ticker", "no_account"].includes(o.status) ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
           <div class="right">${eur.format(o.quantity * o.price)}</div>
@@ -2383,10 +2383,13 @@
       const selected = importPreview.operations.filter((o, i) => document.querySelector(`[data-imp-check="${i}"]`)?.checked);
       const btn = opEl("imp-submit");
       btn.hidden = !importPreview.operations.length;
-      btn.disabled = !selected.length || selected.some((o) => !o.ticker);
-      btn.textContent = selected.some((o) => !o.ticker)
+      const accounts = [...new Set(selected.map((o) => o.account || opEl("imp-account").value))];
+      btn.disabled = !selected.length || selected.some((o) => !o.ticker || o.status === "no_account");
+      btn.textContent = selected.some((o) => o.status === "no_account")
+        ? "Ajoute le compte manquant dans Réglages ou décoche ces lignes"
+        : selected.some((o) => !o.ticker)
         ? "Complète les tickers manquants ou décoche ces lignes"
-        : `Importer ${selected.length} opération${selected.length > 1 ? "s" : ""} dans « ${opEl("imp-account").value} »`;
+        : `Importer ${selected.length} opération${selected.length > 1 ? "s" : ""} dans ${accounts.map((a) => `« ${a} »`).join(" et ")}`;
     }
 
     async function submitImport() {
