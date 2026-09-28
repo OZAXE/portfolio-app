@@ -504,6 +504,23 @@ def preview_operations_import(payload: dict = Body(...), user: User = Depends(re
     return _operation_call(lambda: preview_import(user.sheet_id, payload.get("account"), payload.get("files") or [], _known_isins()))
 
 
+# Doublons déjà présents dans l'onglet Opérations (voir duplicates.py)
+@app.get("/operations/duplicates")
+def get_duplicates(user: User = Depends(require_access)):
+    from .duplicates import list_duplicates
+
+    return _operation_call(lambda: list_duplicates(user.sheet_id))
+
+
+@app.post("/operations/delete")
+def post_delete_operations(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .duplicates import delete_operations
+
+    result = _operation_call(lambda: delete_operations(user.sheet_id, list(payload.get("rows") or [])))
+    _forget_operations(user.sheet_id)
+    return result
+
+
 @app.post("/operations/import")
 def write_operations_import(payload: dict = Body(...), user: User = Depends(require_access)):
     from .imports import write_import

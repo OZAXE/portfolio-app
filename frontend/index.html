@@ -384,6 +384,12 @@
           <p class="help" id="imp-status"></p>
           <div id="imp-list"></div>
           <button class="btn" id="imp-submit" hidden></button>
+          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:10px">
+            <button class="btn" id="dup-search" style="margin-top:0">Rechercher les doublons dans mes opérations</button>
+            <p class="help" id="dup-status" style="margin-top:8px"></p>
+            <div id="dup-list"></div>
+            <button class="btn" id="dup-delete" hidden></button>
+          </div>
         </div>
         <div class="card" id="op-form" hidden>
           <div class="op-grid">
@@ -2321,6 +2327,58 @@
       }
       opEl("op-submit").disabled = false;
     }
+
+    // --- Doublons dans l'onglet Opérations : la copie (de préférence importée) est proposée à la suppression ---
+    let duplicates = [];
+    async function searchDuplicates() {
+      const status = opEl("dup-status");
+      status.textContent = "Recherche…";
+      opEl("dup-list").innerHTML = "";
+      opEl("dup-delete").hidden = true;
+      try { duplicates = await api("/operations/duplicates"); } catch (e) { status.textContent = e.message; return; }
+      if (!duplicates.length) { status.textContent = "Aucun doublon trouvé dans l'onglet Opérations."; return; }
+      status.textContent = `${duplicates.length} opération${duplicates.length > 1 ? "s" : ""} en double. La copie cochée sera supprimée de l'onglet Opérations ; l'autre est gardée. Vérifie avant : deux ordres identiques le même jour peuvent être réels (décoche-les alors).`;
+      const line = (o) => `${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${escapeHtml(o.account)} · ${num(o.quantity, 6)} · ${eur.format(o.amount)} · ligne ${o.row}${o.note ? ` · ${escapeHtml(o.note)}` : ""}`;
+      opEl("dup-list").innerHTML = duplicates.map((d, i) => `
+        <div class="imp-row" data-i="${i}">
+          <input type="checkbox" data-dup-check="${i}" checked />
+          <div>${escapeHtml(d.extra.type)} · ${escapeHtml(d.extra.ticker)}
+            <div class="who">À supprimer : ${line(d.extra)}</div>
+            <div class="who">Gardée : ${line(d.keep)}</div>
+          </div>
+          <div class="right"></div>
+        </div>`).join("");
+      updateDuplicateButton();
+    }
+    function updateDuplicateButton() {
+      const n = duplicates.filter((d, i) => document.querySelector(`[data-dup-check="${i}"]`)?.checked).length;
+      const btn = opEl("dup-delete");
+      btn.hidden = !duplicates.length;
+      btn.disabled = !n;
+      btn.textContent = `Supprimer ${n} ligne${n > 1 ? "s" : ""} en double`;
+    }
+    opEl("dup-search").addEventListener("click", searchDuplicates);
+    opEl("dup-list").addEventListener("change", updateDuplicateButton);
+    opEl("dup-delete").addEventListener("click", async () => {
+      const rows = duplicates.filter((d, i) => document.querySelector(`[data-dup-check="${i}"]`)?.checked).map((d) => d.extra);
+      if (!rows.length || !confirm(`Supprimer ${rows.length} ligne${rows.length > 1 ? "s" : ""} de l'onglet Opérations ?`)) return;
+      const status = opEl("dup-status");
+      status.textContent = "Suppression…";
+      opEl("dup-delete").disabled = true;
+      try {
+        const r = await postJson("/operations/delete", { rows });
+        status.textContent = `${r.deleted} ligne${r.deleted > 1 ? "s" : ""} supprimée${r.deleted > 1 ? "s" : ""}. Mise à jour du portefeuille…`;
+        opEl("dup-list").innerHTML = "";
+        opEl("dup-delete").hidden = true;
+        duplicates = [];
+        opSettings = null;
+        loadPortfolio();
+        if (r.earliest) rebuildHistory(r.earliest);
+      } catch (e) {
+        status.textContent = e.message;
+        opEl("dup-delete").disabled = false;
+      }
+    });
 
     // --- Historique reconstitué à partir des opérations (cours de clôture de chaque jour) ---
     async function rebuildHistory(since) {

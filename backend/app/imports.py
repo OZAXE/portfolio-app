@@ -265,11 +265,6 @@ def find_ticker(isin: str, known: dict[str, str]) -> str | None:
     return quotes[0]["symbol"] if quotes else _figi_ticker(isin)
 
 
-def _duplicate_key(day: str, account: str, kind: str, quantity: float) -> tuple:
-    # Sans le ticker : une ligne saisie à la main sous un autre ticker (TNO.PA / TNOW.MI) reste un doublon
-    return (day, account, kind, round(quantity, 4))
-
-
 def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: dict[str, str]) -> dict:
     """files : [{name, content (base64)}]. Rien n'est écrit."""
     if not files or len(files) > MAX_FILES:
@@ -285,9 +280,12 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
 
     from .operations import read_settings
 
-    route_accounts(parsed, account, read_settings(sheet_id)["accounts"])
+    from .duplicates import Entry, mark_duplicates
+
+    accounts = read_settings(sheet_id)["accounts"]
+    route_accounts(parsed, account, accounts)
+    envelopes = {a["name"]: a["envelope"] for a in accounts}
     existing, _, _ = read_operations(sheet_id)
-    seen = {_duplicate_key(op.day.isoformat(), op.account, op.kind, op.quantity) for op in existing}
     tickers: dict[str, str | None] = {}
     for op in sorted(parsed, key=lambda o: o.date):
         if op.ticker:  # crypto : ticker déjà connu
@@ -295,11 +293,14 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
         if op.isin not in tickers:
             tickers[op.isin] = find_ticker(op.isin, known_isins)
         op.ticker = tickers[op.isin]
-    for op in sorted(parsed, key=lambda o: o.date):
-        key = _duplicate_key(op.date, op.account, op.type, op.quantity)
-        op.status = ("no_account" if not op.account else "duplicate" if key in seen
+    # Déjà dans le Sheet (ou dans un autre fichier du même import) : même opération à quelques jours près
+    ordered = sorted(parsed, key=lambda o: o.date)
+    known = [Entry(op.day, envelopes.get(op.account, "CTO"), op.kind, op.ticker, op.quantity, op.gross) for op in existing]
+    new = [Entry(date.fromisoformat(op.date), envelopes.get(op.account or "", op.envelope or "CTO"), op.type,
+                 op.ticker or "", op.quantity, op.quantity * op.price, source=op.source) for op in ordered]
+    for op, duplicate in zip(ordered, mark_duplicates(new, known)):
+        op.status = ("no_account" if not op.account else "duplicate" if duplicate
                      else "new" if op.ticker else "no_ticker")
-        seen.add(key)  # le même ordre présent dans deux fichiers
     operations = [asdict(op) for op in sorted(parsed, key=lambda o: o.date)]
     if skipped.get("corporate"):
         errors.append(f"{skipped['corporate']} opérations sur titres ignorées (attribution d'actions gratuites, "

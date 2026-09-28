@@ -87,6 +87,15 @@ Touche **Analyser** : l'appli liste les opérations trouvées **sans rien écrir
 enregistrées sont repérées et décochées. Décoche ce que tu ne veux pas, complète un ticker manquant
 s'il est encadré en rouge, puis valide. Pour les autres banques, utilise **+ Nouvelle opération**.
 
+### Supprimer des opérations en double
+
+Si une opération apparaît deux fois (fichier importé deux fois, opération déjà saisie à la main…) :
+**Importer un relevé** puis **Rechercher les doublons dans mes opérations**. L'appli liste les
+opérations en double (même titre ou même montant, dates à quelques jours près) et coche la copie à
+supprimer, de préférence celle qui vient d'un import. Vérifie la liste : deux ordres identiques le même
+jour peuvent être réels, décoche-les alors. **Supprimer** retire les lignes de l'onglet Opérations et
+recalcule la courbe.
+
 ### Ajouter une banque ou corriger des frais
 
 **Réglages > Mes comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA),
