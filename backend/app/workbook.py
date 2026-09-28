@@ -20,7 +20,7 @@ from datetime import date, timedelta
 
 import gspread
 
-from .sheets import SHEETS_EPOCH, WRITE_SCOPES, google_credentials, google_to_yahoo, _find_worksheet
+from .sheets import SHEETS_EPOCH, google_to_yahoo, sheets_client, _find_worksheet
 
 OPERATIONS_HEADERS = [
     "Date", "Compte", "Type", "Ticker", "Quantité", "Prix unitaire", "Devise", "Taux de change",
@@ -107,7 +107,7 @@ TABS = [
 
 
 def open_for_write(sheet_id: str) -> gspread.Spreadsheet:
-    return gspread.authorize(google_credentials(WRITE_SCOPES)).open_by_key(sheet_id)
+    return sheets_client(write=True).open_by_key(sheet_id)
 
 
 def _col_index(letter: str) -> int:

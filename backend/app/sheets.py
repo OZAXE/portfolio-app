@@ -16,11 +16,15 @@ Onglets lus :
 """
 
 import os
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import gspread
 from google.oauth2.service_account import Credentials
+from gspread.exceptions import APIError
+from gspread.http_client import HTTPClient
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 WRITE_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -120,8 +124,67 @@ def google_credentials(scopes: list[str]) -> Credentials:
     return Credentials.from_service_account_file(creds_path, scopes=scopes)
 
 
+# --- Quota Google : 60 lectures par minute pour tout le compte de service (donc tous les utilisateurs) ---
+# Un chargement de page lance une dizaine d'appels en parallèle, qui rouvrent chacun le Sheet et relisent
+# les mêmes onglets. Les lectures identiques sont donc partagées pendant CACHE_SECONDS, une seule part
+# quand plusieurs arrivent en même temps, et toute écriture vide le cache (données toujours à jour).
+CACHE_SECONDS = 30
+RETRY_WAITS = (5, 10, 20)  # quota dépassé : la limite est par minute, on patiente plutôt qu'échouer
+_cache: dict = {}
+_key_locks: dict = {}
+_cache_lock = threading.Lock()
+
+
+def clear_sheet_cache() -> None:
+    with _cache_lock:
+        _cache.clear()
+
+
+class CachedHTTPClient(HTTPClient):
+    def _send(self, *args, **kwargs):
+        for wait in RETRY_WAITS + (None,):
+            try:
+                return super().request(*args, **kwargs)
+            except APIError as e:
+                if e.code != 429 or wait is None:
+                    raise
+                time.sleep(wait)
+
+    def request(self, method, endpoint, params=None, data=None, json=None, files=None, headers=None):
+        kwargs = dict(params=params, data=data, json=json, files=files, headers=headers)
+        if method.lower() != "get":
+            clear_sheet_cache()
+            response = self._send(method, endpoint, **kwargs)
+            clear_sheet_cache()
+            return response
+        key = (endpoint, repr(sorted(params.items()) if isinstance(params, dict) else params))
+        with _cache_lock:
+            lock = _key_locks.setdefault(key, threading.Lock())
+        with lock:
+            with _cache_lock:
+                hit = _cache.get(key)
+            if hit and time.time() - hit[0] < CACHE_SECONDS:
+                return hit[1]
+            response = self._send(method, endpoint, **kwargs)
+            with _cache_lock:
+                now = time.time()
+                for k in [k for k, (at, _) in _cache.items() if now - at >= CACHE_SECONDS]:
+                    del _cache[k]
+                _cache[key] = (now, response)
+            return response
+
+
+_clients: dict = {}
+
+
+def sheets_client(write: bool = False) -> gspread.Client:
+    if write not in _clients:
+        _clients[write] = gspread.authorize(google_credentials(WRITE_SCOPES if write else SCOPES), http_client=CachedHTTPClient)
+    return _clients[write]
+
+
 def _open_sheet(sheet_id: str, write: bool = False) -> gspread.Spreadsheet:
-    return gspread.authorize(google_credentials(WRITE_SCOPES if write else SCOPES)).open_by_key(sheet_id)
+    return sheets_client(write).open_by_key(sheet_id)
 
 
 def is_v2(sheet: gspread.Spreadsheet) -> bool:
