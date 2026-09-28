@@ -90,6 +90,11 @@ semaine (sans compter l'argent versé entre-temps) :
 Garde ce sujet pour toi : quiconque le connaît peut lire tes notifications.
 Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de prix**.
 
+## Et ensuite ?
+
+Pour découvrir tout ce que fait l'appli (allocation, dividendes, screener, alertes…), lis le
+[guide d'utilisation](guide-utilisation.md), aussi accessible depuis **Réglages > Aide**.
+
 ## Bon à savoir
 
 - **L'historique se remplit tout seul** : chaque nuit après un jour de bourse, une ligne est ajoutée à

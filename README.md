@@ -15,6 +15,7 @@ watchlist, alertes et briefs marchés hebdomadaires.
 | **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
 | **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / score / dividende / super investisseurs / watchlist, tris) et fiche par action : ratios, score qualité calibré par secteur, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Briefs** | Briefs marchés hebdomadaires déposés par une tâche Claude Cowork dans un dossier Google Drive. |
+| **Guides** | [Guide d'utilisation](docs/guide-utilisation.md), [installation pour un nouvel utilisateur](docs/tutoriel-amis.md), [gestion des utilisateurs](docs/ajouter-un-ami.md). |
 | **Réglages** | Code d'accès, hypothèses personnelles du DCF (recalcul instantané de toutes les valeurs). |
 
 Notifications chaque nuit sur le téléphone (appli ntfy) : action sous sa valeur intrinsèque, forte baisse,
