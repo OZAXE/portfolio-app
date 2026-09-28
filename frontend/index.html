@@ -6,7 +6,7 @@
   <title>Portfolio Insights</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -1186,7 +1186,7 @@
       try {
         overview = await api("/portfolio/overview");
       } catch (e) {
-        if (snap && e.status !== 401) { showStale(`${since} · serveur injoignable (${e.message})`, false); return; }
+        if (snap && e.status !== 401) { showStale(`${since} · ${navigator.onLine ? `serveur injoignable (${e.message})` : "hors ligne"}`, false); return; }
         overview = null;
         document.getElementById("portfolio-content").hidden = true;
         statusEl.hidden = false;
