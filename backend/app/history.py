@@ -8,9 +8,16 @@ Remplace l'ancien relevé hebdomadaire par Apps Script.
 
 La plus-value de la semaine retire les apports : c'est la variation de (valeur - investi)
 entre le relevé du vendredi précédent et celui du jour.
+
+Reconstitution (rebuild_history) : après un import ou la saisie d'une opération passée, l'historique
+est recalculé jour de bourse par jour de bourse à partir des opérations et des cours de clôture Yahoo
+en euros, comme le ferait l'onglet Positions ce jour-là (valeur = quantité x cours ; investi =
+quantité x PRU frais compris). Les relevés en dehors de la période recalculée sont gardés.
 """
 
 from datetime import date, timedelta
+
+import pandas as pd
 
 from .sheets import SHEETS_EPOCH, UNFORMATTED, HistoryPoint, _open_sheet, _worksheet, is_v2
 from .sheets import parse_history_v2, parse_positions_v2
@@ -70,6 +77,87 @@ def weekly_gain(points: list[HistoryPoint], end: date) -> dict | None:
         "value": round(last.total_value, 2),
         "contributions": round(last.total_invested - start.total_invested, 2),
     }
+
+
+def reconstruct(trades: list, envelopes: dict[str, str], prices_eur: pd.DataFrame,
+                start: date, end: date) -> list[tuple[date, dict]]:
+    """Valeur et investi par enveloppe, chaque jour ouvré de start à end. trades : opérations Achat /
+    Vente (realized.Operation). Sans cours connu (titre pas encore coté chez Yahoo ce jour-là), une
+    position vaut son dernier prix d'achat."""
+    days = pd.bdate_range(start, end)
+    if not len(days):
+        return []
+    prices = prices_eur.copy()
+    prices.index = pd.to_datetime(prices.index).tz_localize(None).normalize()
+    prices = prices[~prices.index.duplicated()].sort_index()
+    prices = prices.reindex(prices.index.union(days)).ffill().reindex(days)
+    pending = sorted(trades, key=lambda op: (op.day, op.kind != "Achat"))
+    holdings: dict[tuple[str, str], list[float]] = {}  # (enveloppe, titre) -> [quantité, coût]
+    last_price: dict[str, float] = {}
+    rows = []
+    for day in days:
+        while pending and pd.Timestamp(pending[0].day) <= day:
+            op = pending.pop(0)
+            envelope = envelopes.get(op.account, "CTO") if envelopes.get(op.account) in ("PEA", "CTO") else "CTO"
+            position = holdings.setdefault((envelope, op.ticker), [0.0, 0.0])
+            if op.kind == "Achat":
+                position[0] += op.quantity
+                position[1] += op.net
+                last_price[op.ticker] = op.net / op.quantity
+            elif position[0] > 0:
+                sold = min(op.quantity, position[0])
+                position[1] -= position[1] * sold / position[0]
+                position[0] -= sold
+        totals = {e: {"value": 0.0, "invested": 0.0} for e in ENVELOPES}
+        for (envelope, ticker), (quantity, cost) in holdings.items():
+            if quantity <= 1e-9:
+                continue
+            price = prices.at[day, ticker] if ticker in prices.columns else float("nan")
+            price = float(price) if not pd.isna(price) else last_price.get(ticker, 0.0)
+            totals[envelope]["value"] += quantity * price
+            totals[envelope]["invested"] += cost
+        if any(t["invested"] for t in totals.values()):
+            rows.append((day.date(), totals))
+    return rows
+
+
+def rebuild_history(sheet_id: str, since: date | None = None, today: date | None = None) -> dict:
+    """Recalcule l'onglet Historique de `since` (par défaut : première opération) à la veille."""
+    from .performance import eur_closes
+    from .realized import read_ledger
+
+    ledger = read_ledger(sheet_id)
+    trades = [op for op in ledger.operations if op.kind in ("Achat", "Vente") and op.quantity]
+    if not trades:
+        return {"rows": 0, "from": None}
+    first = min(op.day for op in trades)
+    start = max(since or first, first)
+    end = (today or date.today()) - timedelta(days=1)
+    if start > end:
+        return {"rows": 0, "from": start.isoformat()}
+    tickers = sorted({op.ticker for op in trades})
+    prices = eur_closes(tickers, ledger.currencies, (first - timedelta(days=10)).isoformat())
+    computed = reconstruct(trades, ledger.envelopes, prices, start, end)
+
+    sheet = _open_sheet(sheet_id, write=True)
+    ws = _worksheet(sheet, "Historique")
+    kept = []
+    for row in ws.get_values(value_render_option=UNFORMATTED)[1:]:
+        row = (list(row) + [""] * 5)[:5]
+        if not isinstance(row[0], (int, float)):
+            continue
+        day = SHEETS_EPOCH + timedelta(days=int(row[0]))
+        if not start <= day <= end:
+            kept.append((day, {"PEA": {"value": row[1] or 0, "invested": row[2] or 0},
+                               "CTO": {"value": row[3] or 0, "invested": row[4] or 0}}))
+    merged = sorted(kept + computed, key=lambda r: r[0])
+    values = [history_row(day, totals, i + 2) for i, (day, totals) in enumerate(merged)]
+    if ws.row_count < len(values) + 1:
+        ws.add_rows(len(values) + 1 - ws.row_count + 100)
+    ws.batch_clear(["A2:H"])
+    if values:
+        ws.update(range_name="A2", values=values, value_input_option="USER_ENTERED")
+    return {"rows": len(computed), "from": start.isoformat(), "total": len(values)}
 
 
 def record_snapshot(sheet_id: str, day: date) -> dict:

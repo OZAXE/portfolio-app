@@ -10,6 +10,7 @@ Les frais et taxes sont proposés par l'appli (barème de l'onglet Frais, TTF) m
 envoyée, éventuellement corrigée par l'utilisateur, qui est enregistrée.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import date
 
@@ -68,7 +69,12 @@ def describe_for_titres(ticker: str) -> TickerInfo:
     history = t.history(period="5d")
     meta = t.history_metadata or {}
     if history.empty or not meta.get("symbol"):
-        raise OperationError(f"Ticker inconnu chez Yahoo : {ticker} (format attendu : MC.PA, SAP.DE, AAPL...)")
+        raise OperationError(f"Ticker inconnu chez Yahoo : {ticker} (format attendu : MC.PA, SAP.DE, AAPL, BTC-EUR...)")
+    crypto = re.fullmatch(r"([A-Z0-9]{2,10})-(EUR|USD)", ticker.upper())
+    if crypto or meta.get("instrumentType") == "CRYPTOCURRENCY":
+        base, quote = crypto.groups() if crypto else (ticker.upper().split("-")[0], meta.get("currency") or "EUR")
+        name = (meta.get("longName") or meta.get("shortName") or base).replace(f" {quote}", "")
+        return TickerInfo(google=f"CURRENCY:{base}{quote}", name=name, currency=quote, kind="Crypto")
     suffix = next((s for s in YAHOO_TO_GOOGLE_EXCHANGE if ticker.upper().endswith(s)), None)
     if suffix:
         google = f"{YAHOO_TO_GOOGLE_EXCHANGE[suffix]}:{ticker[: -len(suffix)]}"
@@ -143,6 +149,8 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     known = {t["ticker"].upper() for t in settings["titres"]}
     if ticker not in known:
         info = describe_for_titres(ticker)
+        if info.kind == "Crypto":
+            sector, zone = sector or "Crypto", zone or "Monde"
         titres = _worksheet(sheet, "Titres")
         next_row = len(titres.col_values(1)) + 1
         titres.update(range_name=f"A{next_row}", values=[[ticker, info.google, info.name, sector, zone, info.currency, info.kind]])

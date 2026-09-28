@@ -391,7 +391,7 @@
             <label>Date<input id="op-date" type="date" /></label>
             <label>Compte<select id="op-account"></select></label>
             <label>Type d'ordre<select id="op-order"></select></label>
-            <label class="wide">Titre (ticker Yahoo)<input id="op-ticker" list="op-tickers" placeholder="ex : MC.PA, AAPL, SAP.DE" autocomplete="off" /></label>
+            <label class="wide">Titre (ticker Yahoo)<input id="op-ticker" list="op-tickers" placeholder="ex : MC.PA, AAPL, SAP.DE, BTC-EUR" autocomplete="off" /></label>
             <datalist id="op-tickers"></datalist>
             <label><span id="op-qty-label">Quantité</span><input id="op-qty" type="number" step="any" min="0" inputmode="decimal" /></label>
             <label><span id="op-price-label">Prix unitaire</span><input id="op-price" type="number" step="any" min="0" inputmode="decimal" /></label>
@@ -443,6 +443,8 @@
           </div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
           <p class="help" id="bench-summary" style="margin-top:8px"></p>
+          <button class="btn" id="history-rebuild" style="margin-top:4px">Reconstituer l'historique depuis mes opérations</button>
+          <p class="help" id="history-status" style="margin-top:6px"></p>
         </div>
 
         <h2>Positions</h2>
@@ -1035,7 +1037,8 @@
         + (r ? `<div class="row"><span>Gain total</span><span class="${signClass(r.gain)}">${signedEur(r.gain)}</span></div>` : "")
         + (label ? `<div class="row"><span>${label.term}</span><span class="${signClass(r.xirr)}">${label.text}</span></div>` : "");
       if (!a) {
-        return `<div class="analysis">${investedRow}<div class="hypotheses">Analyse en cours de chargement ou indisponible.</div></div>`;
+        const note = h.kind === "Crypto" ? "Pas de valeur intrinsèque ni de score pour une crypto : elle n'a ni bénéfices ni cash-flows." : "Analyse en cours de chargement ou indisponible.";
+        return `<div class="analysis">${investedRow}<div class="hypotheses">${note}</div></div>`;
       }
       const extra = `${investedRow}<div class="row"><span>Quantité</span><span class="amt">${a.quantity}</span></div>`;
       return renderStockDetail(analysisToRecord(a, a.ticker), extra, false);
@@ -2311,11 +2314,31 @@
         ["op-qty", "op-price", "op-why", "op-note", "op-ticker"].forEach((id) => (opEl(id).value = ""));
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
+        // Opération passée : la courbe est recalculée depuis cette date
+        if (payload.date && payload.date < new Date().toISOString().slice(0, 10)) rebuildHistory(payload.date);
       } catch (e) {
         status.textContent = e.message;
       }
       opEl("op-submit").disabled = false;
     }
+
+    // --- Historique reconstitué à partir des opérations (cours de clôture de chaque jour) ---
+    async function rebuildHistory(since) {
+      const status = document.getElementById("history-status");
+      status.textContent = "Reconstitution de l'historique à partir de tes opérations…";
+      try {
+        const r = await postJson("/history/rebuild", { since: since || null });
+        overview = await api("/portfolio/overview");
+        renderPortfolioSections();
+        saveSnapshot();
+        status.textContent = r.rows ? `Historique reconstitué : ${r.rows} jour${r.rows > 1 ? "s" : ""} de bourse depuis le ${shortDate.format(new Date(r.from + "T12:00:00"))}.` : "";
+      } catch (e) {
+        status.textContent = "Historique non reconstitué : " + e.message;
+      }
+    }
+    document.getElementById("history-rebuild").addEventListener("click", () => {
+      if (confirm("Recalculer toute la courbe à partir de tes opérations et des cours de clôture ? Les relevés existants seront remplacés.")) rebuildHistory(null);
+    });
 
     // --- Import de relevés (Trade Republic CSV, avis d'opéré Boursorama PDF) : aperçu, puis écriture ---
     let importPreview = null;
@@ -2406,6 +2429,7 @@
         opEl("imp-files").value = "";
         opSettings = null;
         loadPortfolio();
+        if (result.written) rebuildHistory(operations.map((o) => o.date).sort()[0]);
       } catch (e) {
         status.textContent = e.message;
         opEl("imp-submit").disabled = false;

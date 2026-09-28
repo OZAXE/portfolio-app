@@ -360,7 +360,7 @@ def apply_titres(holdings: list[HoldingLine], titres: list[list]) -> None:
         row = by_ticker.get((h.yahoo_ticker or "").upper(), [])
         h.kind = _cell([row], 0, 6) or h.kind
         pocket = _cell([row], 0, 7)
-        h.pocket = str(pocket).strip() if pocket else ("ETF" if h.kind == "ETF" else "Actions")
+        h.pocket = str(pocket).strip() if pocket else {"ETF": "ETF", "Crypto": "Crypto"}.get(h.kind, "Actions")
 
 
 def parse_targets(rows: list[list]) -> list[dict]:

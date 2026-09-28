@@ -137,7 +137,8 @@ def get_analysis(ticker: str):
 
 @app.get("/portfolio/analysis")
 def get_portfolio_analysis(user: User = Depends(require_access)):
-    positions = _load_positions(user)
+    # Une crypto n'a ni comptes ni cash-flows : pas de valeur intrinsèque ni de score
+    positions = [p for p in _load_positions(user) if not re.fullmatch(r"[A-Z0-9]{2,10}-(EUR|USD)", p.ticker.upper())]
     with ThreadPoolExecutor(max_workers=ANALYSIS_WORKERS) as pool:
         financials = list(pool.map(cached_financials, [pos.ticker for pos in positions]))
     output = []
@@ -648,6 +649,21 @@ def save_etf_fees(payload: dict = Body(...)):
     from .etf_fees_store import write_fee_state
 
     return _sheet_call(lambda: write_fee_state(payload))
+
+
+# Historique reconstitué à partir des opérations (après un import ou une opération passée)
+@app.post("/history/rebuild")
+def post_history_rebuild(payload: dict = Body(default={}), user: User = Depends(require_access)):
+    from datetime import date
+
+    from .history import rebuild_history
+
+    since = payload.get("since")
+    try:
+        since = date.fromisoformat(since) if since else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date attendue au format AAAA-MM-JJ")
+    return _operation_call(lambda: rebuild_history(user.sheet_id, since))
 
 
 # Relevé quotidien de l'onglet Historique de chaque utilisateur (job nocturne, code du propriétaire)

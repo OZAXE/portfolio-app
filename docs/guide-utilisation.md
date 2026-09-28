@@ -39,6 +39,9 @@ Touche à nouveau l'œil pour tout réafficher. Le réglage est mémorisé sur t
   l'indice ; en dessous, un simple ETF aurait fait mieux.
 
 Un point est ajouté chaque nuit après un jour de bourse : la courbe se remplit toute seule.
+Quand tu importes un relevé ou saisis une opération passée, la courbe est aussi **reconstituée**
+depuis la date de l'opération, jour par jour, avec les cours de clôture de chaque jour. Le bouton
+**Reconstituer l'historique depuis mes opérations** recalcule toute la courbe depuis ton premier achat.
 
 ### Le détail d'une ligne
 
@@ -58,7 +61,8 @@ Onglet **Portefeuille**, bouton **+ Nouvelle opération** :
 
 1. Choisis le **type** (Achat, Vente, Dividende), la **date** et le **compte**.
 2. Tape le **titre** au format Yahoo : `MC.PA` pour LVMH, `AI.PA` pour Air Liquide, `AAPL` pour Apple,
-   `SAP.DE` pour SAP. La liste propose les titres que tu as déjà.
+   `SAP.DE` pour SAP, `BTC-EUR` pour le Bitcoin, `ETH-EUR` pour l'Ethereum. La liste propose les titres
+   que tu as déjà. Une crypto se range dans ton CTO ; elle n'a ni valeur intrinsèque ni score.
 3. Indique la **quantité** et le **prix unitaire**. Pour un titre en dollars, choisis la devise :
    le taux de change se remplit tout seul.
 4. Les **frais** et **taxes** (dont la taxe sur les transactions financières de 0,4 % sur les grandes
@@ -75,7 +79,8 @@ Bouton **Importer un relevé**, choisis le compte puis le ou les fichiers :
   l'ouverture du compte. Le relevé PDF contient le CTO et le PEA : chaque opération est rangée dans le
   compte de la bonne enveloppe. Il ne donne qu'un montant par ligne : les frais sont comptés 1 € par
   ordre (0 € pour un plan d'investissement) et les dividendes sont enregistrés nets de la retenue à la
-  source. Les cryptos et les attributions d'actions gratuites ne sont pas importées (à saisir à la main) ;
+  source. Les cryptos (Bitcoin, Ethereum…) sont importées ; les attributions d'actions gratuites ne le
+  sont pas : saisis les actions reçues en **Achat** au prix de 0 € ;
 - **Boursorama** : avis d'opéré PDF (Espace client > Documents), tous d'un coup.
 
 Touche **Analyser** : l'appli liste les opérations trouvées **sans rien écrire**. Les opérations déjà

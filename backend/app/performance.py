@@ -83,11 +83,13 @@ def compute_performance(trades: list[Trade], prices_eur: pd.DataFrame, benchmark
     return points
 
 
-def download_closes(tickers: list[str], start: str) -> pd.DataFrame:
-    """Cours de clôture ajustés, une colonne par ticker (colonnes vides pour un ticker inconnu)."""
+def download_closes(tickers: list[str], start: str, adjusted: bool = True) -> pd.DataFrame:
+    """Cours de clôture, une colonne par ticker (colonnes vides pour un ticker inconnu). Ajustés des
+    dividendes par défaut (comparaison à un indice, dividendes réinvestis) ; bruts avec adjusted=False
+    (valeur d'une position un jour donné, comme la voyait l'onglet Positions)."""
     import yfinance as yf
 
-    raw = yf.download(tickers, start=start, progress=False, auto_adjust=True, group_by="ticker")
+    raw = yf.download(tickers, start=start, progress=False, auto_adjust=adjusted, group_by="ticker")
     closes = {}
     for ticker in tickers:
         if isinstance(raw.columns, pd.MultiIndex):
@@ -96,6 +98,46 @@ def download_closes(tickers: list[str], start: str) -> pd.DataFrame:
         else:
             closes[ticker] = raw["Close"]
     return pd.DataFrame(closes)
+
+
+def unsplit(closes: pd.Series, splits: pd.Series) -> pd.Series:
+    """Yahoo divise tous les cours passés lors d'une division d'action ou d'une attribution d'actions
+    gratuites (Air Liquide : 1,1 pour 1). On remet le cours réel de chaque jour, celui qui s'appliquait
+    à la quantité détenue ce jour-là."""
+    factor = pd.Series(1.0, index=closes.index)
+    for when, ratio in splits.items():
+        when = pd.Timestamp(when)
+        when = (when.tz_localize(None) if when.tzinfo else when).normalize()
+        if ratio and ratio > 0:
+            factor[closes.index < when] *= float(ratio)
+    return closes * factor
+
+
+def _splits(ticker: str) -> pd.Series:
+    import yfinance as yf
+
+    try:
+        return yf.Ticker(ticker).splits
+    except Exception:
+        return pd.Series(dtype=float)
+
+
+def eur_closes(tickers: list[str], currencies: dict[str, str], start: str) -> pd.DataFrame:
+    """Cours de clôture réels en euros depuis `start` (sans ajustement des dividendes ni des divisions),
+    une colonne par ticker (pence de Londres compris)."""
+    closes = download_closes(tickers, start, adjusted=False).dropna(how="all")
+    closes.index = pd.to_datetime(closes.index).tz_localize(None) if getattr(closes.index, "tz", None) else pd.to_datetime(closes.index)
+    for ticker in closes.columns:
+        splits = _splits(ticker)
+        if len(splits):
+            closes[ticker] = unsplit(closes[ticker], splits)
+    needed_fx = sorted({("GBP" if c == "GBp" else c) for t, c in currencies.items() if t in tickers} - {"EUR"})
+    fx = pd.DataFrame(index=closes.index)
+    if needed_fx:
+        fx = download_closes([f"{c}EUR=X" for c in needed_fx], start)
+        fx.columns = needed_fx
+        fx = fx.reindex(closes.index).ffill().bfill()
+    return _eur_prices(closes, fx, currencies)
 
 
 def portfolio_performance(sheet_id: str, benchmark: str) -> dict:

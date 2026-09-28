@@ -4,8 +4,8 @@ fichiers, tickers retrouvés, doublons signalés), puis écriture des lignes val
 
 Formats reconnus :
 - Trade Republic : export CSV des transactions. Achats, ventes,
-  plans d'investissement et dividendes ; le reste (carte, intérêts, virements, Saveback et Stockperk
-  versés en espèces) est ignoré, ainsi que la crypto, que l'appli ne suit pas ;
+  plans d'investissement et dividendes, crypto comprise (ticker Yahoo BTC-EUR, ETH-EUR...) ; le reste
+  (carte, intérêts, virements, Saveback et Stockperk versés en espèces) est ignoré ;
 - Trade Republic : relevé de compte PDF (Profil > Documents). Une section par compte (« Compte
   courant » pour le CTO, « Compte PEA ») : chaque opération est rangée dans le compte de la même
   enveloppe. Le relevé ne donne qu'un montant par ligne : les frais d'un ordre sont comptés 1 €
@@ -51,6 +51,18 @@ class ParsedOperation:
     account: str | None = None  # compte où l'opération sera écrite
 
 
+# Crypto chez Trade Republic : pseudo-ISIN XF000BTC0017 (relevé PDF) ou symbole BTC (export CSV)
+CRYPTO_ISIN = re.compile(r"XF000([A-Z]{2,6}?)\d+")
+
+
+def crypto_ticker(code: str) -> str | None:
+    """Ticker Yahoo en euros d'une crypto : XF000BTC0017 ou BTC -> BTC-EUR."""
+    code = str(code or "").strip().upper()
+    match = CRYPTO_ISIN.fullmatch(code)
+    symbol = match.group(1) if match else code if re.fullmatch(r"[A-Z]{2,6}", code) else None
+    return f"{symbol}-EUR" if symbol else None
+
+
 def _num(text) -> float:
     """« 1 172,50 » (Boursorama) ou « -1.00 » (Trade Republic) -> float ; vide -> 0."""
     text = str(text or "").strip().replace(" ", "").replace("\xa0", "").replace(" ", "")
@@ -71,10 +83,6 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
         shares = abs(_num(row["shares"]))  # négatif sur les ventes
         if not kind or not row["symbol"] or not shares:
             continue
-        if row.get("asset_class") == "CRYPTO":
-            if skipped is not None:
-                skipped["crypto"] = skipped.get("crypto", 0) + 1
-            continue
         amount, fee, tax = _num(row["amount"]), abs(_num(row.get("fee"))), abs(_num(row.get("tax")))
         if kind == "Dividende":
             price = amount / shares  # brut en euros par action, retenues dans les taxes
@@ -85,6 +93,7 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
             date=row["date"], type=kind, isin=row["symbol"].strip().upper(), name=row.get("name") or row["symbol"],
             quantity=shares, price=round(price, 6), fees=fee, taxes=tax,
             order_type="" if kind == "Dividende" else "Plan d'investissement" if plan else "Ordre", source=source,
+            ticker=crypto_ticker(row["symbol"]) if row.get("asset_class") == "CRYPTO" else None,
         ))
     return operations
 
@@ -161,9 +170,6 @@ def parse_trade_republic_statement(text: str, source: str, skipped: dict | None 
             trade, dividend = TR_TRADE.search(chunk), TR_DIVIDEND.search(chunk)
             if trade:
                 label, isin, name, quantity = trade.group(1), trade.group(2), trade.group(3).strip(), float(trade.group(4))
-                if isin.startswith("XF000"):  # crypto (Bitcoin, Ethereum...) : non suivie
-                    skipped["crypto"] = skipped.get("crypto", 0) + 1
-                    continue
                 if not quantity:
                     continue
                 kind = "Vente" if label == "Sell trade" else "Achat"
@@ -174,7 +180,7 @@ def parse_trade_republic_statement(text: str, source: str, skipped: dict | None 
                 operations.append(ParsedOperation(
                     date=day, type=kind, isin=isin, name=name, quantity=quantity, price=round(price, 6),
                     fees=fee, taxes=0.0, order_type="Plan d'investissement" if plan else "Ordre",
-                    source=source, envelope=envelope))
+                    source=source, envelope=envelope, ticker=crypto_ticker(isin) if isin.startswith("XF000") else None))
             elif dividend:
                 isin = dividend.group(1)
                 quantity = round(held.get(isin, 0.0), 6)
@@ -284,16 +290,17 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
     seen = {_duplicate_key(op.day.isoformat(), op.account, op.kind, op.quantity) for op in existing}
     tickers: dict[str, str | None] = {}
     for op in sorted(parsed, key=lambda o: o.date):
+        if op.ticker:  # crypto : ticker déjà connu
+            continue
         if op.isin not in tickers:
             tickers[op.isin] = find_ticker(op.isin, known_isins)
         op.ticker = tickers[op.isin]
+    for op in sorted(parsed, key=lambda o: o.date):
         key = _duplicate_key(op.date, op.account, op.type, op.quantity)
         op.status = ("no_account" if not op.account else "duplicate" if key in seen
                      else "new" if op.ticker else "no_ticker")
         seen.add(key)  # le même ordre présent dans deux fichiers
     operations = [asdict(op) for op in sorted(parsed, key=lambda o: o.date)]
-    if skipped.get("crypto"):
-        errors.append(f"{skipped['crypto']} opérations crypto ignorées (l'appli ne suit pas la crypto)")
     if skipped.get("corporate"):
         errors.append(f"{skipped['corporate']} opérations sur titres ignorées (attribution d'actions gratuites, "
                       "rompus...) : ajoute à la main les actions reçues")
@@ -335,7 +342,8 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
         for ticker in new_tickers:
             try:
                 info = titres_info(ticker)
-                rows.append([ticker, info.google, info.name, "", "", info.currency, info.kind])
+                crypto = info.kind == "Crypto"
+                rows.append([ticker, info.google, info.name, "Crypto" if crypto else "", "Monde" if crypto else "", info.currency, info.kind])
             except OperationError:
                 rows.append([ticker, "", ticker, "", "", "EUR", "Action"])  # à compléter à la main
         titres.update(range_name=f"A{start}", values=rows)

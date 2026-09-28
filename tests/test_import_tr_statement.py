@@ -82,14 +82,16 @@ def test_statement_trades_dividends_and_accounts():
     assert summary == [
         ("CTO", "2025-12-10", "Achat", "US0000000001", 2.0, 100.0, 1.0, "Ordre"),  # 201 € = 2 x 100 + 1 € de frais
         ("CTO", "2026-03-02", "Achat", "US0000000002", 0.25, 200.0, 0.0, "Plan d'investissement"),
+        ("CTO", "2026-03-02", "Achat", "XF000BTC0017", 0.0004, 62500.0, 0.0, "Plan d'investissement"),  # Bitcoin
         ("CTO", "2026-04-09", "Dividende", "US0000000001", 2.0, 0.6, 0.0, ""),  # 1,20 € pour 2 actions détenues
         ("CTO", "2026-04-30", "Vente", "US0000000001", 1.0, 1100.0, 1.0, "Ordre"),  # 1.099,00 € encaissés
         ("PEA", "2025-12-10", "Achat", "FR0000000003", 3.0, 50.0, 1.0, "Ordre"),
         ("PEA", "2026-05-20", "Dividende", "FR0000000003", 3.0, 3.0, 0.0, ""),
     ]
     assert ops[1].name == "AUTRE SOCIETE INC. DL-,01"  # nom sur deux lignes
-    assert ops[2].name == "EXEMPLE CORP. DL -,01"  # nom repris de l'achat
-    assert skipped == {"crypto": 1, "corporate": 1}
+    assert ops[2].ticker == "BTC-EUR" and ops[0].ticker is None  # crypto : ticker Yahoo en euros
+    assert ops[3].name == "EXEMPLE CORP. DL -,01"  # nom du dividende repris de l'achat
+    assert skipped == {"corporate": 1}
 
 
 def test_statement_without_operations():
@@ -124,8 +126,9 @@ def test_preview_statement_routes_pea_to_pea_account(monkeypatch):
     accounts = {(o["type"], o["isin"], o["account"]) for o in result["operations"]}
     assert ("Achat", "FR0000000003", "PEA Trade Republic") in accounts
     assert ("Achat", "US0000000001", "CTO Trade Republic") in accounts
-    assert result["counts"]["new"] == 6
-    assert any("crypto" in e for e in result["errors"]) and any("opérations sur titres" in e for e in result["errors"])
+    assert result["counts"]["new"] == 7
+    assert ("Achat", "XF000BTC0017", "CTO Trade Republic") in accounts
+    assert any("opérations sur titres" in e for e in result["errors"])
 
 
 def test_known_isin_symbols_are_valid_yahoo_tickers():

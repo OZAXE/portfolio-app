@@ -46,7 +46,7 @@ Code ISIN : FR0000120271 Cours exécuté : 76,48 EUR
 
 
 def test_trade_republic_csv_keeps_trades_and_dividends():
-    ops = parse_trade_republic_csv(TR_CSV, "tr.csv")
+    ops = [o for o in parse_trade_republic_csv(TR_CSV, "tr.csv") if not o.ticker]  # crypto : test suivant
     assert [(o.type, o.isin) for o in ops] == [("Dividende", "US92826C8394"), ("Achat", "US67066G1040"), ("Vente", "US92826C8394")]
     dividend, plan, sale = ops
     assert dividend.price == pytest.approx(0.6) and dividend.taxes == 0.12 and dividend.order_type == ""
@@ -55,10 +55,16 @@ def test_trade_republic_csv_keeps_trades_and_dividends():
     assert sale.quantity == 0.2  # quantité négative dans l'export pour une vente
 
 
-def test_trade_republic_crypto_skipped_and_reported():
-    skipped = {}
-    ops = parse_trade_republic_csv(TR_CSV, "tr.csv", skipped)
-    assert "BTC" not in {o.isin for o in ops} and skipped == {"crypto": 1}
+def test_trade_republic_crypto_imported_with_yahoo_ticker():
+    btc = next(o for o in parse_trade_republic_csv(TR_CSV, "tr.csv") if o.isin == "BTC")
+    assert (btc.ticker, btc.type, btc.quantity, btc.price) == ("BTC-EUR", "Achat", 0.0001, 70000.0)
+
+
+def test_crypto_ticker():
+    from app.imports import crypto_ticker
+
+    assert crypto_ticker("XF000BTC0017") == "BTC-EUR" and crypto_ticker("XF000ETH0019") == "ETH-EUR"
+    assert crypto_ticker("btc") == "BTC-EUR" and crypto_ticker("US0000000001") is None
 
 
 def test_trade_republic_wrong_file():
@@ -93,4 +99,5 @@ def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
     statuses = {(o["type"], o["isin"]): o["status"] for o in result["operations"]}
     assert statuses[("Achat", "US67066G1040")] == "duplicate"  # déjà saisi à la main
     assert statuses[("Dividende", "US92826C8394")] == "no_ticker"
-    assert result["counts"] == {"new": 0, "duplicate": 1, "no_ticker": 2, "no_account": 0}
+    assert statuses[("Achat", "BTC")] == "new"  # crypto : ticker BTC-EUR sans recherche
+    assert result["counts"] == {"new": 1, "duplicate": 1, "no_ticker": 2, "no_account": 0}

@@ -59,7 +59,8 @@ Dans l'appli, **Réglages > Mes comptes et courtiers** :
 Le plus rapide : onglet **Portefeuille**, bouton **Importer un relevé**. Choisis le compte, puis :
 - **Trade Republic** : le **relevé de compte PDF** (dans l'appli Trade Republic : Profil > Documents,
   sur toute la période depuis l'ouverture). Il contient ton CTO et ton PEA : chaque opération va dans le
-  bon compte, à condition d'avoir créé les deux à l'étape 4. L'export CSV des transactions marche aussi ;
+  bon compte, à condition d'avoir créé les deux à l'étape 4, crypto comprise. L'export CSV des
+  transactions marche aussi ;
 - **Boursorama** : les avis d'opéré PDF (Espace client > Documents), tous d'un coup.
 
 L'appli affiche les opérations trouvées avant d'écrire quoi que ce soit : décoche ce que tu ne veux pas,
@@ -70,7 +71,8 @@ Pour une autre banque, bouton **+ Nouvelle opération**, une ligne par achat dé
 compte, date, ticker au format Yahoo (`MC.PA` pour LVMH, `AAPL` pour Apple, `SAP.DE` pour SAP…),
 quantité, prix, frais.
 
-L'onglet **Positions** du Sheet se calcule tout seul (quantité, PRU frais inclus, valeur, plus-value).
+L'onglet **Positions** du Sheet se calcule tout seul (quantité, PRU frais inclus, valeur, plus-value),
+et la courbe d'évolution est reconstituée depuis ton premier achat.
 
 ## Étape 6 (facultatif) : ton allocation cible
 
