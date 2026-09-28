@@ -118,7 +118,7 @@ def cached_financials(ticker: str):
     return cf
 
 
-@app.get("/analysis/{ticker}")
+@app.get("/analysis/{ticker}", dependencies=[Depends(require_access)])
 def get_analysis(ticker: str):
     cf = cached_financials(ticker)
     if cf.raw_error == INVALID_TICKER_ERROR:
@@ -380,7 +380,7 @@ def _forget_operations(sheet_id: str):
     _dividends_cache.pop(sheet_id, None)
 
 
-@app.get("/fx/{currency}")
+@app.get("/fx/{currency}", dependencies=[Depends(require_access)])
 def get_fx(currency: str):
     """Taux de conversion vers l'euro (1 USD = x EUR), pour une opération en devise étrangère."""
     import yfinance as yf
@@ -606,6 +606,21 @@ def signup_finish(request: Request, payload: dict = Body(...)):
     return _signup_call(request, lambda: finish(str(payload.get("sheet") or ""), str(payload.get("name") or "")))
 
 
+# Frais courants des ETF détenus : état privé du job nocturne (screener/etf_fees.py), jamais publié
+@app.get("/admin/etf-fees", dependencies=[Depends(require_admin)])
+def get_etf_fees():
+    from .etf_fees_store import read_fee_state
+
+    return _sheet_call(read_fee_state)
+
+
+@app.post("/admin/etf-fees", dependencies=[Depends(require_admin)])
+def save_etf_fees(payload: dict = Body(...)):
+    from .etf_fees_store import write_fee_state
+
+    return _sheet_call(lambda: write_fee_state(payload))
+
+
 # Relevé quotidien de l'onglet Historique de chaque utilisateur (job nocturne, code du propriétaire)
 @app.post("/history/snapshot", dependencies=[Depends(require_admin)])
 def history_snapshot(day: str):
@@ -656,9 +671,12 @@ def get_costs(user: User = Depends(require_access)):
         except Exception:
             pass  # compte de service en lecture seule : la colonne reste à ajouter à la main
         manual = manual_fees(titres_ws.get_values(value_render_option=UNFORMATTED))
-        # Frais courants récupérés chaque nuit par screener/etf_fees.py (Yahoo est souvent bloqué ici),
+        # Frais courants récupérés chaque nuit par screener/etf_fees.py (Yahoo est souvent bloqué ici)
+        # et rangés dans le Sheet du propriétaire (onglet Frais ETF),
         # remplacés par ceux saisis dans l'onglet Titres
-        fees_file = _screener_data("etf_fees.json") or {}
+        from .etf_fees_store import read_fee_state
+
+        fees_file = read_fee_state()
         ter = {t: v.get("ter") for t, v in fees_file.get("etfs", {}).items()} | manual
         holdings = [{"ticker": h.ticker.upper(), "name": h.name, "value": h.value, "manual": h.ticker.upper() in manual}
                     for h in get_overview(user.sheet_id).holdings if h.kind == "ETF"]

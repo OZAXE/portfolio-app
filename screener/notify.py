@@ -123,17 +123,20 @@ def main():
     alert_tickers = sorted({a["ticker"] for u in users for a in u.get("price_alerts", [])})
     prices = closing_prices(alert_tickers)
 
-    for u in users:
+    # Les journaux de GitHub Actions sont publics : ni noms, ni titres, ni textes d'alerte
+    for i, u in enumerate(users, 1):
+        who = f"utilisateur {i}/{len(users)}"
         if u.get("error"):
-            log.warning("%s : Sheet illisible (%s)", u["name"], u["error"])
+            log.warning("%s : Sheet illisible", who)
             continue
         topic = u.get("topic") or (default_topic if u.get("admin") else None)
         events = compute_alerts(set(u["positions"]), set(u["watchlist"]), screener, investors)["events"]
         price_events = price_alert_events(u["price_alerts"], prices)
-        log.info("%s : %d alertes, %d alertes de prix déclenchées%s", u["name"], len(events), len(price_events),
+        log.info("%s : %d alertes, %d alertes de prix déclenchées%s", who, len(events), len(price_events),
                  "" if topic else " (pas de sujet ntfy)")
-        for e in events + price_events:
-            log.info("  [%s] %s", e["type"], e["message"])
+        if args.dry_run:  # à la main seulement, jamais dans le workflow
+            for e in events + price_events:
+                log.info("  [%s] %s", e["type"], e["message"])
         if args.dry_run or not topic or not (events or price_events):
             continue
         notify(topic, events + price_events)

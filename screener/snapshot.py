@@ -68,17 +68,20 @@ def main():
                              headers={"X-Access-Token": token}, timeout=300)
     response.raise_for_status()
 
-    for u in response.json():
+    # Les journaux de GitHub Actions sont publics : ni noms ni titres (le message d'erreur en contient)
+    results = response.json()
+    for i, u in enumerate(results, 1):
+        who = f"utilisateur {i}/{len(results)}"
         if u.get("error"):
-            log.warning("%s : relevé impossible (%s)", u["name"], u["error"])
+            log.warning("%s : relevé impossible (cours en erreur ou Sheet illisible)", who)
             continue
-        log.info("%s : %s", u["name"], "relevé ajouté" if u["recorded"] else f"pas de relevé ({u['reason']})")
+        log.info("%s : %s", who, "relevé ajouté" if u["recorded"] else f"pas de relevé ({u['reason']})")
         weekly, topic = u.get("weekly"), u.get("topic") or (default_topic if u.get("admin") else None)
         if day.weekday() != 4 or not weekly or not topic or args.dry_run:
             continue
         title, message, tag = weekly_message(weekly)
         send(topic, title, message, tag)
-        log.info("%s : notification de la semaine envoyée", u["name"])
+        log.info("%s : notification de la semaine envoyée", who)
 
 
 if __name__ == "__main__":
