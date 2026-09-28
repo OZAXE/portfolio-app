@@ -12,7 +12,7 @@ from datetime import date
 
 import pandas as pd
 
-from .sheets import UNFORMATTED, _open_sheet, _serial_to_iso, _worksheet
+from .realized import read_ledger
 
 BENCHMARKS = {
     "cac40": ("^FCHI", "CAC 40"),
@@ -30,22 +30,13 @@ class Trade:
 
 
 def read_trades(sheet_id: str) -> tuple[list[Trade], dict[str, str]]:
-    """Achats et ventes de l'onglet Opérations, et devise de cotation de chaque titre (onglet Titres)."""
-    sheet = _open_sheet(sheet_id)
-    trades = []
-    for row in _worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:]:
-        row = (row + [""] * 12)[:12]
-        iso = _serial_to_iso(row[0])
-        if not iso or row[2] not in ("Achat", "Vente") or not isinstance(row[4], (int, float)):
-            continue
-        sign = 1 if row[2] == "Achat" else -1
-        cash = row[11] if isinstance(row[11], (int, float)) else row[4] * (row[5] or 0) * (row[7] or 1)
-        trades.append(Trade(date.fromisoformat(iso), str(row[3]).strip().upper(), sign * row[4], sign * cash))
-    currencies = {}
-    for row in _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)[1:]:
-        if len(row) > 5 and row[0]:
-            currencies[str(row[0]).strip().upper()] = str(row[5] or "EUR")
-    return sorted(trades, key=lambda t: t.day), currencies
+    """Achats et ventes de l'onglet Opérations (montant net, frais compris), et devise de cotation
+    de chaque titre (onglet Titres)."""
+    ledger = read_ledger(sheet_id)
+    trades = [Trade(op.day, op.ticker, op.quantity if op.kind == "Achat" else -op.quantity,
+                    op.net if op.kind == "Achat" else -op.net)
+              for op in ledger.operations if op.kind in ("Achat", "Vente")]
+    return sorted(trades, key=lambda t: t.day), dict(ledger.currencies)
 
 
 def _eur_prices(closes: pd.DataFrame, fx: pd.DataFrame, currencies: dict[str, str]) -> pd.DataFrame:

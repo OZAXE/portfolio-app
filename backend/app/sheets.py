@@ -133,11 +133,18 @@ RETRY_WAITS = (5, 10, 20)  # quota dépassé : la limite est par minute, on pati
 _cache: dict = {}
 _key_locks: dict = {}
 _cache_lock = threading.Lock()
+_generation = [0]
 
 
 def clear_sheet_cache() -> None:
     with _cache_lock:
         _cache.clear()
+        _generation[0] += 1
+
+
+def cache_generation() -> int:
+    """Change à chaque écriture : clé des résultats calculés à partir des lectures en cache."""
+    return _generation[0]
 
 
 class CachedHTTPClient(HTTPClient):

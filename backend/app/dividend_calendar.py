@@ -14,10 +14,13 @@ de l'année (la retenue à la source étrangère, 15 % aux États-Unis, est impu
 """
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
-from .realized import flat_tax_rate, read_operations
-from .sheets import UNFORMATTED, _open_sheet, _worksheet, is_v2
+from .realized import flat_tax_rate, read_ledger
+from .sheets import _open_sheet, is_v2
+
+YAHOO_WORKERS = 4  # historiques demandés en parallèle (davantage déclenche la limite de débit de Yahoo)
 
 MINOR_UNITS = {"GBp": ("GBP", 100), "GBX": ("GBP", 100), "ZAc": ("ZAR", 100), "ILA": ("ILS", 100)}
 FREQUENCIES = {1: "annuel", 2: "semestriel", 3: "trimestriel", 4: "trimestriel", 12: "mensuel"}
@@ -107,11 +110,8 @@ def dividend_calendar(sheet_id: str) -> dict | None:
     sheet = _open_sheet(sheet_id)
     if not is_v2(sheet):
         return None
-    operations, envelopes, names = read_operations(sheet_id)
-    currencies = {}
-    for row in _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)[1:]:
-        if len(row) > 5 and row[0]:
-            currencies[str(row[0]).strip().upper()] = str(row[5] or "EUR").strip()
+    ledger = read_ledger(sheet_id)
+    operations, envelopes, names, currencies = ledger.operations, ledger.envelopes, ledger.names, ledger.currencies
 
     quantities: dict[tuple[str, str], float] = defaultdict(float)
     for op in operations:
@@ -121,11 +121,14 @@ def dividend_calendar(sheet_id: str) -> dict | None:
     holdings = [{"ticker": t, "name": names.get(t, t), "envelope": env, "quantity": q}
                 for (env, t), q in sorted(quantities.items()) if q > 1e-9]
 
-    histories, eur_rates, fx_cache = {}, {}, {"EUR": 1.0}
-    for ticker in sorted({h["ticker"] for h in holdings}):
-        currency, divisor = MINOR_UNITS.get(currencies.get(ticker, "EUR"), (currencies.get(ticker, "EUR"), 1))
-        histories[ticker] = _history(ticker, divisor)
-        if currency not in fx_cache:
-            fx_cache[currency] = _fx_rate(currency, "EUR")
-        eur_rates[ticker] = fx_cache[currency]
+    tickers = sorted({h["ticker"] for h in holdings})
+    units = {t: MINOR_UNITS.get(currencies.get(t, "EUR"), (currencies.get(t, "EUR"), 1)) for t in tickers}
+    needed_fx = sorted({currency for currency, _ in units.values()} - {"EUR"})
+    # Un appel Yahoo par titre et par devise : lancés ensemble plutôt qu'un par un
+    with ThreadPoolExecutor(max_workers=YAHOO_WORKERS) as pool:
+        history_jobs = {t: pool.submit(_history, t, units[t][1]) for t in tickers}
+        fx_jobs = {c: pool.submit(_fx_rate, c, "EUR") for c in needed_fx}
+        histories = {t: job.result() for t, job in history_jobs.items()}
+        fx = {"EUR": 1.0} | {c: job.result() for c, job in fx_jobs.items()}
+    eur_rates = {t: fx[units[t][0]] for t in tickers}
     return compute_calendar(holdings, histories, eur_rates, date.today())

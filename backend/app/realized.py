@@ -11,10 +11,13 @@ n'est pas imposé tant qu'on n'en retire rien. Elle reste indicative (moins-valu
 option pour le barème, prélèvements déjà faits à la source...).
 """
 
+import threading
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 
+from . import sheets
 from .sheets import UNFORMATTED, _open_sheet, _serial_to_iso, _worksheet
 
 # PFU : 12,8 % d'impôt sur le revenu + prélèvements sociaux (17,2 %, puis 18,6 % depuis la hausse de CSG de 2026)
@@ -51,8 +54,39 @@ def _num(value) -> float:
     return float(value) if isinstance(value, (int, float)) else 0.0
 
 
+@dataclass
+class Ledger:
+    operations: list[Operation]
+    envelopes: dict[str, str]  # compte -> PEA / CTO (onglet Comptes)
+    names: dict[str, str]  # titre -> nom (onglet Titres)
+    currencies: dict[str, str]  # titre -> devise de cotation (onglet Titres)
+
+
+# Rendement, plus-values, frais, dividendes et comparaison à un indice lisent tous les opérations :
+# elles sont analysées une fois et partagées tant que le Sheet n'a pas été modifié par l'appli
+_ledgers: dict[str, tuple[float, int, Ledger]] = {}
+_ledgers_lock = threading.Lock()
+
+
+def read_ledger(sheet_id: str) -> Ledger:
+    with _ledgers_lock:
+        cached = _ledgers.get(sheet_id)
+    if cached and cached[1] == sheets.cache_generation() and time.time() - cached[0] < sheets.CACHE_SECONDS:
+        return cached[2]
+    generation = sheets.cache_generation()
+    ledger = _parse_ledger(sheet_id)
+    with _ledgers_lock:
+        _ledgers[sheet_id] = (time.time(), generation, ledger)
+    return ledger
+
+
 def read_operations(sheet_id: str) -> tuple[list[Operation], dict[str, str], dict[str, str]]:
     """Opérations datées, enveloppe de chaque compte (onglet Comptes) et nom de chaque titre (onglet Titres)."""
+    ledger = read_ledger(sheet_id)
+    return list(ledger.operations), dict(ledger.envelopes), dict(ledger.names)
+
+
+def _parse_ledger(sheet_id: str) -> Ledger:
     sheet = _open_sheet(sheet_id)
     operations = []
     for row in _worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:]:
@@ -65,9 +99,12 @@ def read_operations(sheet_id: str) -> tuple[list[Operation], dict[str, str], dic
         net = row[11] if isinstance(row[11], (int, float)) else (gross + fees + taxes if row[2] == "Achat" else gross - fees - taxes)
         operations.append(Operation(date.fromisoformat(iso), str(row[1]), row[2], str(row[3]).strip().upper(),
                                     float(row[4]), gross, fees, taxes, net))
-    envelopes = {str(r[0]): str(r[1]) for r in _worksheet(sheet, "Comptes").get_values()[1:] if len(r) > 1 and r[0]}
-    names = {str(r[0]).upper(): str(r[2]) for r in _worksheet(sheet, "Titres").get_values()[1:] if len(r) > 2 and r[0]}
-    return operations, envelopes, names
+    comptes = _worksheet(sheet, "Comptes").get_values(value_render_option=UNFORMATTED)[1:]
+    titres = _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)[1:]
+    envelopes = {str(r[0]): str(r[1]) for r in comptes if len(r) > 1 and r[0]}
+    names = {str(r[0]).strip().upper(): str(r[2]) for r in titres if len(r) > 2 and r[0]}
+    currencies = {str(r[0]).strip().upper(): str(r[5] or "EUR").strip() for r in titres if len(r) > 5 and r[0]}
+    return Ledger(operations, envelopes, names, currencies)
 
 
 def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None) -> dict:
