@@ -61,9 +61,9 @@ frontend/ (site statique sur Render, installable sur téléphone)
 | Variable | Rôle |
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Chemin du fichier de clé du compte de service, ajouté en *Secret File* (`/etc/secrets/google-credentials.json`). |
-| `USERS_JSON` | Liste des utilisateurs (voir [docs/ajouter-un-ami.md](docs/ajouter-un-ami.md)). Si absente : utilisateur unique avec `APP_ACCESS_TOKEN` et `SHEET_ID`. |
+| `USERS_JSON` | Compte administrateur (voir [docs/ajouter-un-ami.md](docs/ajouter-un-ami.md)) ; les autres utilisateurs s'inscrivent depuis l'appli. Si absente : utilisateur unique avec `APP_ACCESS_TOKEN` et `SHEET_ID`. |
 | `APP_ACCESS_TOKEN` | Code d'accès du propriétaire quand `USERS_JSON` n'est pas défini. |
-| `SHEET_ID` | Sheet du propriétaire (facultatif, défaut dans `backend/app/users.py`). |
+| `SHEET_ID`, `BRIEFS_FOLDER` | Sheet et dossier Briefs du propriétaire, seulement sans `USERS_JSON`. |
 
 Commande de démarrage : `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (répertoire racine `backend`).
 Le frontend est un site statique Render (répertoire `frontend`, sans commande de build).

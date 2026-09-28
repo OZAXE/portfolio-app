@@ -6,19 +6,15 @@ Configuration sur Render, variable d'environnement USERS_JSON :
     [{"name": "Enzo", "token": "...", "sheet_id": "...", "admin": true, "briefs_folder": "..."},
      {"name": "Paul", "token": "...", "sheet_id": "..."}]
 
-Sans USERS_JSON, un seul utilisateur : le propriétaire, avec APP_ACCESS_TOKEN et SHEET_ID
-(ou le Sheet par défaut). Sans code d'accès du tout, l'API reste ouverte (installation en cours).
+Sans USERS_JSON, un seul utilisateur : le propriétaire, avec APP_ACCESS_TOKEN, SHEET_ID et
+BRIEFS_FOLDER. Sans code d'accès du tout, l'API reste ouverte (installation en cours).
+Aucun identifiant de Sheet ou de dossier dans le code : le repo est public.
 """
 
 import json
 import os
 import secrets
 from dataclasses import dataclass
-
-# Sheet du propriétaire si rien n'est configuré (format v2, voir workbook.py)
-DEFAULT_SHEET_ID = "1d9wtW41Ncerh6O0mmYC5YpADIkNQCI0GNUp9Xo-OZT4"
-DEFAULT_BRIEFS_FOLDER = "1hlL6XgoWhVdlNLzUKmy2s-C0Ipo1Uw52"
-
 
 @dataclass(frozen=True)
 class User:
@@ -41,9 +37,9 @@ def load_users() -> list[User]:
     return [User(
         name="Propriétaire",
         token=os.environ.get("APP_ACCESS_TOKEN"),
-        sheet_id=os.environ.get("SHEET_ID", DEFAULT_SHEET_ID),
+        sheet_id=os.environ.get("SHEET_ID", ""),
         admin=True,
-        briefs_folder=DEFAULT_BRIEFS_FOLDER,
+        briefs_folder=os.environ.get("BRIEFS_FOLDER"),
     )]
 
 

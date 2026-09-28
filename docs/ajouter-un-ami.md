@@ -1,21 +1,71 @@
-# Ajouter un ami à l'appli (propriétaire)
+# Gérer les utilisateurs de l'appli (propriétaire)
 
-Chaque utilisateur a son code d'accès et son Google Sheet.
+Chaque utilisateur a son code d'accès et son propre Google Sheet (une copie du modèle). Tu n'as
+rien à faire pour ajouter quelqu'un : chacun crée son compte depuis l'appli.
 
-**Le plus simple : l'inscription libre.** Envoie le lien de l'appli et le guide `docs/tutoriel-amis.md` :
-chacun crée son compte depuis Réglages, sans rien à faire de ton côté. Les comptes créés ainsi sont
-dans l'onglet « Utilisateurs » de ton Sheet (nom, empreinte du code, Sheet) ; supprimer une ligne
-supprime le compte (pris en compte en une minute). Réglages possibles sur Render :
-`SIGNUP_OPEN=0` pour fermer les inscriptions, `MAX_SIGNUPS` (50 par défaut),
-`PUBLIC_BRIEFS_FOLDER` (identifiant du dossier « Briefs publics ») pour leur donner les briefs.
+## Inviter quelqu'un
 
-La méthode manuelle ci-dessous reste possible : les codes et les Sheets sont alors déclarés
-dans la variable `USERS_JSON` du service backend sur Render. Au démarrage, l'API recopie ces amis
-dans l'onglet « Utilisateurs » avec leur code actuel : ils sont ensuite traités exactement comme les
-inscrits (mêmes briefs, récupération d'un code perdu). Pour supprimer l'un d'eux, retire-le de
-`USERS_JSON` **et** efface sa ligne dans « Utilisateurs ». Seule ta ligne (`admin: true`) reste à part.
+Envoie-lui le lien de l'appli (https://portfolio-front-8t6m.onrender.com) et le guide
+[tutoriel-amis.md](tutoriel-amis.md). Il copie le Sheet modèle, le partage avec le compte de service,
+puis crée son compte dans **Réglages > Pas encore de compte ?** (un code à coller dans son Sheet
+prouve qu'il en est le propriétaire).
 
-## 1. Préparer le Sheet modèle (une seule fois)
+Préviens-le qu'en partageant son Sheet avec le compte de service, **tu as techniquement accès à
+ses données** : l'appli l'affiche aussi avant l'inscription.
+
+## Où sont les comptes
+
+- **Les utilisateurs** : onglet « Utilisateurs » de ton Sheet (nom, empreinte du code d'accès,
+  identifiant de son Sheet, date). Le code lui-même n'est jamais enregistré.
+- **Toi** : seul compte administrateur, déclaré sur Render dans la variable `USERS_JSON`.
+  Les amis ajoutés à la main dans `USERS_JSON` avant l'inscription libre y sont recopiés au
+  démarrage de l'API, avec leur code actuel, et traités comme les autres.
+
+## Supprimer un compte
+
+Efface sa ligne dans l'onglet « Utilisateurs » : son code ne marche plus au bout d'une minute.
+S'il figure aussi dans `USERS_JSON`, retire-l'en également (sinon sa ligne est recréée au prochain
+démarrage). Il peut de son côté retirer le partage de son Sheet avec le compte de service.
+
+## Code perdu
+
+Il refait l'inscription avec le même Sheet : un nouveau code remplace l'ancien. Rien à faire de ton côté.
+
+## Réglages sur Render (service portfolio-app > Environment)
+
+| Variable | Rôle |
+|---|---|
+| `USERS_JSON` | Ton compte administrateur (voir ci-dessous). |
+| `SIGNUP_OPEN` | `0` ferme les inscriptions (ouvertes par défaut). |
+| `MAX_SIGNUPS` | Nombre maximum de comptes (50 par défaut : limite du serveur gratuit et du quota Google). |
+| `PUBLIC_BRIEFS_FOLDER` | Identifiant du dossier « Briefs publics », lu par les utilisateurs (facultatif si un ami de `USERS_JSON` l'a déjà). |
+| `REGISTRY_SHEET_ID` | Sheet où ranger les onglets Utilisateurs et Frais ETF (par défaut : le tien). |
+
+`USERS_JSON` tient sur une ligne. Ta ligne doit toujours y figurer, sinon tu perds l'accès :
+
+```json
+[{"name": "<ton prénom>", "token": "<ton code d'accès>", "sheet_id": "<identifiant de ton Sheet>", "admin": true, "briefs_folder": "<identifiant de ton dossier Briefs>"}]
+```
+
+L'identifiant d'un Sheet est la partie de son lien entre `/d/` et `/edit` ; celui d'un dossier Drive,
+la fin de son lien après `/folders/`. **Ne les écris jamais dans le repo** : il est public.
+Garde le secret GitHub `APP_ACCESS_TOKEN` identique à ton code (il sert aux tâches de la nuit).
+Pour générer un code solide :
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(18))"
+```
+
+## Ce que voient les utilisateurs
+
+- Leur portefeuille, leurs opérations, leur allocation cible, leurs comptes et banques, leur
+  watchlist et leurs alertes, à partir de leur propre Sheet.
+- Le screener, les super investisseurs et les comptes annuels, communs à tous.
+- Les briefs publics (dossier « Briefs publics »), jamais tes briefs perso.
+- Leur relevé quotidien, leurs notifications de la nuit et leur plus-value de la semaine, sur le sujet
+  ntfy choisi dans Réglages > Notifications.
+
+## Le Sheet modèle (une seule fois)
 
 Déjà fait : https://docs.google.com/spreadsheets/d/1Cw44TPxJkpfoXUKkg4eDuDeoHIIvI-UJmzkXi2MYeZU/edit
 (à refaire seulement si le modèle change).
@@ -30,7 +80,7 @@ Déjà fait : https://docs.google.com/spreadsheets/d/1Cw44TPxJkpfoXUKkg4eDuDeoHI
    Tous les utilisateurs disposant du lien, Lecteur**. C'est ce lien que tu envoies à tes amis :
    ils en feront une copie (Fichier > Créer une copie), sans pouvoir modifier le modèle.
 
-## 2. Préparer les briefs publics (une seule fois, facultatif)
+## Les briefs publics (une seule fois, facultatif)
 
 Tes briefs parlent de ton portefeuille (titre, chapeau, « Mes positions », tags, PRU…) : les amis
 ne doivent pas y avoir accès. À la place, ils lisent une version publique, rédigée à part.
@@ -50,42 +100,3 @@ ne doivent pas y avoir accès. À la place, ils lisent une version publique, ré
    > qu'aucun chiffre ni nom de titre venant du portefeuille n'y reste.
 3. Relis le premier brief public avant de l'ouvrir aux amis : rien dans le code ne vérifie qu'il est
    anonyme. Les anciens briefs n'ont pas de version publique.
-
-## 3. Pour chaque ami
-
-1. Envoie-lui le lien du Sheet modèle, l'adresse du compte de service et le
-   [tutoriel](tutoriel-amis.md).
-2. Il te renvoie le lien de **sa copie**, partagée en Éditeur avec le compte de service.
-   L'identifiant du Sheet est la partie entre `/d/` et `/edit` du lien.
-3. Génère-lui un code d'accès :
-   ```bash
-   python -c "import secrets; print(secrets.token_urlsafe(18))"
-   ```
-4. Sur Render > service **portfolio-app** > **Environment**, mets à jour `USERS_JSON`
-   (une seule ligne de JSON), puis **Save, rebuild and deploy** :
-   ```json
-   [
-     {"name": "Enzo", "token": "<ton code actuel>", "sheet_id": "1d9wtW41Ncerh6O0mmYC5YpADIkNQCI0GNUp9Xo-OZT4", "admin": true, "briefs_folder": "1hlL6XgoWhVdlNLzUKmy2s-C0Ipo1Uw52"},
-     {"name": "Paul", "token": "<code de Paul>", "sheet_id": "<ID du Sheet de Paul>", "briefs_folder": "<ID du dossier Briefs publics>"}
-   ]
-   ```
-   `briefs_folder` indique le dossier Drive dont l'utilisateur voit les briefs dans l'appli : ton
-   dossier Briefs sur ta ligne, le dossier « Briefs publics » sur celle des amis. **Ne mets jamais
-   ton dossier Briefs sur la ligne d'un ami.** Sans `briefs_folder`, l'onglet Briefs reste vide.
-   Dès que `USERS_JSON` existe, `APP_ACCESS_TOKEN` n'est plus lu par l'API : **ta propre ligne
-   doit y figurer**, avec ton code actuel, sinon tu perds l'accès. Garde aussi le secret GitHub
-   `APP_ACCESS_TOKEN` identique à ton code (il sert au calcul nocturne des alertes).
-5. Envoie-lui son code par un canal privé.
-
-## Retirer un ami
-
-Supprime sa ligne de `USERS_JSON` et redéploie : son code ne fonctionne plus immédiatement.
-Il peut aussi retirer le partage de son Sheet avec le compte de service.
-
-## Ce que voient les amis
-
-- Leur portefeuille, leur watchlist et leurs alertes dans l'appli, à partir de leur propre Sheet.
-- Le screener, les super investisseurs et les comptes annuels, communs à tous.
-- Les briefs publics si leur ligne a `"briefs_folder"` vers le dossier « Briefs publics », jamais tes briefs perso.
-- Leurs propres notifications nocturnes (alertes et alertes de prix), sur le sujet ntfy qu'ils choisissent
-  dans Réglages > Notifications. Rien à configurer de ton côté.
