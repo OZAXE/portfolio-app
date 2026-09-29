@@ -2,7 +2,7 @@
 
 Appli perso de suivi et d'analyse d'actions, installable sur téléphone, dans l'esprit de Baggr et Mungr :
 suivi du portefeuille à partir d'un Google Sheet, screener d'environ 2 000 actions (Europe, US, Asie)
-avec score qualité et valeur intrinsèque, dividendes, comptes annuels, super investisseurs,
+avec score qualité, valeur intrinsèque et prix juste, dividendes, comptes annuels, super investisseurs,
 watchlist, alertes et briefs marchés hebdomadaires.
 
 - Appli : https://portfolio-front-8t6m.onrender.com
@@ -13,7 +13,7 @@ watchlist, alertes et briefs marchés hebdomadaires.
 | Onglet | Contenu |
 |---|---|
 | **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
-| **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / score / dividende / super investisseurs / watchlist, tris) et fiche par action : ratios, score qualité calibré par secteur, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
+| **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / sous-évaluées / score / dividende / super investisseurs / watchlist, tris) et fiche par action : ratios, score qualité calibré par secteur, prix juste avec verdict sous-évaluée / correcte / surévaluée, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Briefs** | Briefs marchés hebdomadaires déposés par une tâche Claude Cowork dans un dossier Google Drive. |
 | **Guides** | [Guide d'utilisation](docs/guide-utilisation.md), [installation pour un nouvel utilisateur](docs/tutoriel-amis.md), [gestion des utilisateurs](docs/ajouter-un-ami.md). |
 | **Réglages** | Code d'accès, hypothèses personnelles du DCF (recalcul instantané de toutes les valeurs). |
@@ -36,8 +36,8 @@ backend/ (FastAPI sur Render)  ◄───────────────�
 frontend/ (site statique sur Render, installable sur téléphone)
 ```
 
-- **`backend/app/`** : API. `data.py` (Yahoo via yfinance), `valuation.py` (DCF, score), `sectors.py`
-  (paliers par secteur), `sheets.py` (lecture du Sheet, ancien et nouveau format), `workbook.py`
+- **`backend/app/`** : API. `data.py` (Yahoo via yfinance), `valuation.py` (DCF, prix juste, score), `sectors.py`
+  (paliers et PER normal par secteur), `sheets.py` (lecture du Sheet, ancien et nouveau format), `workbook.py`
   (Sheet modèle et migration), `operations.py` (saisie), `performance.py` (comparaison à un indice),
   `alerts.py`, `briefs.py`, `users.py` (un code d'accès = un utilisateur = un Sheet).
 - **`frontend/index.html`** : toute l'appli (HTML, CSS, JS, graphiques Chart.js).
@@ -117,6 +117,11 @@ Chaque ami a son propre Sheet et son propre code d'accès sur la même appli :
 
 - Données Yahoo non officielles : certaines valeurs peuvent manquer ou être fausses, surtout hors US.
 - Le DCF est volontairement simple : il est marqué « non fiable » quand il s'écarte trop du cours.
+- Le prix juste compare au PER « normal » du secteur : une entreprise de grande qualité, que le marché
+  paie durablement plus cher que son secteur (Air Liquide, Hermès), ressortira souvent surévaluée. Il
+  ignore aussi la croissance propre à l'entreprise (sauf via le DCF) et se laisse tromper par les
+  cycliques en haut de cycle. Ces limites sont affichées dans la fiche (`fairCaveats`) et dans le
+  lexique (« Limites du prix juste »).
   Ce n'est pas un conseil en investissement.
 - L'API gratuite de Render s'endort après 15 minutes : la première ouverture prend 30 s à 1 min.
 - Le PRU du Sheet suit la méthode du prix moyen pondéré sur l'ensemble des achats (approximation

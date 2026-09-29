@@ -57,29 +57,31 @@ class ScoreProfile:
     debt_to_equity: tuple[float, float, float] | None = (50, 100, 200)  # en %, en dessous = mieux
     pe: tuple[float, float, float] | None = (15, 25, 40)  # en dessous = mieux
     price_to_book: tuple[float, float, float] | None = None  # en dessous = mieux
+    # PER « normal » de la famille sur longue période : sert au prix juste (bénéfice par action x ce PER)
+    fair_pe: float = 17
 
 
 DEFAULT_PROFILE = ScoreProfile("général")
 
 PROFILES = {
-    "Technologie": ScoreProfile("technologie", operating_margin=(0.25, 0.15, 0.05), pe=(22, 35, 55)),
-    "Santé": ScoreProfile("santé", operating_margin=(0.25, 0.15, 0.05), pe=(20, 30, 45)),
-    "Communication": ScoreProfile("communication", operating_margin=(0.25, 0.15, 0.05), pe=(18, 28, 45)),
-    "Consommation": ScoreProfile("consommation", operating_margin=(0.15, 0.08, 0.03), pe=(16, 25, 38)),
-    "Industrie": ScoreProfile("industrie", operating_margin=(0.15, 0.09, 0.04), pe=(15, 22, 32)),
-    "Matériaux": ScoreProfile("matériaux", operating_margin=(0.18, 0.10, 0.04), pe=(12, 18, 28)),
-    "Énergie": ScoreProfile("énergie", operating_margin=(0.18, 0.10, 0.04), debt_to_equity=(40, 80, 150), pe=(10, 15, 25)),
+    "Technologie": ScoreProfile("technologie", operating_margin=(0.25, 0.15, 0.05), pe=(22, 35, 55), fair_pe=25),
+    "Santé": ScoreProfile("santé", operating_margin=(0.25, 0.15, 0.05), pe=(20, 30, 45), fair_pe=22),
+    "Communication": ScoreProfile("communication", operating_margin=(0.25, 0.15, 0.05), pe=(18, 28, 45), fair_pe=20),
+    "Consommation": ScoreProfile("consommation", operating_margin=(0.15, 0.08, 0.03), pe=(16, 25, 38), fair_pe=20),
+    "Industrie": ScoreProfile("industrie", operating_margin=(0.15, 0.09, 0.04), pe=(15, 22, 32), fair_pe=19),
+    "Matériaux": ScoreProfile("matériaux", operating_margin=(0.18, 0.10, 0.04), pe=(12, 18, 28), fair_pe=14),
+    "Énergie": ScoreProfile("énergie", operating_margin=(0.18, 0.10, 0.04), debt_to_equity=(40, 80, 150), pe=(10, 15, 25), fair_pe=12),
     "Services publics": ScoreProfile("services publics", roe=(0.12, 0.09, 0.05), operating_margin=(0.20, 0.12, 0.06),
-                                     debt_to_equity=(100, 175, 275), pe=(14, 20, 28)),
+                                     debt_to_equity=(100, 175, 275), pe=(14, 20, 28), fair_pe=16),
     "Immobilier": ScoreProfile("immobilier", roe=(0.10, 0.07, 0.03), operating_margin=(0.40, 0.25, 0.10),
-                               debt_to_equity=(80, 150, 250), pe=(15, 25, 40)),
-    "Finance": ScoreProfile("finance", pe=(14, 22, 35)),
+                               debt_to_equity=(80, 150, 250), pe=(15, 25, 40), fair_pe=18),
+    "Finance": ScoreProfile("finance", pe=(14, 22, 35), fair_pe=15),
 }
 
 # Banques, assurances, gestionnaires : notées sur ROE, PER et cours / valeur comptable
 BALANCE_SHEET_PROFILE = ScoreProfile(
     "banque / assurance", roe=(0.14, 0.10, 0.06), operating_margin=None, debt_to_equity=None,
-    pe=(9, 13, 20), price_to_book=(1.0, 1.6, 2.5),
+    pe=(9, 13, 20), price_to_book=(1.0, 1.6, 2.5), fair_pe=11,
 )
 
 

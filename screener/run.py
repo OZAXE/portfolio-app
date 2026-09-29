@@ -11,8 +11,9 @@ Fonctionnement incrémental, pour ménager Yahoo :
    analysées seulement, dans la limite d'un budget de temps. Ils ne changent
    qu'à chaque publication de résultats, un rafraîchissement tous les quelques
    jours suffit ;
-3. la valeur intrinsèque est gardée d'une nuit sur l'autre, et la marge de
-   sécurité recalculée avec le cours du jour.
+3. la valeur intrinsèque et les ingrédients du prix juste sont gardés d'une
+   nuit sur l'autre ; la marge de sécurité et le verdict du prix juste sont
+   recalculés avec le cours du jour.
 
 Si Yahoo bloque (limitation de débit), on fait une pause puis on reprend ;
 après plusieurs blocages d'affilée on arrête proprement : ce qui a été
@@ -33,7 +34,7 @@ import yfinance as yf
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.data import SOURCE_UNAVAILABLE_ERROR, fetch_company_financials  # noqa: E402
 from app.sectors import normalize_sector  # noqa: E402
-from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, evaluate_company  # noqa: E402
+from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, blend_fair_value, evaluate_company  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 OUTPUT_NAME = "screener.json"
@@ -134,6 +135,16 @@ def analyze(entry: dict) -> dict:
         "base_fcf": v.base_fcf,
         "net_debt": v.net_debt,
         "shares": v.shares_used,
+        "fair_value": v.fair_value,
+        "fair_value_low": v.fair_value_low,
+        "fair_value_high": v.fair_value_high,
+        "fair_value_upside_pct": v.fair_value_upside_pct,
+        "fair_value_verdict": v.fair_value_verdict,
+        "fair_value_divergent": v.fair_value_divergent,
+        "fair_value_pe": v.fair_value_pe,
+        "fair_value_pb": v.fair_value_pb,
+        "fair_pe_used": v.fair_pe_used,
+        "justified_pb_used": v.justified_pb_used,
         "notes": v.notes,
         "data_source": cf.data_source,
     })
@@ -141,13 +152,16 @@ def analyze(entry: dict) -> dict:
 
 
 def refresh_with_price(record: dict, raw_price: float) -> None:
-    """Cours du jour + marge de sécurité recalculée sur la valeur intrinsèque gardée."""
+    """Cours du jour + marge de sécurité et prix juste recalculés sur les valeurs gardées."""
     price = raw_price * record.get("price_scale", 1.0)
     record["price"] = price
     iv = record.get("intrinsic_value")
     if iv and price:
         record["margin_of_safety"] = round((iv - price) / iv * 100, 1)
         record["dcf_reliable"] = RELIABLE_RATIO_MIN <= iv / price <= RELIABLE_RATIO_MAX
+    # Fiches analysées avant l'arrivée du prix juste : complétées à leur prochaine analyse
+    if "fair_value_pe" in record:
+        record.update(blend_fair_value(price, iv, record.get("fair_value_pe"), record.get("fair_value_pb")))
 
 
 def infer_price_scale(record: dict, raw_price: float | None) -> None:
