@@ -177,6 +177,8 @@
     .badge.owned { color: var(--accent); }
     .verdict { white-space: nowrap; font-size: 12px; }
     .verdict.divergent { font-style: italic; opacity: 0.75; }
+    .analysis ul.caveats { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+    .analysis ul.caveats li::marker { content: "⚠️ "; }
     .score { font-weight: 600; font-size: 15px; }
     .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
     .metrics .row { margin-top: 2px; }
@@ -808,20 +810,40 @@
       return { value, low, high, methods, verdict, upside: s.price ? (value / s.price - 1) * 100 : null, divergent: high / low > DIVERGENCE_MAX };
     }
 
+    // Limites du prix juste qui concernent cette action en particulier (la liste complète est dans le lexique).
+    // warn : limite qui peut inverser la lecture du verdict, signalée par ⚠ jusque dans les listes
+    const CYCLICAL = /énergie|energy|oil & gas|matériaux|basic materials|mining|steel|metal|chemical|auto|airline|semiconductor/i;
+    function fairCaveats(s, f) {
+      const caveats = [];
+      if (f.divergent) caveats.push({ text: "les méthodes vont du simple au double, le prix juste est fragile" });
+      if (f.methods.length === 1) caveats.push({ text: `une seule méthode disponible (${f.methods[0].label}), sans recoupement` });
+      if (f.verdict === "over" && s.quality_score >= 14) {
+        caveats.push({ warn: true, text: "entreprise de qualité : le marché la paie souvent durablement plus cher que la moyenne de son secteur, la surévaluation peut durer" });
+      }
+      if (f.verdict === "under" && CYCLICAL.test(`${s.sector || ""} ${s.industry || ""}`)) {
+        caveats.push({ warn: true, text: "secteur cyclique : en haut de cycle les bénéfices sont gonflés et le PER paraît bas, l'action peut sembler moins chère qu'elle ne l'est" });
+      }
+      if (f.verdict === "under" && s.quality_score != null && s.quality_score < 8) {
+        caveats.push({ warn: true, text: "score qualité faible : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette)" });
+      }
+      return caveats;
+    }
+
     // Verdict court pour les listes (screener, watchlist, positions)
     function fairBadge(s, dash = true) {
       const f = fairValueOf(s);
       if (!f?.verdict) return dash ? `<span class="muted">—</span>` : "";
       const { label, cls } = VERDICTS[f.verdict];
-      const title = f.divergent ? "Méthodes divergentes : prix juste à prendre avec prudence" : `Prix juste ${num(f.value, 2)}`;
-      return `<span class="verdict ${cls}${f.divergent ? " divergent" : ""}" title="${escapeHtml(title)}">${label} ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} %</span>`;
+      const warning = fairCaveats(s, f).find((c) => c.warn);
+      const title = warning ? `À nuancer : ${warning.text}` : f.divergent ? "Méthodes divergentes : prix juste à prendre avec prudence" : `Prix juste ${num(f.value, 2)}`;
+      return `<span class="verdict ${cls}${f.divergent ? " divergent" : ""}" title="${escapeHtml(title)}">${warning ? "⚠ " : ""}${label} ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} %</span>`;
     }
 
     // Analyse renvoyée par l'API (/analysis, /portfolio/analysis) -> fiche au format screener
     function analysisToRecord(a, ticker) {
       const f = a.financials, v = a.valuation;
       return {
-        ticker, name: f.name, currency: f.currency, price: f.current_price, market_cap: f.market_cap,
+        ticker, name: f.name, currency: f.currency, price: f.current_price, market_cap: f.market_cap, sector: f.sector, industry: f.industry,
         pe: f.trailing_pe, forward_pe: f.forward_pe, pb: f.price_to_book, ev_ebitda: f.ev_to_ebitda,
         roe: f.return_on_equity, operating_margin: f.operating_margin, debt_to_equity: f.debt_to_equity,
         quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
@@ -1625,10 +1647,13 @@
       let fair = `<div class="row"><span>Prix juste</span><span>N/A</span></div>`;
       if (f) {
         const { label, cls } = VERDICTS[f.verdict] || {};
+        const caveats = fairCaveats(s, f);
         fair = `<div class="row"><span>Prix juste</span><span><b>${money(f.value, cur)}</b>${label ? ` · <span class="${cls}${f.divergent ? " unreliable" : ""}">${label}</span>` : ""}</span></div>
           ${f.upside != null ? `<div class="row"><span>Potentiel</span><span class="${signClass(f.upside)}">${f.upside > 0 ? "+" : ""}${num(f.upside)} %</span></div>` : ""}
           ${f.methods.length > 1 ? `<div class="row"><span>Fourchette</span><span>${money(f.low, cur)} – ${money(f.high, cur)}</span></div>` : ""}
-          <div class="hypotheses">Moyenne de : ${f.methods.map((m) => `${escapeHtml(m.label)} ${money(m.value, cur)}`).join(" · ")}${f.divergent ? ". Méthodes très éloignées : à prendre avec prudence" : ""}</div>`;
+          <div class="hypotheses">Moyenne de : ${f.methods.map((m) => `${escapeHtml(m.label)} ${money(m.value, cur)}`).join(" · ")}</div>
+          ${caveats.length ? `<ul class="caveats">${caveats.map((c) => `<li>${escapeHtml(c.text)}</li>`).join("")}</ul>` : ""}
+          <div class="hypotheses">Estimation, pas un conseil d'investissement : <span data-term="Limites du prix juste">limites de la méthode</span></div>`;
       }
       const hypotheses = v.g != null
         ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
@@ -2849,6 +2874,7 @@
         "VE / EBITDA": "<p>Valeur d'entreprise (capitalisation + dette nette) ÷ EBITDA (bénéfice avant intérêts, impôts et amortissements).</p><p>Comme le PER, mais en tenant compte de la dette : utile pour comparer des entreprises plus ou moins endettées. Repère : autour de 10, au-dessus de 15 c'est cher.</p>",
         "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, qui entre dans le prix juste quand il est fiable. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
         "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)).</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand les méthodes vont du simple au double, le verdict est affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
+        "Limites du prix juste": "<p>Le prix juste est une estimation automatique, à croiser avec ta propre analyse. Ses principales limites :</p><ul><li><b>Entreprises de qualité</b> : le marché paie durablement plus cher les entreprises exceptionnelles (Air Liquide, Hermès, L'Oréal) que la moyenne de leur secteur. Face au PER normal du secteur, elles ressortent souvent surévaluées, parfois pendant des années.</li><li><b>Croissance propre à l'entreprise</b> : le PER du secteur ne voit pas qu'une entreprise grandit beaucoup plus vite (ou plus lentement) que ses concurrentes. Seul le DCF en tient compte, quand il est fiable.</li><li><b>Secteurs cycliques</b> (énergie, matériaux, automobile, semi-conducteurs, aérien) : en haut de cycle, les bénéfices sont gonflés, le PER paraît bas et l'action semble bon marché juste avant que les bénéfices ne rechutent. C'est l'inverse en bas de cycle.</li><li><b>Pièges à valeur</b> : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette, secteur en difficulté). Regarde le score qualité et les comptes annuels.</li><li><b>Données Yahoo</b> : gratuites et non officielles, parfois fausses ou périmées, surtout hors des États-Unis. Les méthodes aux résultats aberrants (moins de 0,4 ou plus de 2,5 fois le cours) sont écartées, mais une erreur plus discrète peut passer.</li><li><b>Mise à jour</b> : les bénéfices et bilans sont réanalysés tous les 3-4 jours et ne changent vraiment qu'aux publications de résultats ; seul le cours est à jour chaque jour.</li><li><b>Banques et assurances</b> : pas de DCF, le prix juste repose sur le PER et la valeur comptable, sensibles à la qualité du bilan qu'aucun ratio ne mesure bien.</li></ul><p>Ce n'est pas un conseil en investissement.</p>",
         "Potentiel": "<p>(prix juste ÷ cours − 1) : ce que l'action gagnerait si elle rejoignait son prix juste. Négatif : elle devrait baisser pour y revenir.</p>",
         "Fourchette": "<p>De la méthode la plus prudente à la plus optimiste parmi celles qui composent le prix juste. Plus elle est large, plus l'estimation est incertaine.</p>",
         "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",

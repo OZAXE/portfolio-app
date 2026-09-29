@@ -177,7 +177,8 @@ Près de 2 000 actions (grands indices américains, européens et asiatiques) an
 - **trier** par marge de sécurité, écart au prix juste, score qualité, PER, capitalisation ou rendement du dividende.
 
 À droite de chaque action, le verdict du **prix juste** : sous-évaluée, prix correct ou surévaluée,
-avec le potentiel de hausse ou de baisse.
+avec le potentiel de hausse ou de baisse. Un **⚠** devant le verdict signale une limite qui peut le
+nuancer (entreprise de qualité, secteur cyclique, score faible) : ouvre la fiche pour la lire.
 
 Une action absente du screener ? Tape son ticker Yahoo puis **Analyser « … » en direct**.
 
@@ -190,6 +191,10 @@ Touche une action pour l'ouvrir. Les repères essentiels :
   pour les banques), avec la fourchette de la plus prudente à la plus optimiste. Cours plus de 15 % en
   dessous : **sous-évaluée** ; plus de 15 % au-dessus : **surévaluée** ; entre les deux : **prix correct**.
   En italique, les méthodes divergent beaucoup : à prendre avec prudence.
+  C'est une estimation automatique, avec des limites signalées dans la fiche quand elles concernent
+  l'action : une entreprise de grande qualité paraît souvent surévaluée face à son secteur, une
+  entreprise cyclique en haut de cycle paraît bon marché, et une action décotée l'est parfois pour de
+  bonnes raisons. Touche **limites de la méthode** sous le prix juste pour la liste complète.
 - **Valeur intrinsèque** : ce que vaut l'action d'après les cash-flows futurs estimés (méthode DCF).
 - **Marge de sécurité** : l'écart entre cette valeur et le cours. Positive, l'action paraît sous-évaluée ;
   négative, elle paraît chère. Ne te fie qu'aux DCF marqués **fiables** : les autres sont indicatifs.

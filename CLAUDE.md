@@ -77,7 +77,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Verdict : cours < 85 % du prix juste → sous-évaluée, > 115 % → surévaluée, sinon correcte.
   « Divergent » quand la méthode la plus haute dépasse le double de la plus basse (affiché en italique).
   Choix validés par Enzo : mix de méthodes, seuil ±15 %, affichage fiche + liste + positions.
-  Limite connue : les entreprises de qualité durablement chères (Air Liquide, Hermès) ressortent
+  Limites signalées à l'utilisateur (demande d'Enzo) : avertissements ciblés dans la fiche
+  (`fairCaveats` : méthodes divergentes, méthode unique, qualité ≥ 14 jugée surévaluée, cyclique ou
+  score < 8 jugés sous-évalués) et entrée « Limites du prix juste » du lexique, liée sous chaque prix
+  juste. Toute nouvelle limite identifiée doit y être ajoutée.
+  Limite principale : les entreprises de qualité durablement chères (Air Liquide, Hermès) ressortent
   surévaluées face au PER moyen de leur secteur. Piste possible : PER normal ajusté par la qualité
   ou la croissance (attention, le score qualité contient déjà un pilier PER : risque de circularité).
 - **DCF** : deux phases, croissance qui décroît vers 2 %, FCF moyenné sur 3 ans, actualisation MEDAF

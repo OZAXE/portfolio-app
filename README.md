@@ -118,7 +118,10 @@ Chaque ami a son propre Sheet et son propre code d'accès sur la même appli :
 - Données Yahoo non officielles : certaines valeurs peuvent manquer ou être fausses, surtout hors US.
 - Le DCF est volontairement simple : il est marqué « non fiable » quand il s'écarte trop du cours.
 - Le prix juste compare au PER « normal » du secteur : une entreprise de grande qualité, que le marché
-  paie durablement plus cher que son secteur (Air Liquide, Hermès), ressortira souvent surévaluée.
+  paie durablement plus cher que son secteur (Air Liquide, Hermès), ressortira souvent surévaluée. Il
+  ignore aussi la croissance propre à l'entreprise (sauf via le DCF) et se laisse tromper par les
+  cycliques en haut de cycle. Ces limites sont affichées dans la fiche (`fairCaveats`) et dans le
+  lexique (« Limites du prix juste »).
   Ce n'est pas un conseil en investissement.
 - L'API gratuite de Render s'endort après 15 minutes : la première ouverture prend 30 s à 1 min.
 - Le PRU du Sheet suit la méthode du prix moyen pondéré sur l'ensemble des achats (approximation
