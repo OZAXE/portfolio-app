@@ -168,6 +168,22 @@ def _totals(lines: list[HoldingLine]) -> dict:
     }
 
 
+def _screener_profiles() -> dict[str, dict]:
+    """Secteur et pays de chaque action du screener, par ticker Yahoo."""
+    return {st["ticker"]: {"sector": st.get("sector") or "", "country": st.get("country") or ""}
+            for st in (_screener_data("screener.json") or {}).get("stocks", [])}
+
+
+def fill_sectors(holdings: list[HoldingLine], profiles: dict[str, dict]) -> None:
+    """Secteur et zone laissés vides dans l'onglet Titres (titres importés avant qu'on les remplisse) :
+    repris du screener, sans écrire dans le Sheet (une saisie à la main y reste prioritaire).
+    Un ETF absent du screener est rangé à part plutôt que « Non classé »."""
+    for h in holdings:
+        profile = profiles.get((h.yahoo_ticker or h.ticker or "").upper(), {})
+        h.sector = h.sector or profile.get("sector") or ("ETF (plusieurs secteurs)" if h.kind == "ETF" else h.sector)
+        h.zone = h.zone or profile.get("country") or h.zone
+
+
 @app.get("/portfolio/overview")
 def get_portfolio_overview(user: User = Depends(require_access)):
     try:
@@ -176,6 +192,7 @@ def get_portfolio_overview(user: User = Depends(require_access)):
         raise HTTPException(status_code=503, detail=f"Google Sheet non configuré : {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur de lecture du Google Sheet : {e}")
+    fill_sectors(overview.holdings, _screener_profiles())
 
     by_envelope = defaultdict(list)
     for h in overview.holdings:
@@ -546,7 +563,8 @@ def post_restore_operations(payload: dict = Body(...), user: User = Depends(requ
 def write_operations_import(payload: dict = Body(...), user: User = Depends(require_access)):
     from .imports import write_import
 
-    result = _operation_call(lambda: write_import(user.sheet_id, payload.get("account"), payload.get("operations") or []))
+    result = _operation_call(lambda: write_import(user.sheet_id, payload.get("account"), payload.get("operations") or [],
+                                                  profiles=_screener_profiles()))
     _forget_operations(user.sheet_id)
     return result
 

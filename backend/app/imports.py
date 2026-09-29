@@ -320,8 +320,11 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
             "counts": {s: sum(o["status"] == s for o in operations) for s in ("new", "duplicate", "no_ticker", "no_account")}}
 
 
-def write_import(sheet_id: str, account: str, operations: list[dict], titres_info=describe_for_titres) -> dict:
-    """Écrit d'un coup les opérations validées (et les nouveaux titres dans l'onglet Titres)."""
+def write_import(sheet_id: str, account: str, operations: list[dict], titres_info=describe_for_titres,
+                 profiles: dict[str, dict] | None = None) -> dict:
+    """Écrit d'un coup les opérations validées (et les nouveaux titres dans l'onglet Titres).
+    profiles : secteur et pays de chaque action du screener, comme pour une saisie manuelle."""
+    profiles = profiles or {}
     from .operations import read_settings
 
     settings = read_settings(sheet_id)
@@ -355,7 +358,9 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
             try:
                 info = titres_info(ticker)
                 crypto = info.kind == "Crypto"
-                rows.append([ticker, info.google, info.name, "Crypto" if crypto else "", "Monde" if crypto else "", info.currency, info.kind])
+                profile = profiles.get(ticker, {})
+                rows.append([ticker, info.google, info.name, "Crypto" if crypto else profile.get("sector", ""),
+                             "Monde" if crypto else profile.get("country", ""), info.currency, info.kind])
             except OperationError:
                 rows.append([ticker, "", ticker, "", "", "EUR", "Action"])  # à compléter à la main
         titres.update(range_name=f"A{start}", values=rows)

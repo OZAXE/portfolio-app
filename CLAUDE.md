@@ -131,6 +131,12 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   pris sur les positions actuelles (`withLivePoint`), sinon une vente du jour (Evan, 29/09) laissait la
   courbe au-dessus de la valeur affichée en haut jusqu'au relevé de la nuit.
 
+- **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
+  l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont
+  complétés à l'affichage par `fill_sectors` sans écrire dans le Sheet ; un ETF hors screener est rangé
+  « ETF (plusieurs secteurs) ». Un titre absent du screener (ADR comme TSMC) reste à compléter à la main
+  dans l'onglet Titres.
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
