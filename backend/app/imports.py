@@ -5,7 +5,8 @@ fichiers, tickers retrouvés, doublons signalés), puis écriture des lignes val
 Formats reconnus :
 - Trade Republic : export CSV des transactions. Achats, ventes,
   plans d'investissement et dividendes, crypto comprise (ticker Yahoo BTC-EUR, ETH-EUR...) ; le reste
-  (carte, intérêts, virements, Saveback et Stockperk versés en espèces) est ignoré ;
+  (carte, intérêts, virements, Saveback et Stockperk versés en espèces) est ignoré. La colonne
+  account_type (PEA ou DEFAULT pour le compte-titres) range chaque opération dans la bonne enveloppe ;
 - Trade Republic : relevé de compte PDF (Profil > Documents). Une section par compte (« Compte
   courant » pour le CTO, « Compte PEA ») : chaque opération est rangée dans le compte de la même
   enveloppe. Le relevé ne donne qu'un montant par ligne : les frais d'un ordre sont comptés 1 €
@@ -73,12 +74,20 @@ def _num(text) -> float:
     return float(text)
 
 
+# Colonne account_type de l'export : PEA, ou DEFAULT pour le compte-titres ordinaire (CTO)
+TR_CSV_ENVELOPES = {"PEA": "PEA", "DEFAULT": "CTO"}
+
+
 def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None) -> list[ParsedOperation]:
+    skipped = skipped if skipped is not None else {}
     reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
     if not reader.fieldnames or not {"category", "type", "symbol", "shares", "amount"} <= set(reader.fieldnames):
         raise OperationError(f"{source} : colonnes de l'export Trade Republic introuvables")
     operations = []
     for row in reader:
+        if row["category"] == "CORPORATE_ACTION":  # ex. actions gratuites Air Liquide (BONUS_ISSUE)
+            skipped["corporate"] = skipped.get("corporate", 0) + 1
+            continue
         kind = {"BUY": "Achat", "SELL": "Vente", "DIVIDEND": "Dividende"}.get(row["type"])
         shares = abs(_num(row["shares"]))  # négatif sur les ventes
         if not kind or not row["symbol"] or not shares:
@@ -94,6 +103,8 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
             quantity=shares, price=round(price, 6), fees=fee, taxes=tax,
             order_type="" if kind == "Dividende" else "Plan d'investissement" if plan else "Ordre", source=source,
             ticker=crypto_ticker(row["symbol"]) if row.get("asset_class") == "CRYPTO" else None,
+            # Sans cette colonne (ancien export), l'opération va dans le compte choisi
+            envelope=TR_CSV_ENVELOPES.get((row.get("account_type") or "").strip().upper()),
         ))
     return operations
 
