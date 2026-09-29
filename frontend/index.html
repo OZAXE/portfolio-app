@@ -23,6 +23,7 @@
       --series-pea: #38bdf8;
       --series-cto: #f59e0b;
       --positive: #22c55e;
+      --warn: #f59e0b;
       --tabbar-bg: rgba(15, 23, 42, 0.96);
       --tabbar-h: 64px;
       color-scheme: dark;
@@ -30,7 +31,7 @@
     /* Apparence (Réglages) : thème, couleur d'accent, taille du texte */
     html[data-mode="light"] {
       --bg: #f1f5f9; --card: #ffffff; --card-2: #e8edf3; --line: #cbd5e1; --text: #0f172a; --muted: #64748b;
-      --accent-neg: #dc2626; --positive: #16a34a; --series-total: #0f172a; --series-pea: #0284c7; --series-cto: #d97706;
+      --accent-neg: #dc2626; --positive: #16a34a; --warn: #b45309; --series-total: #0f172a; --series-pea: #0284c7; --series-cto: #d97706;
       --tabbar-bg: rgba(255, 255, 255, 0.96); color-scheme: light;
     }
     html[data-mode="black"] {
@@ -187,6 +188,57 @@
       padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px;
     }
     .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
+
+    /* Marché : recherche + bouton Filtres, sections, lignes simplifiées (logo, cours, verdict) */
+    .searchrow { display: flex; gap: 8px; margin-top: 12px; }
+    .searchrow .search { margin-top: 0; flex: 1; min-width: 0; }
+    .filterbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+      color: var(--text); font: inherit; font-size: 14px; padding: 0 14px; cursor: pointer; }
+    .filterbtn .count { background: var(--accent); color: var(--bg); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 6px; }
+    .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .density { font-size: 12px; }
+    .msection { margin-top: 20px; }
+    .msection-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .msection-head h2 { margin: 0; color: var(--text); font-size: 16px; }
+    .msection-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    .see-all { background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; padding: 0; }
+    .mlist { background: var(--card); border-radius: 14px; overflow: hidden; }
+    .mrow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; padding: 11px 14px;
+      background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .mrow:first-child { border-top: 0; }
+    .mrow:hover { background: var(--card-2); }
+    .mrow .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mrow .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .mrow .right { display: grid; justify-items: end; gap: 4px; text-align: right; }
+    .mrow .price { font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .avatar { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; overflow: hidden; }
+    img.avatar { object-fit: cover; background: #fff; }
+    .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .pill.good { color: var(--positive); background: color-mix(in srgb, var(--positive) 15%, transparent); }
+    .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+    .pill.bad { color: var(--accent-neg); background: color-mix(in srgb, var(--accent-neg) 14%, transparent); }
+    .pill.na { color: var(--muted); background: var(--card-2); }
+    .pill.divergent { font-style: italic; }
+    .mbar:not([hidden]) { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .mbar .back, .stock-top .back { background: none; border: 0; color: var(--text); font-size: 26px; line-height: 1; padding: 0 6px 2px 0; cursor: pointer; }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+    .chip.removable::after { content: " ×"; }
+    /* Panneau des filtres (bas de l'écran) */
+    .sheet-bg { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); z-index: 40; }
+    .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh; overflow: auto; background: var(--bg); border-top: 1px solid var(--line);
+      border-radius: 18px 18px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin: 0 auto; }
+    .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 10px; }
+    .sheet h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+    .sheet .filters { margin-top: 0; }
+    .sheet .apply { width: 100%; margin-top: 18px; background: var(--accent); color: var(--bg); border: 0; font: inherit; font-weight: 700; padding: 13px; border-radius: 12px; cursor: pointer; }
+    .sheet .reset { width: 100%; margin-top: 8px; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; }
+    /* Fiche action plein écran (ouverte depuis le Marché, les positions ou la watchlist) */
+    .stock-top { display: flex; align-items: center; gap: 8px; padding: 16px 0 4px; }
+    .stock-top .tick { color: var(--muted); font-size: 14px; }
+    .stock-head { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+    .stock-head h1 { font-size: 22px; margin: 0; line-height: 1.2; }
+    .stock-head .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .bigprice { font-size: 30px; font-weight: 700; margin: 12px 0 4px; letter-spacing: -0.01em; }
 
     /* Super investisseurs */
     .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
@@ -532,7 +584,9 @@
     <!-- Marché -->
     <section class="view" id="view-market" hidden>
       <header>
-        <h1>Marché</h1>
+        <div class="title-row"><h1>Marché</h1>
+          <div class="segmented density" id="market-density" role="group" aria-label="Affichage">
+            <button data-density="simple">Simple</button><button data-density="detailed">Détaillé</button></div></div>
         <div class="segmented" id="market-mode" style="margin-top:10px">
           <button data-mode="screener" class="active">Screener</button>
           <button data-mode="investors">Super investisseurs</button>
@@ -549,37 +603,25 @@
       </div>
       <div id="screener-pane">
       <div class="market-meta" id="market-meta">Chargement du screener…</div>
-      <input class="search" id="market-search" type="search" placeholder="Rechercher une action (nom ou ticker)" autocomplete="off" />
-      <div class="filters">
-        <select id="filter-region" aria-label="Région">
-          <option value="">Toutes régions</option>
-          <option value="Europe">Europe</option>
-          <option value="US">États-Unis</option>
-          <option value="Asie">Asie</option>
-        </select>
-        <select id="filter-sector" aria-label="Secteur"><option value="">Tous secteurs</option></select>
-        <select id="market-sort" aria-label="Tri">
-          <option value="margin">Tri : marge de sécurité</option>
-          <option value="fair">Tri : écart au prix juste</option>
-          <option value="score">Tri : score qualité</option>
-          <option value="pe">Tri : PER le plus bas</option>
-          <option value="cap">Tri : capitalisation</option>
-          <option value="yield">Tri : rendement du dividende</option>
-        </select>
+      <div class="searchrow">
+        <input class="search" id="market-search" type="search" placeholder="Rechercher (nom ou ticker)" autocomplete="off" />
+        <button class="filterbtn" id="market-filters-open">Filtres<span class="count" id="market-filters-count" hidden></span></button>
       </div>
-      <div class="filters">
-        <button class="chip" id="filter-reliable">DCF fiable</button>
-        <button class="chip" id="filter-undervalued">Sous-évaluées</button>
-        <button class="chip" id="filter-quality">Score ≥ 14</button>
-        <button class="chip" id="filter-owned">Mes positions</button>
-        <button class="chip" id="filter-investors">Super investisseurs</button>
-        <button class="chip" id="filter-watch">Ma watchlist</button>
-        <button class="chip" id="filter-dividend">Dividende en hausse 5 ans</button>
+      <div class="mbar" id="market-bar" hidden><button class="back" id="market-home" aria-label="Retour aux sections">‹</button><div class="filters" id="market-chips" style="margin-top:0"></div></div>
+      <div id="market-sections"></div>
+      <div id="market-results" hidden>
+        <div class="result-count" id="market-count"></div>
+        <div id="market-list"></div>
+        <div id="market-live"></div>
       </div>
-      <div class="result-count" id="market-count"></div>
-      <div id="market-list"></div>
-      <div id="market-live"></div>
+      <div id="market-sheet"></div>
       </div>
+    </section>
+
+    <!-- Fiche action plein écran -->
+    <section class="view" id="view-stock" hidden>
+      <div class="stock-top"><button class="back" id="stock-back" aria-label="Retour">‹</button><span class="tick" id="stock-tick"></span></div>
+      <div id="stock-body"></div>
     </section>
 
     <!-- Briefs -->
@@ -1535,6 +1577,7 @@
       statusEl.hidden = true;
       document.getElementById("portfolio-content").hidden = false;
       renderPortfolioSections();
+      renderMarket();  // sections Tes actions du Marché, si le screener est déjà chargé
       saveSnapshot();
       loadLookthrough();
 
@@ -1571,7 +1614,10 @@
     let market = null;
     let marketLoading = false;
     let marketShown = PAGE_SIZE;
-    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, undervalued: false, quality: false, owned: false, investors: false, watch: false, dividend: false };
+    // Filtres du panneau ; preset : section ouverte avec « Tout voir » (Tes actions, Dividendes réguliers...)
+    const NO_FILTERS = { region: "", sector: "", verdict: "", qualityMin: 0, reliable: false, owned: false, investors: false, watch: false, dividend: false };
+    const marketFilters = { query: "", preset: "", sort: "score", ...NO_FILTERS };
+    let sheetDraft = null;  // filtres en cours de réglage dans le panneau, appliqués au bouton « Voir »
 
     const ownedTickers = () => new Set((overview?.holdings || []).map((h) => h.yahoo_ticker));
 
@@ -1590,24 +1636,76 @@
       }
       market.stocks = market.stocks.filter((s) => !s.error && s.price != null);
       const updated = new Date(market.generated_at);
-      meta.textContent = `${market.stocks.length} actions analysées sur ${market.universe_size} · mis à jour le ${updated.toLocaleDateString("fr-FR")} à ${updated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-      const sectors = [...new Set(market.stocks.map((s) => s.sector))].sort((a, b) => a.localeCompare(b, "fr"));
-      document.getElementById("filter-sector").innerHTML += sectors.map((s) => `<option>${escapeHtml(s)}</option>`).join("");
+      meta.textContent = `${market.stocks.length} actions analysées · mises à jour le ${updated.toLocaleDateString("fr-FR")} à ${updated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
       renderMarket();
       renderWatchlist();
     }
 
-    function filteredStocks() {
-      const f = marketFilters;
+    // --- Présentation commune des lignes d'action : logo (ou initiales), verdict en mots, qualité en mots ---
+    const VERDICT_PILLS = { under: ["Sous-évaluée", "good"], fair: ["Prix correct", "warn"], over: ["Chère", "bad"] };
+    function verdictPill(s) {
+      const f = fairValueOf(s);
+      if (!f?.verdict) return `<span class="pill na">Pas d'estimation</span>`;
+      const [label, cls] = VERDICT_PILLS[f.verdict];
+      const warning = fairCaveats(s, f).find((c) => c.warn);
+      const title = warning ? `À nuancer : ${warning.text}` : f.divergent ? "Méthodes divergentes : prix juste à prendre avec prudence" : `Prix juste ${num(f.value, 2)}`;
+      return `<span class="pill ${cls}${f.divergent ? " divergent" : ""}" title="${escapeHtml(title)}">${warning ? "⚠ " : ""}${label}</span>`;
+    }
+    function qualityWord(q) {
+      if (q == null) return "non notée";
+      return q >= 15 ? "très solide" : q >= 12 ? "solide" : q >= 8 ? "moyenne" : "fragile";
+    }
+    const SECTOR_HUE = { "Technologie": 212, "Santé": 170, "Finance": 262, "Industrie": 28, "Consommation": 330, "Énergie": 45, "Matériaux": 95,
+      "Communication": 190, "Immobilier": 12, "Services publics": 140 };
+    function avatar(s) {
+      const words = String(s.name || s.ticker || "?").replace(/^(the|l'|le|la)\s+/i, "").replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean);
+      const letters = (words.slice(0, 2).map((w) => w[0]).join("") || String(s.ticker).slice(0, 2)).toUpperCase();
+      return `<span class="avatar" style="background:hsl(${SECTOR_HUE[s.sector] ?? 220} 45% 38%)" aria-hidden="true">${escapeHtml(letters)}</span>`;
+    }
+    const marketDetailed = () => settings.marketDensity === "detailed";
+    function marketRow(s) {
+      const owned = ownedTickers().has(s.ticker);
+      const f = fairValueOf(s);
+      const lines = marketDetailed()
+        ? `<div class="sub">${escapeHtml(s.ticker)} · ${escapeHtml(s.sector || "")}${owned ? " · en portefeuille" : ""}</div>
+           <div class="sub">Qualité ${s.quality_score != null ? num(s.quality_score) + "/20" : "N/A"} · PER ${num(s.pe)}${f?.upside != null ? ` · ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} %` : ""}${investors?.by_ticker?.[s.ticker] ? ` · ${investors.by_ticker[s.ticker].length} super inv.` : ""}</div>`
+        : `<div class="sub">${escapeHtml(s.ticker)} · ${escapeHtml(s.country || "")} · qualité ${qualityWord(s.quality_score)}${owned ? " · en portefeuille" : ""}</div>`;
+      return `<button class="mrow" data-open-stock="${escapeHtml(s.ticker)}">
+          ${avatar(s)}
+          <div style="min-width:0"><div class="name">${escapeHtml(s.name)}</div>${lines}</div>
+          <div class="right"><span class="price">${money(s.price, s.currency)}</span>${verdictPill(s)}</div>
+        </button>`;
+    }
+
+    // Sections de l'accueil du Marché ; « Tout voir » ouvre la liste complète avec le même critère
+    const MARKET_PRESETS = {
+      all: { title: "Toutes les actions", hint: "", sort: "score", pick: () => true },
+      owned: { title: "Tes actions", hint: "Tes positions présentes dans le screener", sort: "score", pick: (s) => ownedTickers().has(s.ticker) },
+      watch: { title: "Ta watchlist", hint: "Les actions que tu surveilles", sort: "score", pick: (s) => watchlist.has(s.ticker) },
+      cheap: { title: "Solides et sous-évaluées", hint: "Qualité 12/20 ou plus, sans alerte sur l'estimation", sort: "fair",
+        pick: (s) => { const f = fairValueOf(s); return f?.verdict === "under" && (s.quality_score ?? 0) >= 12 && !fairCaveats(s, f).some((c) => c.warn); } },
+      solid: { title: "Les plus solides", hint: "Score qualité de 15/20 ou plus", sort: "score", pick: (s) => (s.quality_score ?? 0) >= 15 },
+      dividend: { title: "Dividendes réguliers", hint: "10 ans de hausse ou plus, rendement de 2,5 % ou plus", sort: "yield",
+        pick: (s) => (s.dividend_streak ?? 0) >= 10 && (s.dividend_yield ?? 0) >= 0.025 && !s.dividend_cut },
+    };
+    const MARKET_SORTS = {
+      score: "Qualité", fair: "Potentiel estimé", margin: "Marge de sécurité (DCF)", yield: "Rendement du dividende", cap: "Taille de l'entreprise", pe: "PER le plus bas",
+    };
+    const activeFilterCount = (f = marketFilters) => Object.keys(NO_FILTERS).filter((k) => f[k]).length;
+    const marketBrowsing = () => !!(marketFilters.query.trim() || marketFilters.preset || activeFilterCount());
+
+    function filteredStocks(f = marketFilters) {
       const q = f.query.trim().toLowerCase();
       const owned = ownedTickers();
+      const preset = MARKET_PRESETS[f.preset];
       let list = market.stocks.filter((s) =>
         (!q || s.ticker.toLowerCase().includes(q) || (s.name || "").toLowerCase().includes(q)) &&
+        (!preset || preset.pick(s)) &&
         (!f.region || s.region === f.region) &&
         (!f.sector || s.sector === f.sector) &&
+        (!f.verdict || fairValueOf(s)?.verdict === f.verdict) &&
+        (!f.qualityMin || (s.quality_score ?? 0) >= f.qualityMin) &&
         (!f.reliable || valuationOf(s).reliable) &&
-        (!f.undervalued || fairValueOf(s)?.verdict === "under") &&
-        (!f.quality || (s.quality_score ?? 0) >= 14) &&
         (!f.owned || owned.has(s.ticker)) &&
         (!f.investors || !!investors?.by_ticker?.[s.ticker]) &&
         (!f.watch || watchlist.has(s.ticker)) &&
@@ -1625,34 +1723,84 @@
       return list.sort((a, b) => (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
     }
 
+    function renderMarketSections() {
+      const section = (key, n = 4) => {
+        const p = MARKET_PRESETS[key];
+        const list = filteredStocks({ ...marketFilters, ...NO_FILTERS, query: "", preset: key, sort: p.sort });
+        if (!list.length) return "";
+        return `<section class="msection">
+            <div class="msection-head"><div><h2>${p.title}</h2><p>${p.hint} · ${list.length} action${list.length > 1 ? "s" : ""}</p></div>
+              ${list.length > n ? `<button class="see-all" data-preset="${key}">Tout voir</button>` : ""}</div>
+            <div class="mlist">${list.slice(0, n).map(marketRow).join("")}</div>
+          </section>`;
+      };
+      document.getElementById("market-sections").innerHTML = section("owned", 6) + section("watch", 4) + section("cheap") + section("solid") + section("dividend")
+        + `<button class="btn more" data-preset="all" id="market-all" style="margin-top:16px">Voir les ${market.stocks.length} actions</button>
+           <p class="help" style="margin-top:10px">Verdicts et scores indicatifs, calculés chaque nuit à partir des données Yahoo : pas un conseil en investissement.</p>`;
+    }
+
+    function renderMarketChips() {
+      const f = marketFilters, chips = [];
+      if (f.preset) chips.push(["preset", MARKET_PRESETS[f.preset].title]);
+      if (f.verdict) chips.push(["verdict", VERDICT_PILLS[f.verdict][0]]);
+      if (f.qualityMin) chips.push(["qualityMin", `Qualité ${f.qualityMin}/20 et +`]);
+      if (f.region) chips.push(["region", f.region === "US" ? "États-Unis" : f.region]);
+      if (f.sector) chips.push(["sector", f.sector]);
+      if (f.reliable) chips.push(["reliable", "DCF fiable"]);
+      if (f.owned) chips.push(["owned", "Mes positions"]);
+      if (f.watch) chips.push(["watch", "Ma watchlist"]);
+      if (f.investors) chips.push(["investors", "Super investisseurs"]);
+      if (f.dividend) chips.push(["dividend", "Dividende en hausse 5 ans"]);
+      document.getElementById("market-chips").innerHTML = chips.map(([k, label]) => `<button class="chip on removable" data-clear="${k}">${escapeHtml(label)}</button>`).join("");
+      const count = activeFilterCount();
+      const badge = document.getElementById("market-filters-count");
+      badge.hidden = !count;
+      badge.textContent = count;
+    }
+
     function renderMarket() {
+      if (!market) return;
+      const browsing = marketBrowsing();
+      document.getElementById("market-sections").hidden = browsing;
+      document.getElementById("market-results").hidden = !browsing;
+      document.getElementById("market-bar").hidden = !browsing;
+      document.querySelectorAll("#market-density button").forEach((b) => b.classList.toggle("active", b.dataset.density === (marketDetailed() ? "detailed" : "simple")));
+      renderMarketChips();
+      if (!browsing) { renderMarketSections(); return; }
       const list = filteredStocks();
-      const owned = ownedTickers();
-      document.getElementById("market-count").textContent =
-        `${list.length} action${list.length > 1 ? "s" : ""}` + (marketFilters.sort === "margin" ? " · classées par marge de sécurité (DCF fiables en tête)" : "");
-      const shown = list.slice(0, marketShown);
-      document.getElementById("market-list").innerHTML = shown.map((s) => {
-        return `
-          <details class="stock" data-ticker="${escapeHtml(s.ticker)}">
-            <summary>
-              <div>
-                <div class="title">${escapeHtml(s.name)}${owned.has(s.ticker) ? '<span class="badge owned">en portefeuille</span>' : ""}${investors?.by_ticker?.[s.ticker] ? `<span class="badge">${investors.by_ticker[s.ticker].length} super inv.</span>` : ""}</div>
-                <div class="sub">${escapeHtml(s.ticker)} · ${escapeHtml(s.country)} · ${escapeHtml(s.sector)}</div>
-              </div>
-              <div class="right">
-                <div class="score">${s.quality_score != null ? num(s.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div>
-                <div>${fairBadge(s)}</div>
-              </div>
-            </summary>
-            ${renderStockDetail(s)}
-          </details>`;
-      }).join("") + (list.length > marketShown ? `<button class="btn more" id="market-more">Afficher ${Math.min(PAGE_SIZE, list.length - marketShown)} de plus</button>` : "");
+      document.getElementById("market-count").textContent = `${list.length} action${list.length > 1 ? "s" : ""} · triées par ${MARKET_SORTS[marketFilters.sort].toLowerCase()}`;
+      document.getElementById("market-list").innerHTML = (list.length ? `<div class="mlist">${list.slice(0, marketShown).map(marketRow).join("")}</div>`
+        : `<div class="card help" style="margin:0">Aucune action ne correspond. Retire un filtre pour élargir.</div>`)
+        + (list.length > marketShown ? `<button class="btn more" id="market-more">Afficher ${Math.min(PAGE_SIZE, list.length - marketShown)} de plus</button>` : "");
 
       // Recherche d'un ticker hors panel : analyse en direct par l'API
       const q = marketFilters.query.trim().toUpperCase();
       document.getElementById("market-live").innerHTML = q && !list.some((s) => s.ticker === q)
         ? `<button class="btn more" id="market-live-btn" data-ticker="${escapeHtml(q)}">Analyser « ${escapeHtml(q)} » en direct</button><div id="market-live-result"></div>`
         : "";
+    }
+
+    function renderFilterSheet() {
+      const f = sheetDraft;
+      const box = document.getElementById("market-sheet");
+      if (!f) { box.innerHTML = ""; return; }
+      const chip = (key, value, label) => `<button class="chip ${f[key] === value ? "on" : ""}" data-f="${key}" data-v="${escapeHtml(String(value))}">${escapeHtml(label)}</button>`;
+      const toggle = (key, label) => `<button class="chip ${f[key] ? "on" : ""}" data-toggle="${key}">${label}</button>`;
+      const sectors = [...new Set(market.stocks.map((s) => s.sector).filter((x) => x && x !== "Non classé"))].sort((a, b) => a.localeCompare(b, "fr"));
+      box.innerHTML = `<div class="sheet-bg" data-sheet-close></div>
+        <div class="sheet" role="dialog" aria-label="Filtres">
+          <div class="grab"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:17px">Filtres</strong><button class="see-all" style="color:var(--muted)" data-sheet-close>Fermer</button></div>
+          <h3>Estimation</h3><div class="filters">${chip("verdict", "under", "Sous-évaluée")}${chip("verdict", "fair", "Prix correct")}${chip("verdict", "over", "Chère")}${toggle("reliable", "DCF fiable")}</div>
+          <h3>Qualité minimum</h3><div class="filters">${chip("qualityMin", 8, "8/20")}${chip("qualityMin", 12, "12/20")}${chip("qualityMin", 15, "15/20")}</div>
+          <h3>Région</h3><div class="filters">${chip("region", "Europe", "Europe")}${chip("region", "US", "États-Unis")}${chip("region", "Asie", "Asie")}</div>
+          <h3>Secteur</h3><div class="filters">${sectors.map((x) => chip("sector", x, x)).join("")}</div>
+          <h3>Mes listes</h3><div class="filters">${toggle("owned", "Mes positions")}${toggle("watch", "Ma watchlist")}${toggle("investors", "Super investisseurs")}</div>
+          <h3>Dividende</h3><div class="filters">${toggle("dividend", "En hausse depuis 5 ans")}</div>
+          <h3>Trier par</h3><div class="filters">${Object.entries(MARKET_SORTS).map(([k, label]) => `<button class="chip ${f.sort === k ? "on" : ""}" data-sort="${k}">${label}</button>`).join("")}</div>
+          <button class="apply" data-sheet-apply>Voir ${filteredStocks(f).length} actions</button>
+          <button class="reset" data-sheet-reset>Tout effacer</button>
+        </div>`;
     }
 
     // extraRows : lignes propres au portefeuille (investi, quantité) ; showDates : date d'analyse et indices
@@ -1717,51 +1865,97 @@
         </div>`;
     }
 
-    async function analyzeLive(ticker) {
-      const out = document.getElementById("market-live-result");
-      out.innerHTML = `<div class="status">Analyse de ${escapeHtml(ticker)} en cours (jusqu'à une minute)…</div>`;
-      try {
-        const a = await api(`/analysis/${encodeURIComponent(ticker)}`);
-        const s = analysisToRecord(a, ticker);
-        out.innerHTML = `<div class="stock"><div class="title">${escapeHtml(s.name || ticker)}</div><div class="sub">${escapeHtml(ticker)} · analyse en direct</div>${renderStockDetail(s, "", false)}</div>`;
-      } catch (e) {
-        out.innerHTML = `<div class="status">${escapeHtml(e.message)}. Vérifie le ticker au format Yahoo (ex : MC.PA, SAP.DE, AAPL, 7203.T).</div>`;
-      }
-    }
-
     let searchTimer;
     document.getElementById("market-search").addEventListener("input", (e) => {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         marketFilters.query = e.target.value;
         marketShown = PAGE_SIZE;
-        if (market) renderMarket();
+        renderMarket();
       }, 200);
     });
-    for (const [id, key] of [["filter-region", "region"], ["filter-sector", "sector"], ["market-sort", "sort"]]) {
-      document.getElementById(id).addEventListener("change", (e) => {
-        marketFilters[key] = e.target.value;
-        marketShown = PAGE_SIZE;
-        if (market) renderMarket();
-      });
-    }
-    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-undervalued", "undervalued"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"], ["filter-dividend", "dividend"]]) {
-      document.getElementById(id).addEventListener("click", (e) => {
-        marketFilters[key] = !marketFilters[key];
-        e.currentTarget.classList.toggle("active", marketFilters[key]);
-        marketShown = PAGE_SIZE;
-        if (market) renderMarket();
-      });
-    }
+    document.getElementById("market-density").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-density]");
+      if (!b) return;
+      settings.marketDensity = b.dataset.density;
+      saveSettings();
+      renderMarket();
+    });
+    document.getElementById("market-filters-open").addEventListener("click", () => {
+      if (!market) return;
+      sheetDraft = { ...marketFilters };
+      renderFilterSheet();
+    });
     document.getElementById("view-market").addEventListener("click", (e) => {
-      if (e.target.id === "market-more") {
-        marketShown += PAGE_SIZE;
-        renderMarket();
-      } else if (e.target.id === "market-live-btn") {
-        analyzeLive(e.target.dataset.ticker);
+      const t = e.target.closest("button, [data-sheet-close]");
+      if (!t) return;
+      const d = t.dataset;
+      if (t.id === "market-more") { marketShown += PAGE_SIZE; renderMarket(); }
+      else if (t.id === "market-live-btn") analyzeLive(d.ticker);
+      else if ("preset" in d) { Object.assign(marketFilters, { preset: d.preset, sort: MARKET_PRESETS[d.preset]?.sort || "score", query: "" }); document.getElementById("market-search").value = ""; marketShown = PAGE_SIZE; renderMarket(); window.scrollTo(0, 0); }
+      else if (t.id === "market-home") { Object.assign(marketFilters, { query: "", preset: "", sort: "score" }, NO_FILTERS); document.getElementById("market-search").value = ""; renderMarket(); }
+      else if (d.clear) { marketFilters[d.clear] = d.clear === "preset" || typeof NO_FILTERS[d.clear] === "string" ? "" : d.clear === "qualityMin" ? 0 : false; marketShown = PAGE_SIZE; renderMarket(); }
+      else if ("sheetClose" in d) { sheetDraft = null; renderFilterSheet(); }
+      else if (d.f) { const v = d.f === "qualityMin" ? Number(d.v) : d.v; sheetDraft[d.f] = sheetDraft[d.f] === v ? NO_FILTERS[d.f] : v; renderFilterSheet(); }
+      else if (d.toggle) { sheetDraft[d.toggle] = !sheetDraft[d.toggle]; renderFilterSheet(); }
+      else if (d.sort) { sheetDraft.sort = d.sort; renderFilterSheet(); }
+      else if ("sheetReset" in d) { Object.assign(sheetDraft, NO_FILTERS); renderFilterSheet(); }
+      else if ("sheetApply" in d) {
+        Object.assign(marketFilters, sheetDraft);
+        // Sans autre critère, le tri choisi s'applique à toutes les actions
+        if (!marketBrowsing()) marketFilters.preset = "all";
+        sheetDraft = null; renderFilterSheet(); marketShown = PAGE_SIZE; renderMarket(); window.scrollTo(0, 0);
       }
     });
 
+    // --- Fiche action plein écran : même contenu partout (Marché, positions, watchlist, analyse en direct) ---
+    let stockReturn = null;  // vue et défilement à retrouver en fermant la fiche
+    function openStock(s, extraRows = "", showDates = true) {
+      if (!stockReturn) {
+        const current = [...document.querySelectorAll(".view")].find((v) => !v.hidden && v.id !== "view-stock");
+        stockReturn = { view: current?.id, scroll: window.scrollY };
+        history.pushState({ stock: s.ticker }, "", location.hash || location.pathname);
+      }
+      document.getElementById("stock-tick").textContent = s.ticker;
+      document.getElementById("stock-body").innerHTML = `
+        <div class="stock-head">${avatar(s)}<div style="min-width:0"><h1>${escapeHtml(s.name || s.ticker)}</h1>
+          <div class="sub">${[s.country, s.sector, (s.indices || [])[0]].filter(Boolean).map(escapeHtml).join(" · ")}</div></div></div>
+        <div class="bigprice">${money(s.price, s.currency)}</div>
+        ${renderStockDetail(s, extraRows, showDates)}`;
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-stock"));
+      window.scrollTo(0, 0);
+    }
+    function closeStock() {
+      if (!stockReturn) return;
+      const { view, scroll } = stockReturn;
+      stockReturn = null;
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
+      window.scrollTo(0, scroll);
+    }
+    // Retour du téléphone (geste ou bouton) : ferme la fiche au lieu de quitter l'appli
+    window.addEventListener("popstate", () => { if (stockReturn) closeStock(); });
+    document.getElementById("stock-back").addEventListener("click", () => (stockReturn ? history.back() : null));
+    function openStockByTicker(ticker) {
+      const s = market?.stocks.find((x) => x.ticker === ticker);
+      if (s) openStock(s);
+      else analyzeLive(ticker);
+    }
+    document.addEventListener("click", (e) => {
+      const row = e.target.closest("[data-open-stock]");
+      if (row) openStockByTicker(row.dataset.openStock);
+    });
+
+    async function analyzeLive(ticker) {
+      const out = document.getElementById("market-live-result");
+      if (out) out.innerHTML = `<div class="status">Analyse de ${escapeHtml(ticker)} en cours (jusqu'à une minute)…</div>`;
+      try {
+        const a = await api(`/analysis/${encodeURIComponent(ticker)}`);
+        if (out) out.innerHTML = "";
+        openStock(analysisToRecord(a, ticker), "", false);
+      } catch (e) {
+        if (out) out.innerHTML = `<div class="status">${escapeHtml(e.message)}. Vérifie le ticker au format Yahoo (ex : MC.PA, SAP.DE, AAPL, 7203.T).</div>`;
+      }
+    }
     // --- Super investisseurs (13F de la SEC, mis à jour avec le screener) ---
     const INVESTORS_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/superinvestors.json";
     const usd = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1, style: "currency", currency: "USD" });
@@ -1914,6 +2108,7 @@
     }
 
     function renderWatchlist() {
+      renderMarket();  // section Ta watchlist du Marché
       const block = document.getElementById("watchlist-block");
       if (!watchlist.size) { block.hidden = true; return; }
       block.hidden = false;
