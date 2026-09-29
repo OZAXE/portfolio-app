@@ -133,3 +133,40 @@ def test_preview_csv_range_pea_et_cto_dans_leurs_comptes(monkeypatch):
     assert [(o["isin"], o["account"]) for o in result["operations"]] == [
         ("FR0000120073", "PEA Trade Republic"), ("GB00B63H8491", "CTO Trade Republic")]
     assert any("opérations sur titres" in e for e in result["errors"])
+
+
+class FakeTab:
+    def __init__(self, rows=1):
+        self.rows, self.written = rows, []
+
+    def col_values(self, col):
+        return [""] * self.rows
+
+    def update(self, range_name, values, value_input_option=None):
+        self.written += values
+
+
+def test_import_remplit_secteur_et_zone_depuis_le_screener(monkeypatch):
+    # Avant : Applied Materials importé avec un secteur vide -> « Non classé » dans la répartition
+    tabs = {"Titres": FakeTab(), "Opérations": FakeTab()}
+    monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {
+        "accounts": [{"name": "CTO Trade Republic", "envelope": "CTO"}], "titres": []})
+    monkeypatch.setattr(imports, "_open_sheet", lambda sheet_id, write=False: None)
+    monkeypatch.setattr(imports, "_worksheet", lambda sheet, name: tabs[name])
+    info = lambda t: type("Info", (), {"kind": "Action", "google": "NASDAQ:AMAT", "name": "Applied Materials", "currency": "USD"})()
+    op = {"date": "2026-09-10", "type": "Achat", "ticker": "AMAT", "quantity": 1, "price": 180, "account": "CTO Trade Republic"}
+    imports.write_import("s", "CTO Trade Republic", [op], titres_info=info,
+                         profiles={"AMAT": {"sector": "Technologie", "country": "États-Unis"}})
+    assert tabs["Titres"].written[0][3:5] == ["Technologie", "États-Unis"]
+
+
+def test_secteurs_vides_repris_du_screener():
+    from app.main import fill_sectors
+    from app.sheets import HoldingLine
+
+    line = lambda ticker, kind, sector="": HoldingLine(ticker, ticker, "CTO", 1, 1, 0, 0, sector, kind=kind)
+    holdings = [line("AMAT", "Action"), line("TSM", "Action"), line("CW8.PA", "ETF"), line("AI.PA", "Action", "Chimie")]
+    fill_sectors(holdings, {"AMAT": {"sector": "Technologie", "country": "États-Unis"},
+                            "AI.PA": {"sector": "Matériaux", "country": "France"}})
+    assert [h.sector for h in holdings] == ["Technologie", "", "ETF (plusieurs secteurs)", "Chimie"]  # saisie à la main gardée
+    assert holdings[0].zone == "États-Unis"
