@@ -1010,6 +1010,24 @@
       });
     }
 
+    // L'historique s'arrête à la veille (relevé nocturne, reconstitution jusqu'à hier) : une vente du jour
+    // (Meta, Bitcoin et Ethereum d'Evan le 29/09) n'y apparaissait pas alors que le haut de l'écran en
+    // tenait compte. On termine la courbe par un point « aujourd'hui » pris sur les positions actuelles.
+    function withLivePoint(history) {
+      const t = overview.total;
+      const today = new Date().toLocaleDateString("sv-SE");  // AAAA-MM-JJ à l'heure locale
+      if (!t || !t.invested || (history.length && history[history.length - 1].date >= today)) return history;
+      const env = (name) => overview.envelopes?.[name] || { value: 0, invested: 0, gain_pct: null };
+      const pea = env("PEA"), cto = env("CTO");
+      return [...history, {
+        date: today, live: true,
+        total_value: t.value, pea_value: pea.value, cto_value: cto.value,
+        total_pct: t.gain_pct, pea_pct: pea.invested ? pea.gain_pct : null, cto_pct: cto.invested ? cto.gain_pct : null,
+      }];
+    }
+
+    const livePointTime = (points) => { const last = points[points.length - 1]; return last?.live ? new Date(last.date).getTime() : null; };
+
     function renderChart() {
       if (benchmarkKey) { renderBenchmarkChart(); return; }
       document.getElementById("bench-summary").textContent = "";
@@ -1017,7 +1035,7 @@
         <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
         <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
         <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>`;
-      const points = overview.history;
+      const points = withLivePoint(overview.history);
       if (!points.length) {  // nouveau compte : premier relevé la nuit suivant un jour de bourse
         if (chart) { chart.destroy(); chart = null; }
         document.getElementById("bench-summary").textContent = "La courbe se remplira toute seule : un relevé est ajouté chaque nuit après un jour de bourse.";
@@ -1051,7 +1069,8 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                title: (items) => dateFmt.format(new Date(items[0].parsed.x)),
+                title: (items) => dateFmt.format(new Date(items[0].parsed.x))
+                  + (items[0].parsed.x === livePointTime(points) ? " (en direct)" : ""),
                 label: (item) => ` ${item.dataset.label} : ${fmt(item.parsed.y)}`,
               },
             },

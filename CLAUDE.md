@@ -126,6 +126,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   peut donc avoir deux lignes : rendement par ligne dans `returns.positions_by_envelope`, dédoublonner
   ce qui est rangé par titre (poche de l'Allocation, frais courants des ETF).
 
+- **Courbe du portefeuille** : l'onglet Historique s'arrête à la veille (relevé nocturne après chaque
+  jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »
+  pris sur les positions actuelles (`withLivePoint`), sinon une vente du jour (Evan, 29/09) laissait la
+  courbe au-dessus de la valeur affichée en haut jusqu'au relevé de la nuit.
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
