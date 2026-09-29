@@ -118,6 +118,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   et ressort « à récupérer ». Limites : un ADR (TSMC) est compté américain, et sur quelques centimes
   l'arrondi peut faire hésiter entre deux cas.
 
+- **Onglet Positions : une ligne par titre et par compte** (septembre 2026). Avant, une ligne par ticker :
+  une action sur le PEA et le CTO était additionnée et rangée dans l'enveloppe du premier compte. Les
+  formules (`POSITION_FORMULAS`) trient les couples « ticker|compte » et les coupent en A et C ; quantité
+  et PRU filtrent aussi sur le compte. Les anciens Sheets sont mis à niveau à la première lecture
+  (`ensure_position_formulas`, une vérification par Sheet et par démarrage). Côté appli, un même ticker
+  peut donc avoir deux lignes : rendement par ligne dans `returns.positions_by_envelope`, dédoublonner
+  ce qui est rangé par titre (poche de l'Allocation, frais courants des ETF).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste

@@ -212,9 +212,16 @@ def _worksheet(sheet: gspread.Spreadsheet, name: str) -> gspread.Worksheet:
     return ws
 
 
+def _upgrade_positions(sheet_id: str) -> None:
+    from .workbook import ensure_position_formulas
+
+    ensure_position_formulas(sheet_id)
+
+
 def get_portfolio_positions(sheet_id: str) -> list[Position]:
     sheet = _open_sheet(sheet_id)
     if is_v2(sheet):
+        _upgrade_positions(sheet_id)
         rows = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
         return [Position(ticker=h.yahoo_ticker, quantity=q, envelope=h.envelope)
                 for h, q in parse_positions_v2(rows) if h.yahoo_ticker and q]
@@ -317,7 +324,7 @@ def parse_savings(rows: list[list]) -> list[dict]:
 
 
 def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
-    """Onglet Positions du modèle : une ligne par titre (colonnes de workbook.POSITIONS_HEADERS).
+    """Onglet Positions du modèle : une ligne par titre et par compte (colonnes de workbook.POSITIONS_HEADERS).
     Les titres entièrement vendus (quantité nulle) sont écartés."""
     lines = []
     for r in range(1, len(rows)):
@@ -377,6 +384,7 @@ def get_overview(sheet_id: str) -> Overview:
     sheet = _open_sheet(sheet_id)
     historique = _worksheet(sheet, "Historique").get_values(value_render_option=UNFORMATTED)
     if is_v2(sheet):
+        _upgrade_positions(sheet_id)
         positions = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
         overview = Overview(holdings=[h for h, _ in parse_positions_v2(positions)], history=parse_history_v2(historique))
         titres = _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)

@@ -50,15 +50,20 @@ DEFAULT_FEES = [
 # Positions : une formule par colonne sur toute la hauteur (MAP / LAMBDA), rien à recopier à la main
 POSITION_FORMULAS = {
     # IFERROR : Sheet vide (aucune opération) -> rien plutôt qu'une ligne de #N/A
-    "A2": '=IFERROR(SORT(UNIQUE(FILTER(Opérations!D2:D; Opérations!D2:D<>""; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")))); "")',
+    # Une ligne par titre ET par compte : Air Liquide sur le PEA et sur le CTO = deux lignes. Les couples
+    # « ticker|compte » uniques sont triés puis coupés en deux (ticker en A, compte en C, même ordre)
+    "A2": '=IFERROR(ARRAYFORMULA(INDEX(SPLIT(SORT(UNIQUE(FILTER(Opérations!D2:D&"|"&Opérations!B2:B; Opérations!D2:D<>"";'
+          ' (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")))); "|"; FALSE; FALSE); 0; 1)); "")',
     "B2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:C; 3; FALSE); t))))',
-    "C2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; INDEX(FILTER(Opérations!B2:B; Opérations!D2:D=t); 1))))',
+    "C2": '=IFERROR(ARRAYFORMULA(INDEX(SPLIT(SORT(UNIQUE(FILTER(Opérations!D2:D&"|"&Opérations!B2:B; Opérations!D2:D<>"";'
+          ' (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")))); "|"; FALSE; FALSE); 0; 2)); "")',
     "D2": '=MAP(C2:C; LAMBDA(c; IF(c=""; ""; IFERROR(VLOOKUP(c; Comptes!A:B; 2; FALSE); ""))))',
-    "E2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!C2:C; "Achat")'
-          ' - SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!C2:C; "Vente"))))',
-    # PRU = coût total des achats (frais et taxes compris) / quantité achetée (méthode du prix moyen pondéré)
-    "F2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(SUMIFS(Opérations!L2:L; Opérations!D2:D; t; Opérations!C2:C; "Achat")'
-          ' / SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!C2:C; "Achat"); 0))))',
+    "E2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat")'
+          ' - SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Vente"))))',
+    # PRU = coût total des achats (frais et taxes compris) / quantité achetée (méthode du prix moyen pondéré),
+    # par compte : le PRU fiscal du CTO ne mélange pas les achats faits dans le PEA
+    "F2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; IFERROR(SUMIFS(Opérations!L2:L; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat")'
+          ' / SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat"); 0))))',
     "G2": '=MAP(E2:E; F2:F; LAMBDA(q; p; IF(q=""; ""; q*p)))',
     "H2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(GOOGLEFINANCE(VLOOKUP(t; Titres!A:B; 2; FALSE)); ""))))',
     "I2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:F; 6; FALSE); "EUR"))))',
@@ -71,6 +76,30 @@ POSITION_FORMULAS = {
     "N2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:D; 4; FALSE); ""))))',
     "O2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:E; 5; FALSE); ""))))',
 }
+
+# Les Sheets créés avant septembre 2026 faisaient une ligne par ticker (quantité de tous les comptes,
+# enveloppe du premier) : leurs formules Positions sont remplacées à la première lecture
+_positions_checked: set[str] = set()
+
+
+def is_old_positions_formula(formula: str) -> bool:
+    """Ancienne formule de l'appli en A2 : filtre les tickers (colonne D) sans regarder le compte (B)."""
+    return "!D2:D" in formula and "!B2:B" not in formula
+
+
+def ensure_position_formulas(sheet_id: str) -> None:
+    if sheet_id in _positions_checked:
+        return
+    _positions_checked.add(sheet_id)  # une vérification par Sheet et par démarrage du serveur (quota Google)
+    try:
+        ws = _find_worksheet(sheets_client(write=True).open_by_key(sheet_id), "Positions")
+        formula = ws.acell("A2", value_render_option=gspread.utils.ValueRenderOption.formula).value if ws else ""
+        if formula and is_old_positions_formula(str(formula)):
+            ws.batch_update([{"range": cell, "values": [[f]]} for cell, f in POSITION_FORMULAS.items()],
+                            value_input_option="USER_ENTERED")
+    except Exception:
+        pass  # compte de service en lecture seule ou Sheet modifié à la main : on garde l'existant
+
 
 # Formats d'affichage par onglet : (colonnes, motif)
 EUR = "#,##0.00 €"

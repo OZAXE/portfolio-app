@@ -761,8 +761,14 @@ def get_costs(user: User = Depends(require_access)):
 
         fees_file = read_fee_state()
         ter = {t: v.get("ter") for t, v in fees_file.get("etfs", {}).items()} | manual
-        holdings = [{"ticker": h.ticker.upper(), "name": h.name, "value": h.value, "manual": h.ticker.upper() in manual}
-                    for h in get_overview(user.sheet_id).holdings if h.kind == "ETF"]
+        # Un même ETF sur le PEA et le CTO : une seule ligne de frais courants, valeurs additionnées
+        etfs: dict[str, dict] = {}
+        for h in get_overview(user.sheet_id).holdings:
+            if h.kind == "ETF":
+                line = etfs.setdefault(h.ticker.upper(), {"ticker": h.ticker.upper(), "name": h.name, "value": 0.0,
+                                                          "manual": h.ticker.upper() in manual})
+                line["value"] += h.value or 0
+        holdings = list(etfs.values())
         return {"pea": pea_ceiling(operations, envelopes, date.today()),
                 "years": fees_by_year(operations, envelopes), "etf": etf_costs(holdings, ter)}
 

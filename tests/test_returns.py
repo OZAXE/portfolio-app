@@ -67,3 +67,14 @@ def test_fully_sold_position_and_missing_price():
     assert result["positions"]["AAA"]["gain"] == 20.0 and result["positions"]["AAA"]["value"] == 0.0
     assert result["positions"]["ZZZ"]["incomplete"] is True
     assert result["total"]["incomplete"] is True
+
+
+def test_meme_titre_sur_pea_et_cto_une_ligne_par_enveloppe():
+    # Air Liquide : 2 achetées 300 € sur le PEA, 1 achetée 170 € sur le CTO, cours 180 €
+    ops = [op("2025-01-01", "PEA Boursorama", "Achat", "AI.PA", 2, 300.0),
+           op("2025-06-01", "CTO Trade Republic", "Achat", "AI.PA", 1, 170.0)]
+    result = compute_returns(ops, ENVELOPES, {"AI.PA": 180.0}, TODAY)
+    lines = result["positions_by_envelope"]
+    assert lines["PEA"]["AI.PA"]["value"] == 360.0 and lines["PEA"]["AI.PA"]["gain"] == 60.0
+    assert lines["CTO"]["AI.PA"]["value"] == 180.0 and lines["CTO"]["AI.PA"]["gain"] == 10.0
+    assert result["positions"]["AI.PA"]["gain"] == 70.0  # total du titre inchangé
