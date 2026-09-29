@@ -1872,10 +1872,38 @@
     }
     const SECTOR_HUE = { "Technologie": 212, "Santé": 170, "Finance": 262, "Industrie": 28, "Consommation": 330, "Énergie": 45, "Matériaux": 95,
       "Communication": 190, "Immobilier": 12, "Services publics": 140 };
-    function avatar(s) {
+    // Logos : dépôt public nvstly/icons (tickers américains et cryptos, servi par jsDelivr) pour les actions cotées aux
+    // États-Unis et les ADR vérifiés, puis le service d'images de Financial Modeling Prep, qui connaît aussi Paris,
+    // Francfort ou Londres ; sans logo, pastille aux initiales. Pas de correspondance devinée : « AI » est C3.ai aux
+    // États-Unis, pas Air Liquide (AI.PA)
+    const LOGO_REPO = "https://cdn.jsdelivr.net/gh/nvstly/icons@main";
+    const ADR_LOGOS = {"ASML.AS": "ASML", "SAP.DE": "SAP", "TTE.PA": "TTE", "NOVO-B.CO": "NVO", "SAN.PA": "SNY", "AZN.L": "AZN", "SHEL.L": "SHEL", "ULVR.L": "UL", "BP.L": "BP", "HSBA.L": "HSBC", "GSK.L": "GSK", "NOVN.SW": "NVS", "9988.HK": "BABA", "BAYN.DE": "BAYRY", "ADS.DE": "ADDYY", "SAN.MC": "SAN", "BBVA.MC": "BBVA", "ENI.MI": "E", "STLAM.MI": "STLA", "RACE.MI": "RACE", "INGA.AS": "ING", "PHIA.AS": "PHG", "ABI.BR": "BUD", "NOKIA.HE": "NOK", "ERIC-B.ST": "ERIC", "EQNR.OL": "EQNR", "RIO.L": "RIO", "DGE.L": "DEO", "BATS.L": "BTI", "REL.L": "RELX", "BARC.L": "BCS", "LLOY.L": "LYG", "NG.L": "NGG", "VOD.L": "VOD", "RR.L": "RYCEY", "STMPA.PA": "STM", "UBSG.SW": "UBS"};
+    function logoUrls(ticker) {
+      const t = String(ticker || "").toUpperCase();
+      const urls = [];
+      const crypto = t.match(/^([A-Z0-9]{2,10})-(EUR|USD)$/);
+      if (crypto) return [`${LOGO_REPO}/crypto_icons/${crypto[1]}.png`];
+      if (/^[A-Z]{1,5}$/.test(t)) urls.push(`${LOGO_REPO}/ticker_icons/${t}.png`);
+      else if (ADR_LOGOS[t]) urls.push(`${LOGO_REPO}/ticker_icons/${ADR_LOGOS[t]}.png`);
+      urls.push(`https://financialmodelingprep.com/image-stock/${encodeURIComponent(t)}.png`);
+      return urls;
+    }
+    // Image introuvable : source suivante, puis les initiales
+    window.logoFallback = (img) => {
+      const next = (img.dataset.next || "").split(" ").filter(Boolean);
+      if (next.length) { img.dataset.next = next.slice(1).join(" "); img.src = next[0]; }
+      else img.outerHTML = img.dataset.initials;
+    };
+    function initialsAvatar(s) {
       const words = String(s.name || s.ticker || "?").replace(/^(the|l'|le|la)\s+/i, "").replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean);
       const letters = (words.slice(0, 2).map((w) => w[0]).join("") || String(s.ticker).slice(0, 2)).toUpperCase();
       return `<span class="avatar" style="background:hsl(${SECTOR_HUE[s.sector] ?? 220} 45% 38%)" aria-hidden="true">${escapeHtml(letters)}</span>`;
+    }
+    function avatar(s) {
+      const initials = initialsAvatar(s);
+      const [first, ...rest] = logoUrls(s.ticker);
+      if (!first) return initials;
+      return `<img class="avatar" src="${first}" data-next="${rest.join(" ")}" data-initials="${escapeHtml(initials)}" alt="" loading="lazy" onerror="logoFallback(this)" />`;
     }
     const marketDetailed = () => settings.marketDensity === "detailed";
     function marketRow(s) {
