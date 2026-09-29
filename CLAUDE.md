@@ -152,8 +152,16 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Réglages : rubriques groupées ouvrant chacune leur page (`openSettingsPage`) ; outils rares (doublons,
     repartir de zéro, reconstituer l'historique) dans « Opérations avancées » ;
   - logos (`logoUrls`) : dépôt nvstly/icons via jsDelivr pour les tickers américains, les cryptos et les ADR
-    vérifiés (`ADR_LOGOS`), puis Financial Modeling Prep, puis initiales (`logoFallback`). Jamais de
-    correspondance devinée (« AI » = C3.ai, pas Air Liquide).
+    vérifiés (`ADR_LOGOS`), puis Financial Modeling Prep (couvre aussi Paris : Air Liquide, LVMH vérifiés
+    par Enzo), puis initiales (`logoFallback`). Jamais de correspondance devinée (« AI » = C3.ai, pas Air
+    Liquide). Affichés en entier (`object-fit: contain`, marge plus large si pas carrés) ; un logo blanc sur
+    fond transparent (Apple, Amazon, Visa) reçoit un fond sombre (`isLightLogo` lit ses pixels, possible
+    seulement avec CORS : `crossorigin` pour jsDelivr, retiré pour l'autre source) ;
+  - Super investisseurs : mêmes lignes que le Marché (`investorRow`), fonds en cartes dépliables ;
+  - mode discret : des points (« •••• € ») à la place du flou, préférés par Enzo. Tout montant affiché doit
+    passer par `eur.format` ou `hideable(texte, masque)` pour être masqué ;
+  - l'appli installée sert sa dernière copie si le réseau met plus de 4 s (`service-worker.js`) : juste après
+    une mise en ligne, fermer et rouvrir l'appli pour voir la nouvelle version.
   Pour tester le front : servir `frontend/`, intercepter l'API (réponses générées avec les fonctions du backend)
   et le screener avec Playwright, comme décrit dans « Commandes ».
 
