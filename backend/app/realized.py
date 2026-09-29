@@ -7,9 +7,10 @@ Le PRU suit la méthode du prix moyen pondéré (règle fiscale française), par
 frais d'achat inclus : une vente ne modifie pas le PRU des titres restants.
 
 L'estimation d'impôt ne concerne que le CTO (prélèvement forfaitaire unique, 31,4 % depuis 2026) : le PEA
-n'est pas imposé tant qu'on n'en retire rien. C'est l'impôt qui reste à payer : les retenues déjà faites
-sur les dividendes (colonne Taxes) en sont déduites. Elle reste indicative (moins-values reportables,
-option pour le barème, retenue étrangère qui ne s'impute que sur les 12,8 % d'impôt sur le revenu...).
+n'est pas imposé tant qu'on n'en retire rien. C'est l'impôt qui reste à payer (négatif : à récupérer),
+dividende par dividende (voir dividend_tax) : les retenues de la colonne Taxes sont séparées en part
+française et part étrangère, et la part étrangère ne s'impute que sur les 12,8 % d'impôt sur le revenu,
+au taux de la convention fiscale. Elle reste indicative (moins-values reportables, option pour le barème).
 """
 
 import threading
@@ -28,6 +29,47 @@ FLAT_TAX_2026 = 0.314
 
 def flat_tax_rate(year: int) -> float:
     return FLAT_TAX_2026 if year >= 2026 else FLAT_TAX
+
+
+INCOME_TAX = 0.128  # part impôt sur le revenu du PFU ; le reste, ce sont les prélèvements sociaux
+
+# Crédit d'impôt des conventions fiscales avec la France (dividendes de portefeuille), par place de
+# cotation : 15 % par défaut (États-Unis, Allemagne, Suisse...), 10 % Japon et Taïwan, 0 quand le pays
+# ne prélève rien (France, Royaume-Uni, Hong Kong). Un ETF coté en Europe est presque toujours
+# irlandais ou luxembourgeois : pas de retenue, donc pas de crédit.
+TREATY_CREDIT = {".PA": 0.0, ".L": 0.0, ".HK": 0.0, ".T": 0.10, ".TW": 0.10}
+DEFAULT_TREATY_CREDIT = 0.15
+ROUNDING = 0.015  # les retenues sont arrondies au centime, parfois en deux parts
+
+
+def treaty_credit(ticker: str, kind: str = "") -> float:
+    dot = ticker.rfind(".")
+    suffix = ticker[dot:] if dot > 0 else ""
+    if kind == "ETF" and suffix:
+        return 0.0
+    return TREATY_CREDIT.get(suffix, DEFAULT_TREATY_CREDIT)
+
+
+def dividend_tax(gross: float, withheld: float, credit_rate: float, year: int) -> dict:
+    """Impôt français restant sur un dividende du CTO (négatif : acompte à récupérer).
+
+    Un établissement français prélève à la source soit rien (courtier étranger), soit les prélèvements
+    sociaux seuls (dispense d'acompte), soit l'acompte de 12,8 % en plus : on garde le plus grand de
+    ces trois montants qui laisse au pays d'origine au moins la retenue de la convention. Le reste de la
+    colonne Taxes est la retenue étrangère ; elle efface l'impôt sur le revenu jusqu'au taux de la
+    convention (une retenue plus forte, 35 % en Suisse, se réclame au pays d'origine).
+    Ex. Applied Materials chez Trade Republic, 2026 : brut 0,47, retenu 0,22 -> France 0,1476 (31,4 %),
+    États-Unis 0,0724 ; dû 0,47 x 18,6 % = 0,0874 (impôt sur le revenu effacé) : 0,06 à récupérer."""
+    rate = flat_tax_rate(year)
+    social = rate - INCOME_TAX
+    french = 0.0
+    for candidate in (rate * gross, social * gross):
+        if withheld - candidate >= credit_rate * gross - ROUNDING:
+            french = candidate
+            break
+    foreign = max(withheld - french, 0.0)
+    due = social * gross + max(INCOME_TAX * gross - min(foreign, credit_rate * gross), 0.0)
+    return {"remaining": due - french, "french": french, "foreign": foreign}
 
 
 @dataclass
@@ -61,6 +103,7 @@ class Ledger:
     envelopes: dict[str, str]  # compte -> PEA / CTO (onglet Comptes)
     names: dict[str, str]  # titre -> nom (onglet Titres)
     currencies: dict[str, str]  # titre -> devise de cotation (onglet Titres)
+    kinds: dict[str, str] = field(default_factory=dict)  # titre -> Action / ETF / Crypto (onglet Titres)
 
 
 # Rendement, plus-values, frais, dividendes et comparaison à un indice lisent tous les opérations :
@@ -105,11 +148,13 @@ def _parse_ledger(sheet_id: str) -> Ledger:
     envelopes = {str(r[0]): str(r[1]) for r in comptes if len(r) > 1 and r[0]}
     names = {str(r[0]).strip().upper(): str(r[2]) for r in titres if len(r) > 2 and r[0]}
     currencies = {str(r[0]).strip().upper(): str(r[5] or "EUR").strip() for r in titres if len(r) > 5 and r[0]}
-    return Ledger(operations, envelopes, names, currencies)
+    kinds = {str(r[0]).strip().upper(): str(r[6]).strip() for r in titres if len(r) > 6 and r[0]}
+    return Ledger(operations, envelopes, names, currencies, kinds)
 
 
-def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None) -> dict:
-    names = names or {}
+def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None,
+                     kinds: dict[str, str] | None = None) -> dict:
+    names, kinds = names or {}, kinds or {}
     positions: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0.0, 0.0])  # (compte, titre) -> [quantité, coût total]
     years: dict[int, YearSummary] = {}
 
@@ -118,6 +163,7 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
         return summary.envelopes.setdefault(envelope, {
             "realized_gain": 0.0, "sales": 0, "sale_proceeds": 0.0,
             "dividends_gross": 0.0, "dividends_taxes": 0.0, "dividends_net": 0.0,
+            "dividends_tax_remaining": 0.0, "foreign_withheld": 0.0,
         })
 
     # Ordre chronologique ; le même jour, les achats avant les ventes
@@ -149,6 +195,9 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
             bucket["dividends_gross"] += op.gross
             bucket["dividends_taxes"] += op.taxes + op.fees
             bucket["dividends_net"] += op.net
+            tax = dividend_tax(op.gross, op.taxes + op.fees, treaty_credit(op.ticker, kinds.get(op.ticker, "")), op.day.year)
+            bucket["dividends_tax_remaining"] += tax["remaining"]
+            bucket["foreign_withheld"] += tax["foreign"]
             years[op.day.year].dividends.append({
                 "date": op.day.isoformat(), "account": op.account, "envelope": envelope, "ticker": op.ticker,
                 "name": names.get(op.ticker, op.ticker), "gross": round(op.gross, 2),
@@ -160,15 +209,15 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
         summary = years[year]
         envelopes_out = {}
         for envelope, b in summary.envelopes.items():
-            rounded = {k: round(v, 2) if isinstance(v, float) else v for k, v in b.items()}
+            internal = ("dividends_tax_remaining", "foreign_withheld")
+            rounded = {k: round(v, 2) if isinstance(v, float) else v for k, v in b.items() if k not in internal}
             if envelope == "CTO":
                 rate = flat_tax_rate(year)
-                # Dividendes : flat tax moins ce qui est déjà prélevé à la source. Trade Republic France
-                # retient 15 % (États-Unis) + 31,4 % sur un dividende Meta : il ne reste rien à payer
-                dividend_tax = max(b["dividends_gross"] * rate - b["dividends_taxes"], 0.0)
+                # Négatif : l'acompte de 12,8 % prélevé sur des dividendes étrangers dépasse l'impôt dû
                 rounded["flat_tax_rate"] = rate
-                rounded["estimated_tax"] = round(max(b["realized_gain"], 0.0) * rate + dividend_tax, 2)
+                rounded["estimated_tax"] = round(max(b["realized_gain"], 0.0) * rate + b["dividends_tax_remaining"], 2)
                 rounded["withheld_tax"] = round(b["dividends_taxes"], 2)
+                rounded["foreign_withheld"] = round(b["foreign_withheld"], 2)
             envelopes_out[envelope] = rounded
         result.append({"year": year, "envelopes": envelopes_out,
                        "sales": sorted(summary.sales, key=lambda s: s["date"], reverse=True),
@@ -177,5 +226,5 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
 
 
 def realized_summary(sheet_id: str) -> dict:
-    operations, envelopes, names = read_operations(sheet_id)
-    return compute_realized(operations, envelopes, names)
+    ledger = read_ledger(sheet_id)
+    return compute_realized(ledger.operations, ledger.envelopes, ledger.names, ledger.kinds)

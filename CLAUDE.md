@@ -104,12 +104,19 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   cette enveloppe, statut `no_account` et import bloqué. Opérations sur titres (`CORPORATE_ACTION`, ex.
   actions gratuites Air Liquide) signalées, à saisir à la main. Dividende : `amount` = brut converti en
   euros (vérifié sur Meta : 0,528 $ par action), `tax` = toutes les retenues (pays d'origine + France).
-- **Impôt estimé du CTO** (`realized.py`) = impôt **restant à payer** : plus-values positives × flat tax
-  + max(0, dividendes bruts × flat tax − retenues de la colonne Taxes). Trade Republic France retient
-  déjà à la source 15 % (États-Unis) + 31,4 % : il ne reste rien sur ses dividendes. Limite connue et
-  écrite dans l'aide : la retenue étrangère ne s'impute en réalité que sur les 12,8 % d'impôt sur le
-  revenu (sous-estimation d'environ 2 % des dividendes chez un courtier qui ne prélève que la retenue
-  étrangère). Le Sheet n'a qu'une colonne Taxes, et l'export Trade Republic ne donne qu'un total.
+- **Impôt estimé du CTO** (`realized.py`, `dividend_tax`) = impôt **restant à payer** (négatif :
+  à récupérer, affiché comme tel) : plus-values positives × flat tax + somme, dividende par dividende, de
+  (dû − prélevé en France). La colonne Taxes (un seul total, comme l'export Trade Republic) est séparée
+  ainsi : un établissement français prélève soit rien, soit les prélèvements sociaux seuls (dispense
+  d'acompte), soit en plus l'acompte de 12,8 % ; on garde le plus grand de ces montants qui laisse au
+  pays d'origine au moins le taux de la convention, le reste est la retenue étrangère. Dû = prélèvements
+  sociaux + max(0, 12,8 % − min(retenue étrangère, taux de la convention)). Taux de la convention par
+  place de cotation (`treaty_credit`) : 15 % par défaut, 10 % Japon / Taïwan, 0 France / Royaume-Uni /
+  Hong Kong et ETF cotés en Europe (irlandais ou luxembourgeois). Choix d'Enzo : calcul « carré » sans
+  toucher au Sheet (pas de colonne retenue étrangère : ni l'export ni les amis ne l'auraient).
+  Conséquence : chez Trade Republic, l'acompte de 12,8 % prélevé sur un dividende américain est en trop
+  et ressort « à récupérer ». Limites : un ADR (TSMC) est compté américain, et sur quelques centimes
+  l'arrondi peut faire hésiter entre deux cas.
 
 ## Pistes non faites
 

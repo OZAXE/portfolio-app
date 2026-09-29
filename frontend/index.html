@@ -2761,7 +2761,7 @@
           <div class="perf">plus-values réalisées${e.sales ? ` · ${e.sales} vente${e.sales > 1 ? "s" : ""}` : ""}</div>
           <div class="amount" style="margin-top:6px">${eur.format(e.dividends_net)}</div>
           <div class="perf">dividendes nets${e.dividends_taxes ? ` (brut ${eur.format(e.dividends_gross)}, retenues ${eur.format(e.dividends_taxes)})` : ""}</div>
-          ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">Impôt restant estimé (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(e.estimated_tax)}${e.withheld_tax ? ` · déjà prélevé sur les dividendes : ${eur.format(e.withheld_tax)}` : ""}</div>` : ""}
+          ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">${e.estimated_tax < 0 ? "Impôt à récupérer estimé" : "Impôt restant estimé"} (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(Math.abs(e.estimated_tax))}${e.withheld_tax ? ` · déjà prélevé sur les dividendes : ${eur.format(e.withheld_tax)}${e.foreign_withheld ? `, dont ${eur.format(e.foreign_withheld)} à l'étranger` : ""}` : ""}</div>` : ""}
         </div>`).join("");
       const sales = y.sales.map((s) => `
         <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · <span class="amt">${num(s.quantity, 4)}</span> × PRU ${money(s.unit_cost, "€")}</span></div>
@@ -2773,7 +2773,7 @@
         <div class="realized-grid">${cards}</div>
         ${sales ? `<details class="realized-list"><summary>Ventes ${y.year} (${y.sales.length})</summary>${sales}</details>` : ""}
         ${dividends ? `<details class="realized-list"><summary>Dividendes ${y.year} (${y.dividends.length})</summary>${dividends}</details>` : ""}
-        <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation de ce qui reste à payer : les retenues déjà faites sur tes dividendes en sont déduites. Elle ne tient pas compte des moins-values reportables ni de l'option pour le barème, et une retenue étrangère (15 % aux États-Unis) ne s'impute en réalité que sur les 12,8 % d'impôt sur le revenu : fie-toi à ton IFU.</p>`;
+        <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation de ce qui reste à payer, dividende par dividende : la retenue étrangère (15 % aux États-Unis) efface les 12,8 % d'impôt sur le revenu, pas les prélèvements sociaux. Quand ton courtier a déjà prélevé l'acompte de 12,8 % sur un dividende étranger (Trade Republic), il est en trop : tu le récupères via ta déclaration. Le taux de la convention est déduit de la place de cotation (un ADR comme TSMC est compté américain). Moins-values reportables et option pour le barème non prises en compte : fie-toi à ton IFU.</p>`;
     }
 
     document.getElementById("realized-year").addEventListener("change", (e) => renderRealized(e.target.value));
