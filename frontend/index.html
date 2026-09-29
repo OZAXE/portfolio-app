@@ -2069,8 +2069,9 @@
         + (list.length > marketShown ? `<button class="btn more" id="market-more">Afficher ${Math.min(PAGE_SIZE, list.length - marketShown)} de plus</button>` : "");
 
       // Recherche d'un ticker hors panel : analyse en direct par l'API
+      // (pas quand la recherche porte sur un nom déjà trouvé : « Visa » trouve Visa Inc., ticker V)
       const q = marketFilters.query.trim().toUpperCase();
-      document.getElementById("market-live").innerHTML = q && !list.some((s) => s.ticker === q)
+      document.getElementById("market-live").innerHTML = q && !list.some((s) => s.ticker === q || (s.name || "").toUpperCase().startsWith(q))
         ? `<button class="btn more" id="market-live-btn" data-ticker="${escapeHtml(q)}">Analyser « ${escapeHtml(q)} » en direct</button><div id="market-live-result"></div>`
         : "";
     }
