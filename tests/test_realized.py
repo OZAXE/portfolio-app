@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.realized import Operation, compute_realized
+from app.realized import Operation, compute_realized, dividend_tax, treaty_credit
 
 ENVELOPES = {"PEA Boursorama": "PEA", "CTO Trade Republic": "CTO"}
 
@@ -50,24 +50,49 @@ def test_dividends_by_year_and_cto_tax_estimate():
     years = {y["year"]: y for y in compute_realized(ops, ENVELOPES)["years"]}
     assert list(years) == [2026, 2025]
     assert years[2026]["envelopes"]["CTO"]["dividends_net"] == pytest.approx(4.42)
-    # PFU 31,4 % depuis 2026, moins la retenue américaine déjà prélevée : 5,2 x 0,314 - 0,78 = 0,85
-    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(0.85)
-    assert years[2025]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.0 * 0.30 - 0.75)
+    # Seule la retenue américaine (15 %) a été prélevée : elle efface les 12,8 % d'impôt sur le revenu,
+    # restent les prélèvements sociaux, 5,2 x 18,6 % = 0,97 en 2026 et 5 x 17,2 % = 0,86 en 2025
+    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(0.97)
+    assert years[2025]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(0.86)
     assert years[2026]["envelopes"]["CTO"]["withheld_tax"] == pytest.approx(0.78)
+    assert years[2026]["envelopes"]["CTO"]["foreign_withheld"] == pytest.approx(0.78)
     assert years[2026]["envelopes"]["PEA"]["dividends_gross"] == pytest.approx(6.0)
 
 
 def test_impot_estime_deduit_les_retenues_trade_republic():
     # Dividende Applied Materials de l'export d'Evan : 0,47 € brut, 0,22 € retenus (15 % US + 31,4 % France).
-    # 0,47 x 0,314 = 0,15 < 0,22 : rien à ajouter ; il reste l'impôt sur la plus-value (10 x 0,314 = 3,14)
+    # Dû : 0,47 x 18,6 % = 0,087 ; prélevé en France 0,148 : 0,06 à récupérer, imputé sur l'impôt de la
+    # plus-value (10 x 0,314 = 3,14) -> 3,08
     ops = [
         op("2026-01-10", "CTO Trade Republic", "Achat", "AMAT", 1, 100.0),
         op("2026-09-10", "CTO Trade Republic", "Dividende", "AMAT", 1, 0.47, taxes=0.22),
         op("2026-09-20", "CTO Trade Republic", "Vente", "AMAT", 1, 110.0),
     ]
     cto = compute_realized(ops, ENVELOPES)["years"][0]["envelopes"]["CTO"]
-    assert cto["estimated_tax"] == pytest.approx(3.14)
+    assert cto["estimated_tax"] == pytest.approx(3.08)
     assert cto["withheld_tax"] == pytest.approx(0.22)
+    assert cto["foreign_withheld"] == pytest.approx(0.07)
+
+
+@pytest.mark.parametrize("withheld, french, foreign, remaining", [
+    # 100 € de dividende américain en 2026 (convention : 15 %, dû = 18,6 % de prélèvements sociaux)
+    (46.4, 31.4, 15.0, -12.8),  # Trade Republic : 15 % + 31,4 % -> acompte de 12,8 % à récupérer
+    (46.4 - 12.8, 18.6, 15.0, 0.0),  # courtier français avec dispense d'acompte : rien à payer
+    (15.0, 0.0, 15.0, 18.6),  # courtier étranger : prélèvements sociaux à payer
+    (35.0 + 31.4, 31.4, 35.0, -12.8),  # retenue plus forte (Suisse) : l'excédent se réclame à l'étranger
+])
+def test_dividend_tax_trois_regimes_de_prelevement(withheld, french, foreign, remaining):
+    tax = dividend_tax(100.0, withheld, 0.15, 2026)
+    assert (tax["french"], tax["foreign"], tax["remaining"]) == pytest.approx((french, foreign, remaining))
+
+
+def test_dividend_tax_sans_retenue_etrangere():
+    # Rolls-Royce (Royaume-Uni, pas de retenue) : 31,4 % prélevés en France, tout est réglé
+    assert dividend_tax(100.0, 31.4, treaty_credit("RR.L"), 2026)["remaining"] == pytest.approx(0.0)
+    # Japon, convention à 10 % : il reste 2,8 % d'impôt sur le revenu + 18,6 %
+    assert dividend_tax(100.0, 10.0, treaty_credit("7203.T"), 2026)["remaining"] == pytest.approx(21.4)
+    # ETF irlandais coté à Paris : aucune retenue étrangère, pas de crédit
+    assert treaty_credit("CW8.PA", "ETF") == 0.0 and treaty_credit("VOO", "ETF") == 0.15
 
 
 def test_same_day_buy_before_sell():
