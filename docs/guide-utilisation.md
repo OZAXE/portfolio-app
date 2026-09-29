@@ -172,9 +172,12 @@ additionne tes livrets et tes placements.
 
 Près de 2 000 actions (grands indices américains, européens et asiatiques) analysées chaque nuit. Tu peux :
 - **rechercher** une action par nom ou ticker ;
-- **filtrer** par région, secteur, ou avec les boutons : **DCF fiable**, **Score ≥ 14**,
+- **filtrer** par région, secteur, ou avec les boutons : **DCF fiable**, **Sous-évaluées**, **Score ≥ 14**,
   **Mes positions**, **Super investisseurs**, **Ma watchlist**, **Dividende en hausse 5 ans** ;
-- **trier** par marge de sécurité, score qualité, PER, capitalisation ou rendement du dividende.
+- **trier** par marge de sécurité, écart au prix juste, score qualité, PER, capitalisation ou rendement du dividende.
+
+À droite de chaque action, le verdict du **prix juste** : sous-évaluée, prix correct ou surévaluée,
+avec le potentiel de hausse ou de baisse.
 
 Une action absente du screener ? Tape son ticker Yahoo puis **Analyser « … » en direct**.
 
@@ -183,6 +186,10 @@ Une action absente du screener ? Tape son ticker Yahoo puis **Analyser « … »
 Touche une action pour l'ouvrir. Les repères essentiels :
 - **Score qualité (sur 20)** : rentabilité, marges, dette et régularité, comparées aux entreprises
   du même secteur. Au-dessus de 14, c'est une entreprise solide.
+- **Prix juste** : la moyenne de plusieurs estimations (DCF, PER normal du secteur, et valeur comptable
+  pour les banques), avec la fourchette de la plus prudente à la plus optimiste. Cours plus de 15 % en
+  dessous : **sous-évaluée** ; plus de 15 % au-dessus : **surévaluée** ; entre les deux : **prix correct**.
+  En italique, les méthodes divergent beaucoup : à prendre avec prudence.
 - **Valeur intrinsèque** : ce que vaut l'action d'après les cash-flows futurs estimés (méthode DCF).
 - **Marge de sécurité** : l'écart entre cette valeur et le cours. Positive, l'action paraît sous-évaluée ;
   négative, elle paraît chère. Ne te fie qu'aux DCF marqués **fiables** : les autres sont indicatifs.

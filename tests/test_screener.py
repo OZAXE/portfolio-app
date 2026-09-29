@@ -23,6 +23,24 @@ def test_margin_recomputed_with_new_price():
     assert record["dcf_reliable"] is False
 
 
+def test_fair_value_follows_daily_price():
+    # Ingrédients gardés (DCF 100, PER du secteur 80) : seul le cours change d'une nuit sur l'autre
+    record = {"intrinsic_value": 100.0, "fair_value_pe": 80.0, "fair_value_pb": None, "price_scale": 1.0}
+    run.refresh_with_price(record, 70.0)
+    assert record["fair_value"] == 90 and record["fair_value_verdict"] == "sous-évaluée"
+    run.refresh_with_price(record, 90.0)
+    assert record["fair_value_verdict"] == "correcte"
+    # Cours à 38 : le DCF (2,6 fois le cours) n'est plus fiable, il sort de la moyenne
+    run.refresh_with_price(record, 38.0)
+    assert record["fair_value"] == 80 and record["fair_value_verdict"] == "sous-évaluée"
+
+
+def test_old_record_without_fair_value_is_left_alone():
+    record = {"intrinsic_value": 100.0, "price_scale": 1.0}
+    run.refresh_with_price(record, 80.0)
+    assert "fair_value" not in record
+
+
 def test_weekly_history_appends_once_per_week(tmp_path):
     path = tmp_path / "history.json"
     stocks = {"AAA": {"price": 10.0, "intrinsic_value": 12.0, "margin_of_safety": 16.7, "quality_score": 14.0, "dcf_reliable": True},

@@ -3,11 +3,18 @@ import pytest
 from app.data import CompanyFinancials
 from app.valuation import (
     RELIABLE_RATIO_MAX,
+    VERDICT_FAIR,
+    VERDICT_OVER,
+    VERDICT_UNDER,
+    blend_fair_value,
     compute_dcf,
     compute_quality_score,
     estimate_discount_rate,
     estimate_growth_rate,
     evaluate_company,
+    fair_value_verdict,
+    justified_price_to_book,
+    normalized_eps,
     normalized_fcf,
 )
 
@@ -128,3 +135,89 @@ def test_bank_scored_on_price_to_book():
 def test_infinite_pe_is_ignored():
     score, _ = compute_quality_score(company(trailing_pe=None, return_on_equity=0.2))
     assert score is not None
+
+
+def test_eps_averages_trailing_and_forward():
+    # Cours 100, PER 20 (BPA 5) et PER prévisionnel 16 (BPA 6,25) : moyenne 5,625
+    assert normalized_eps(100, 20, 16) == pytest.approx(5.625)
+    assert normalized_eps(100, 20, None) == pytest.approx(5)
+    assert normalized_eps(100, -12, None) is None  # entreprise en perte
+
+
+def test_justified_price_to_book():
+    # Une banque qui rapporte exactement son coût des fonds propres vaut sa valeur comptable
+    assert justified_price_to_book(0.09, 0.09) == pytest.approx(1.0)
+    assert justified_price_to_book(0.16, 0.09) == pytest.approx(2.0)
+    assert justified_price_to_book(0.60, 0.09) == 3.0  # borné
+    assert justified_price_to_book(None, 0.09) is None
+
+
+def test_verdict_band_of_15_percent():
+    assert fair_value_verdict(84, 100) == VERDICT_UNDER
+    assert fair_value_verdict(90, 100) == VERDICT_FAIR
+    assert fair_value_verdict(114, 100) == VERDICT_FAIR
+    assert fair_value_verdict(116, 100) == VERDICT_OVER
+    assert fair_value_verdict(None, 100) is None
+
+
+def test_blend_is_simple_average_with_range():
+    fair = blend_fair_value(80, 120, 100, None)
+    assert fair["fair_value"] == 110
+    assert (fair["fair_value_low"], fair["fair_value_high"]) == (100, 120)
+    assert fair["fair_value_upside_pct"] == 37.5
+    assert fair["fair_value_verdict"] == VERDICT_UNDER
+    assert fair["fair_value_divergent"] is False
+    assert blend_fair_value(100, 240, 100, None)["fair_value_divergent"] is True
+    assert blend_fair_value(80, None, None, None)["fair_value"] is None
+
+
+def test_blend_drops_implausible_methods():
+    # Berkshire : cours / valeur comptable Yahoo de 0,001 -> valeur à 750 000 $, écartée
+    fair = blend_fair_value(503, None, 340, 754989)
+    assert fair["fair_value"] == 340
+    # Méthode à moins de 0,4 fois le cours (bénéfice effondré) : écartée aussi
+    assert blend_fair_value(100, None, 30, None)["fair_value"] is None
+
+
+def test_eps_keeps_trailing_when_forward_is_inconsistent():
+    # Londres : PER prévisionnel calculé en pence (0,1) face à un PER publié de 5,7
+    assert normalized_eps(5.81, 5.7, 0.105) == pytest.approx(5.81 / 5.7)
+
+
+def test_fair_value_combines_dcf_and_sector_pe():
+    # Industriel : PER normal 19, BPA 5 (cours 100, PER 20) -> 95 ; le DCF fiable entre dans la moyenne
+    v = evaluate_company(company(trailing_pe=20))
+    assert v.dcf_reliable
+    assert v.fair_pe_used == 19 and v.fair_value_pe == pytest.approx(95)
+    assert v.fair_value == pytest.approx((v.intrinsic_value_per_share + 95) / 2, abs=0.01)
+    assert v.fair_value_pb is None  # valeur comptable réservée aux banques
+
+
+def test_fair_value_ignores_unreliable_dcf():
+    # FCF énorme : DCF hors fourchette de fiabilité, seul le PER compte
+    v = evaluate_company(company(trailing_pe=20, fcf_history=[40e9, 45e9, 50e9]))
+    assert not v.dcf_reliable
+    assert v.fair_value == pytest.approx(95)
+
+
+def test_bank_fair_value_without_dcf():
+    # Pas de DCF pour une banque : PER normal (11) et cours / valeur comptable justifié
+    v = evaluate_company(company(sector="Financial Services", industry="Banks - Diversified",
+                                 trailing_pe=8, price_to_book=0.8, return_on_equity=0.12, beta=1.0))
+    assert v.intrinsic_value_per_share is None
+    assert v.fair_value_pe == pytest.approx(100 / 8 * 11)
+    # ROE 12 %, coût des fonds propres 9 % : P/B justifié (0,12 - 0,02) / (0,09 - 0,02)
+    assert v.justified_pb_used == pytest.approx(10 / 7, abs=0.01)
+    assert v.fair_value_pb == pytest.approx(100 / 0.8 * 10 / 7, abs=0.01)
+    assert v.fair_value_verdict == VERDICT_UNDER
+
+
+def test_no_fair_value_for_loss_making_company():
+    v = evaluate_company(company(trailing_pe=None, fcf_history=[-1e9, -2e9, -1e9]))
+    assert v.fair_value is None and v.fair_value_verdict is None
+    assert any("Prix juste non calculé" in n for n in v.notes)
+
+
+def test_no_fair_value_for_etf():
+    v = evaluate_company(company(quote_type="ETF", trailing_pe=20))
+    assert v.fair_value is None and v.fair_value_pe is None

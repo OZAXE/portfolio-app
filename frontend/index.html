@@ -125,6 +125,9 @@
     .analysis { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
     .analysis .row { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); gap: 8px; }
     .analysis .row span:last-child { color: var(--text); text-align: right; }
+    .analysis .row span.positive { color: var(--positive); }
+    .analysis .row span.negative { color: var(--accent-neg); }
+    .analysis .row span.muted { color: var(--muted); }
     .analysis .row > span:first-child { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
     #term-dialog { border: 0; padding: 0; width: 100%; max-width: 720px; margin: auto auto 0; border-radius: 16px 16px 0 0; background: var(--card); color: var(--text); }
     #term-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
@@ -172,6 +175,8 @@
     .stock .right { text-align: right; white-space: nowrap; font-size: 13px; }
     .badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--card-2); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
     .badge.owned { color: var(--accent); }
+    .verdict { white-space: nowrap; font-size: 12px; }
+    .verdict.divergent { font-style: italic; opacity: 0.75; }
     .score { font-weight: 600; font-size: 15px; }
     .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
     .metrics .row { margin-top: 2px; }
@@ -553,6 +558,7 @@
         <select id="filter-sector" aria-label="Secteur"><option value="">Tous secteurs</option></select>
         <select id="market-sort" aria-label="Tri">
           <option value="margin">Tri : marge de sécurité</option>
+          <option value="fair">Tri : écart au prix juste</option>
           <option value="score">Tri : score qualité</option>
           <option value="pe">Tri : PER le plus bas</option>
           <option value="cap">Tri : capitalisation</option>
@@ -561,6 +567,7 @@
       </div>
       <div class="filters">
         <button class="chip" id="filter-reliable">DCF fiable</button>
+        <button class="chip" id="filter-undervalued">Sous-évaluées</button>
         <button class="chip" id="filter-quality">Score ≥ 14</button>
         <button class="chip" id="filter-owned">Mes positions</button>
         <button class="chip" id="filter-investors">Super investisseurs</button>
@@ -774,6 +781,42 @@
       return { iv, margin, reliable, g, r, custom: true };
     }
 
+    // --- Prix juste (même calcul que blend_fair_value du backend) : moyenne simple des méthodes
+    // disponibles, avec le DCF recalculé si hypothèses perso. Une méthode à plus de 2,5 fois ou moins
+    // de 0,4 fois le cours est écartée (donnée aberrante). Verdict à ±15 % du cours ---
+    const VERDICT_BAND = 0.15, DIVERGENCE_MAX = 2;
+    const VERDICTS = {
+      under: { label: "sous-évaluée", cls: "positive" },
+      fair: { label: "prix correct", cls: "muted" },
+      over: { label: "surévaluée", cls: "negative" },
+    };
+
+    function fairValueOf(s) {
+      const v = valuationOf(s);
+      const plausible = (x) => x > 0 && s.price > 0 && x / s.price >= RELIABLE_MIN && x / s.price <= RELIABLE_MAX;
+      const methods = [
+        plausible(v.iv) ? { label: "DCF", value: v.iv } : null,
+        plausible(s.fair_value_pe) ? { label: `PER normal du secteur (${num(s.fair_pe_used, 0)})`, value: s.fair_value_pe } : null,
+        plausible(s.fair_value_pb) ? { label: `valeur comptable × ${num(s.justified_pb_used, 2)}`, value: s.fair_value_pb } : null,
+      ].filter(Boolean);
+      if (!methods.length) return null;
+      const values = methods.map((m) => m.value);
+      const value = values.reduce((a, b) => a + b, 0) / values.length;
+      const low = Math.min(...values), high = Math.max(...values);
+      const ratio = s.price ? s.price / value : null;
+      const verdict = ratio == null ? null : ratio < 1 - VERDICT_BAND ? "under" : ratio > 1 + VERDICT_BAND ? "over" : "fair";
+      return { value, low, high, methods, verdict, upside: s.price ? (value / s.price - 1) * 100 : null, divergent: high / low > DIVERGENCE_MAX };
+    }
+
+    // Verdict court pour les listes (screener, watchlist, positions)
+    function fairBadge(s, dash = true) {
+      const f = fairValueOf(s);
+      if (!f?.verdict) return dash ? `<span class="muted">—</span>` : "";
+      const { label, cls } = VERDICTS[f.verdict];
+      const title = f.divergent ? "Méthodes divergentes : prix juste à prendre avec prudence" : `Prix juste ${num(f.value, 2)}`;
+      return `<span class="verdict ${cls}${f.divergent ? " divergent" : ""}" title="${escapeHtml(title)}">${label} ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} %</span>`;
+    }
+
     // Analyse renvoyée par l'API (/analysis, /portfolio/analysis) -> fiche au format screener
     function analysisToRecord(a, ticker) {
       const f = a.financials, v = a.valuation;
@@ -784,6 +827,7 @@
         quality_score: v.quality_score, intrinsic_value: v.intrinsic_value_per_share, margin_of_safety: v.margin_of_safety_pct,
         dcf_reliable: v.dcf_reliable, growth_rate: v.growth_rate_used, discount_rate: v.discount_rate_used,
         base_fcf: v.base_fcf, net_debt: v.net_debt, shares: v.shares_used,
+        fair_value_pe: v.fair_value_pe, fair_value_pb: v.fair_value_pb, fair_pe_used: v.fair_pe_used, justified_pb_used: v.justified_pb_used,
         dividend_yield: f.dividend_yield, dividend_ttm: f.dividend_ttm, payout_ratio: f.payout_ratio,
         dividend_growth_5y: f.dividend_growth_5y, dividend_growth_10y: f.dividend_growth_10y,
         dividend_streak: f.dividend_streak, dividend_cut: f.dividend_cut, dividend_history: f.dividend_history,
@@ -1029,12 +1073,13 @@
       document.getElementById("positions").innerHTML = sorted.map((h) => {
         const a = analyses[h.yahoo_ticker];
         const name = a?.financials?.name || h.name || h.ticker;
+        const badge = a?.valuation ? fairBadge(analysisToRecord(a, a.ticker), false) : "";
         return `
           <details class="position">
             <summary>
               <div>
                 <div class="title">${escapeHtml(name)}</div>
-                <div class="sub">${escapeHtml(h.ticker)} · ${escapeHtml(h.envelope)} · ${escapeHtml(h.sector)}</div>
+                <div class="sub">${escapeHtml(h.ticker)} · ${escapeHtml(h.envelope)} · ${escapeHtml(h.sector)}${badge ? ` · ${badge}` : ""}</div>
               </div>
               <div class="right">
                 <div class="amount">${h.value != null ? eur.format(h.value) : "N/A"}</div>
@@ -1480,7 +1525,7 @@
     let market = null;
     let marketLoading = false;
     let marketShown = PAGE_SIZE;
-    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, quality: false, owned: false, investors: false, watch: false, dividend: false };
+    const marketFilters = { query: "", region: "", sector: "", sort: "margin", reliable: false, undervalued: false, quality: false, owned: false, investors: false, watch: false, dividend: false };
 
     const ownedTickers = () => new Set((overview?.holdings || []).map((h) => h.yahoo_ticker));
 
@@ -1515,6 +1560,7 @@
         (!f.region || s.region === f.region) &&
         (!f.sector || s.sector === f.sector) &&
         (!f.reliable || valuationOf(s).reliable) &&
+        (!f.undervalued || fairValueOf(s)?.verdict === "under") &&
         (!f.quality || (s.quality_score ?? 0) >= 14) &&
         (!f.owned || owned.has(s.ticker)) &&
         (!f.investors || !!investors?.by_ticker?.[s.ticker]) &&
@@ -1524,6 +1570,7 @@
       // Les actions sans valeur pour le critère de tri passent en fin de liste
       const key = {
         margin: (s) => { const v = valuationOf(s); return v.reliable ? v.margin : null; },
+        fair: (s) => fairValueOf(s)?.upside ?? null,
         score: (s) => s.quality_score,
         pe: (s) => (s.pe > 0 ? -s.pe : null),
         cap: (s) => s.market_cap_eur ?? null,
@@ -1539,10 +1586,6 @@
         `${list.length} action${list.length > 1 ? "s" : ""}` + (marketFilters.sort === "margin" ? " · classées par marge de sécurité (DCF fiables en tête)" : "");
       const shown = list.slice(0, marketShown);
       document.getElementById("market-list").innerHTML = shown.map((s) => {
-        const v = valuationOf(s);
-        const mos = v.reliable && v.margin != null
-          ? `<span class="${signClass(v.margin)}">${v.margin > 0 ? "+" : ""}${num(v.margin)} %</span>`
-          : `<span class="muted">—</span>`;
         return `
           <details class="stock" data-ticker="${escapeHtml(s.ticker)}">
             <summary>
@@ -1552,7 +1595,7 @@
               </div>
               <div class="right">
                 <div class="score">${s.quality_score != null ? num(s.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div>
-                <div>${mos}</div>
+                <div>${fairBadge(s)}</div>
               </div>
             </summary>
             ${renderStockDetail(s)}
@@ -1578,6 +1621,15 @@
              <div class="row"><span>Marge de sécurité</span><span class="${signClass(v.margin)}">${num(v.margin)} %</span></div>`
           : `<div class="row"><span>Valeur intrinsèque</span><span class="unreliable">${money(v.iv, cur)} (indicatif)</span></div>`;
       }
+      const f = fairValueOf(s);
+      let fair = `<div class="row"><span>Prix juste</span><span>N/A</span></div>`;
+      if (f) {
+        const { label, cls } = VERDICTS[f.verdict] || {};
+        fair = `<div class="row"><span>Prix juste</span><span><b>${money(f.value, cur)}</b>${label ? ` · <span class="${cls}${f.divergent ? " unreliable" : ""}">${label}</span>` : ""}</span></div>
+          ${f.upside != null ? `<div class="row"><span>Potentiel</span><span class="${signClass(f.upside)}">${f.upside > 0 ? "+" : ""}${num(f.upside)} %</span></div>` : ""}
+          ${f.methods.length > 1 ? `<div class="row"><span>Fourchette</span><span>${money(f.low, cur)} – ${money(f.high, cur)}</span></div>` : ""}
+          <div class="hypotheses">Moyenne de : ${f.methods.map((m) => `${escapeHtml(m.label)} ${money(m.value, cur)}`).join(" · ")}${f.divergent ? ". Méthodes très éloignées : à prendre avec prudence" : ""}</div>`;
+      }
       const hypotheses = v.g != null
         ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
       const notes = (s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
@@ -1597,6 +1649,7 @@
             <div class="row"><span>Dette / fonds propres</span><span>${s.debt_to_equity != null ? num(s.debt_to_equity, 0) + " %" : "N/A"}</span></div>
             <div class="row"><span>Score qualité</span><span>${s.quality_score != null ? num(s.quality_score) + " / 20" : "N/A"}</span></div>
           </div>
+          ${fair}
           ${dcf}
           ${hypotheses}
           ${dividendBlock(s)}
@@ -1643,7 +1696,7 @@
         if (market) renderMarket();
       });
     }
-    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"], ["filter-dividend", "dividend"]]) {
+    for (const [id, key] of [["filter-reliable", "reliable"], ["filter-undervalued", "undervalued"], ["filter-quality", "quality"], ["filter-owned", "owned"], ["filter-investors", "investors"], ["filter-watch", "watch"], ["filter-dividend", "dividend"]]) {
       document.getElementById(id).addEventListener("click", (e) => {
         marketFilters[key] = !marketFilters[key];
         e.currentTarget.classList.toggle("active", marketFilters[key]);
@@ -1822,14 +1875,11 @@
           return `<div class="stock"><div class="title">${escapeHtml(t)}</div><div class="sub">Hors du panel du screener : utilise « Analyser en direct » dans l'onglet Marché.</div>
             <button class="btn" data-star="${escapeHtml(t)}"><span class="star">★</span> Surveillée</button></div>`;
         }
-        const v = valuationOf(st);
-        const mos = v.reliable && v.margin != null
-          ? `<span class="${signClass(v.margin)}">${v.margin > 0 ? "+" : ""}${num(v.margin)} %</span>` : `<span class="muted">—</span>`;
         return `
           <details class="stock">
             <summary>
               <div><div class="title">${escapeHtml(st.name)}</div><div class="sub">${escapeHtml(t)} · ${escapeHtml(st.country)} · ${escapeHtml(st.sector)}</div></div>
-              <div class="right"><div class="score">${st.quality_score != null ? num(st.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div><div>${mos}</div></div>
+              <div class="right"><div class="score">${st.quality_score != null ? num(st.quality_score) : "—"}<span class="muted" style="font-weight:400"> /20</span></div><div>${fairBadge(st)}</div></div>
             </summary>
             ${renderStockDetail(st)}
           </details>`;
@@ -2797,7 +2847,10 @@
         "PER prévisionnel": "<p>Même calcul que le PER, mais avec le bénéfice attendu par les analystes pour les 12 prochains mois.</p><p>S'il est nettement plus bas que le PER, les analystes prévoient une hausse des bénéfices.</p>",
         "Cours / valeur comptable": "<p>Cours ÷ capitaux propres par action (ce que l'entreprise possède moins ce qu'elle doit, selon son bilan).</p><p>Surtout utile pour les banques et assurances : en dessous de 1, tu paies l'entreprise moins que sa valeur comptable.</p>",
         "VE / EBITDA": "<p>Valeur d'entreprise (capitalisation + dette nette) ÷ EBITDA (bénéfice avant intérêts, impôts et amortissements).</p><p>Comme le PER, mais en tenant compte de la dette : utile pour comparer des entreprises plus ou moins endettées. Repère : autour de 10, au-dessus de 15 c'est cher.</p>",
-        "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, pas un prix juste. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
+        "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, qui entre dans le prix juste quand il est fiable. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
+        "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)).</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand les méthodes vont du simple au double, le verdict est affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
+        "Potentiel": "<p>(prix juste ÷ cours − 1) : ce que l'action gagnerait si elle rejoignait son prix juste. Négatif : elle devrait baisser pour y revenir.</p>",
+        "Fourchette": "<p>De la méthode la plus prudente à la plus optimiste parmi celles qui composent le prix juste. Plus elle est large, plus l'estimation est incertaine.</p>",
         "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",
         "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Réglages.</p>",
       }],

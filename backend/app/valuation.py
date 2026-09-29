@@ -3,6 +3,9 @@ Logique de valorisation, inspirée de ce que font Baggr / Mungr :
 - un DCF simplifié pour estimer une valeur intrinsèque
 - une marge de sécurité (écart entre valeur intrinsèque et prix actuel)
 - un score de qualité composite sur 20
+- un prix juste qui croise plusieurs méthodes (DCF, PER du secteur, cours /
+  valeur comptable justifié pour les banques), avec un verdict sous-évaluée /
+  correcte / surévaluée
 
 Tout est volontairement transparent et modifiable : contrairement à un
 outil fermé, tu peux ajuster chaque hypothèse (taux de croissance, taux
@@ -11,7 +14,7 @@ d'actualisation) et voir l'impact direct sur le résultat.
 
 from dataclasses import dataclass
 from .data import STATEMENTS_SOURCE, CompanyFinancials
-from .sectors import DEFAULT_PROFILE, is_balance_sheet_business, score_profile
+from .sectors import DEFAULT_PROFILE, ScoreProfile, is_balance_sheet_business, score_profile
 
 
 @dataclass
@@ -30,6 +33,18 @@ class ValuationResult:
     base_fcf: float | None = None
     net_debt: float | None = None
     shares_used: float | None = None
+    # Prix juste : moyenne des méthodes disponibles (voir blend_fair_value)
+    fair_value: float | None = None
+    fair_value_low: float | None = None  # méthode la plus prudente
+    fair_value_high: float | None = None  # méthode la plus optimiste
+    fair_value_upside_pct: float | None = None  # (prix juste / cours - 1) : positif = potentiel de hausse
+    fair_value_verdict: str | None = None  # VERDICT_UNDER, VERDICT_FAIR ou VERDICT_OVER
+    fair_value_divergent: bool = False  # méthodes trop éloignées entre elles : prix juste fragile
+    # Ingrédients par action, gardés tels quels d'une nuit sur l'autre (le verdict suit le cours du jour)
+    fair_value_pe: float | None = None  # bénéfice par action x PER normal du secteur
+    fair_value_pb: float | None = None  # valeur comptable par action x cours / valeur comptable justifié
+    fair_pe_used: float | None = None
+    justified_pb_used: float | None = None
 
 
 # Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
@@ -51,6 +66,21 @@ NORMALIZATION_YEARS = 3
 # Hors de cette fourchette (valeur intrinsèque / prix), le DCF est jugé non fiable
 RELIABLE_RATIO_MIN = 0.4
 RELIABLE_RATIO_MAX = 2.5
+
+# Prix juste : au-delà de 15 % d'écart entre le cours et le prix juste, l'action est jugée
+# sous- ou surévaluée ; en deçà, l'imprécision des estimations ne permet pas de trancher
+VERDICT_BAND = 0.15
+VERDICT_UNDER = "sous-évaluée"
+VERDICT_FAIR = "correcte"
+VERDICT_OVER = "surévaluée"
+# Au-delà de ce rapport entre la méthode la plus optimiste et la plus prudente, le prix juste est fragile
+DIVERGENCE_MAX = 2.0
+# Au-delà de ce rapport entre PER passé et PER prévisionnel, les deux ne décrivent pas le même bénéfice
+# (erreur de devise Yahoo, pence au lieu de livres à Londres) : seul le PER passé, publié, est gardé
+MAX_EPS_GAP = 3.0
+# Bornes du cours / valeur comptable justifié : un ROE exceptionnel ne justifie pas 10 fois les fonds propres
+MIN_JUSTIFIED_PB = 0.3
+MAX_JUSTIFIED_PB = 3.0
 
 
 def normalized_fcf(fcf_history: list[float]) -> float | None:
@@ -188,7 +218,119 @@ def compute_quality_score(cf: CompanyFinancials) -> tuple[float | None, list[str
     return round(score_on_20, 1), notes
 
 
+def normalized_eps(price: float | None, trailing_pe: float | None, forward_pe: float | None) -> float | None:
+    """Bénéfice par action retrouvé à partir des PER (cours / PER) : moyenne du bénéfice des 12
+    derniers mois et de celui attendu par les analystes, pour lisser une année exceptionnelle
+    et tenir compte de la croissance attendue. None si l'entreprise perd de l'argent."""
+    if not price or price <= 0:
+        return None
+    eps = [price / pe for pe in (trailing_pe, forward_pe) if pe is not None and pe > 0]
+    if len(eps) == 2 and max(eps) / min(eps) > MAX_EPS_GAP:
+        eps = eps[:1]
+    return sum(eps) / len(eps) if eps else None
+
+
+def pe_fair_value(cf: CompanyFinancials, profile: ScoreProfile) -> float | None:
+    """Ce que vaudrait l'action si le marché la payait au PER normal de son secteur."""
+    eps = normalized_eps(cf.current_price, cf.trailing_pe, cf.forward_pe)
+    return eps * profile.fair_pe if eps else None
+
+
+def justified_price_to_book(roe: float | None, cost_of_equity: float, growth: float = TERMINAL_GROWTH) -> float | None:
+    """Cours / valeur comptable justifié = (ROE - g) / (r - g), formule classique pour les banques :
+    une banque qui rapporte exactement son coût des fonds propres vaut sa valeur comptable (x1),
+    une qui rapporte plus vaut davantage. Borné pour éviter les valeurs extrêmes."""
+    if roe is None or cost_of_equity <= growth:
+        return None
+    pb = (roe - growth) / (cost_of_equity - growth)
+    return min(max(pb, MIN_JUSTIFIED_PB), MAX_JUSTIFIED_PB)
+
+
+def fair_value_verdict(price: float | None, fair_value: float | None) -> str | None:
+    if not price or not fair_value:
+        return None
+    if price < fair_value * (1 - VERDICT_BAND):
+        return VERDICT_UNDER
+    if price > fair_value * (1 + VERDICT_BAND):
+        return VERDICT_OVER
+    return VERDICT_FAIR
+
+
+def blend_fair_value(
+    price: float | None,
+    dcf_value: float | None,
+    pe_value: float | None,
+    pb_value: float | None,
+) -> dict:
+    """
+    Prix juste = moyenne simple des méthodes disponibles. Chaque méthode a ses angles morts :
+    le DCF dépend beaucoup des hypothèses de croissance, le PER du secteur ignore la croissance
+    propre à l'entreprise, le cours / valeur comptable ne vaut que pour les banques. Les
+    croiser limite l'erreur.
+
+    Comme pour le DCF, une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours
+    est écartée : elle ne capte pas l'entreprise (bénéfice exceptionnel ou effondré) ou
+    repose sur une donnée Yahoo aberrante (PER de 0,0007, cours / valeur comptable de 0,001).
+
+    Même calcul que fairValueOf dans l'appli (frontend/index.html), qui le refait avec
+    les hypothèses DCF personnelles de l'utilisateur.
+    """
+    methods = [
+        v for v in (dcf_value, pe_value, pb_value)
+        if v is not None and v > 0 and price and RELIABLE_RATIO_MIN <= v / price <= RELIABLE_RATIO_MAX
+    ]
+    if not methods:
+        return {"fair_value": None, "fair_value_low": None, "fair_value_high": None,
+                "fair_value_upside_pct": None, "fair_value_verdict": None, "fair_value_divergent": False}
+    fair = sum(methods) / len(methods)
+    low, high = min(methods), max(methods)
+    return {
+        "fair_value": round(fair, 2),
+        "fair_value_low": round(low, 2),
+        "fair_value_high": round(high, 2),
+        "fair_value_upside_pct": round((fair / price - 1) * 100, 1) if price else None,
+        "fair_value_verdict": fair_value_verdict(price, fair),
+        "fair_value_divergent": high / low > DIVERGENCE_MAX,
+    }
+
+
+def _add_fair_value(result: ValuationResult, cf: CompanyFinancials) -> None:
+    profile = score_profile(cf.sector, cf.industry)
+    result.fair_value_pe = pe_fair_value(cf, profile)
+    if result.fair_value_pe is not None:
+        result.fair_value_pe = round(result.fair_value_pe, 2)
+        result.fair_pe_used = profile.fair_pe
+
+    if is_balance_sheet_business(cf.industry) and cf.current_price and cf.price_to_book and cf.price_to_book > 0:
+        pb = justified_price_to_book(cf.return_on_equity, estimate_discount_rate(cf.beta))
+        if pb is not None:
+            book_value_per_share = cf.current_price / cf.price_to_book
+            result.fair_value_pb = round(book_value_per_share * pb, 2)
+            result.justified_pb_used = round(pb, 2)
+
+    fair = blend_fair_value(cf.current_price, result.intrinsic_value_per_share, result.fair_value_pe, result.fair_value_pb)
+    for key, value in fair.items():
+        setattr(result, key, value)
+    if result.fair_value is None:
+        result.notes.append(
+            "Prix juste non calculé : aucune méthode (DCF, PER du secteur, valeur comptable) "
+            "ne donne un résultat exploitable, à moins de 0,4 ou plus de 2,5 fois le cours"
+        )
+    elif result.fair_value_divergent:
+        result.notes.append(
+            f"Prix juste à prendre avec prudence : les méthodes vont de {result.fair_value_low:g} "
+            f"à {result.fair_value_high:g} (plus du double)"
+        )
+
+
 def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
+    result = _evaluate_dcf(cf)
+    if cf.quote_type != "ETF":
+        _add_fair_value(result, cf)
+    return result
+
+
+def _evaluate_dcf(cf: CompanyFinancials) -> ValuationResult:
     quality_score, notes = compute_quality_score(cf)
     if cf.data_source == STATEMENTS_SOURCE and cf.quote_type != "ETF":
         notes.append(
