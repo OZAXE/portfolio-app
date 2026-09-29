@@ -216,7 +216,10 @@
     .mrow .right { display: grid; justify-items: end; gap: 4px; text-align: right; }
     .mrow .price { font-weight: 600; font-size: 14px; white-space: nowrap; }
     .avatar { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; overflow: hidden; }
-    img.avatar { object-fit: cover; background: #fff; }
+    /* Logo affiché en entier (un logo en longueur, écrit en toutes lettres, était rogné par « cover ») ;
+       fine marge blanche pour qu'un logo ne touche pas les bords, un peu plus pour un logo en longueur */
+    img.avatar { object-fit: contain; background: #fff; box-sizing: border-box; padding: 3px; }
+    img.avatar.wide { padding: 5px; }
     .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
     .pill.good { color: var(--positive); background: color-mix(in srgb, var(--positive) 15%, transparent); }
     .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
@@ -1894,6 +1897,10 @@
       return urls;
     }
     // Image introuvable : source suivante, puis les initiales
+    window.logoLoaded = (img) => {
+      const ratio = img.naturalWidth / (img.naturalHeight || 1);
+      img.classList.toggle("wide", ratio > 1.15 || ratio < 0.87);
+    };
     window.logoFallback = (img) => {
       const next = (img.dataset.next || "").split(" ").filter(Boolean);
       if (next.length) { img.dataset.next = next.slice(1).join(" "); img.src = next[0]; }
@@ -1908,7 +1915,7 @@
       const initials = initialsAvatar(s);
       const [first, ...rest] = logoUrls(s.ticker);
       if (!first) return initials;
-      return `<img class="avatar" src="${first}" data-next="${rest.join(" ")}" data-initials="${escapeHtml(initials)}" alt="" loading="lazy" onerror="logoFallback(this)" />`;
+      return `<img class="avatar" src="${first}" data-next="${rest.join(" ")}" data-initials="${escapeHtml(initials)}" alt="" loading="lazy" onload="logoLoaded(this)" onerror="logoFallback(this)" />`;
     }
     const marketDetailed = () => settings.marketDensity === "detailed";
     function marketRow(s) {
