@@ -302,6 +302,19 @@
     .stat .v { font-size: 16px; font-weight: 700; margin-top: 2px; }
     .stat .v.positive { color: var(--positive); } .stat .v.negative { color: var(--accent-neg); }
 
+    /* Réglages : groupes de rubriques, chacune ouvre sa page */
+    .group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 20px 4px 6px; font-weight: 600; }
+    .group { background: var(--card); border-radius: 14px; overflow: hidden; }
+    .setting { width: 100%; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px;
+      background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .setting:first-child { border-top: 0; }
+    .setting .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; }
+    .setting .ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .setting .t { display: block; font-weight: 500; } .setting .d { display: block; font-size: 12px; color: var(--muted); }
+    .setting .chev { color: var(--muted); font-size: 18px; }
+    .spage-title { font-size: 18px; }
+    .spage > .card:first-of-type { margin-top: 8px; }
+
     /* Super investisseurs */
     .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
     .rank-row:first-child { border-top: 0; padding-top: 0; }
@@ -412,7 +425,11 @@
     #cal-detail { min-height: 1.4em; margin: 8px 0 4px; }
 
     /* Briefs */
-    .brief-item { display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
+    .brief-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
+    .brief-item .bdate { background: var(--card-2); border-radius: 10px; text-align: center; padding: 6px 0; line-height: 1.1; }
+    .brief-item .bdate b { display: block; font-size: 18px; }
+    .brief-item .bdate span { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .brief-item .new { font-size: 11px; font-weight: 700; color: var(--bg); background: var(--accent); border-radius: 999px; padding: 2px 8px; }
     .brief-item .title { font-weight: 600; font-size: 15px; }
     .brief-item .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .brief-item .chev { color: var(--muted); font-size: 20px; }
@@ -523,23 +540,6 @@
           <p class="help" id="imp-status"></p>
           <div id="imp-list"></div>
           <button class="btn" id="imp-submit" hidden></button>
-          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:10px">
-            <button class="btn" id="dup-search" style="margin-top:0">Rechercher les doublons dans mes opérations</button>
-            <p class="help" id="dup-status" style="margin-top:8px"></p>
-            <div id="dup-list"></div>
-            <button class="btn" id="dup-delete" hidden></button>
-          </div>
-          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:10px">
-            <div class="edit-sub" style="margin-top:0">Repartir de zéro</div>
-            <p class="help">Efface des opérations pour réimporter tes relevés proprement. Une sauvegarde est d'abord créée dans ton Sheet : tu peux tout annuler.</p>
-            <div class="op-grid">
-              <label class="wide">Opérations à effacer<select id="reset-account"></select></label>
-              <label class="wide" style="flex-direction:row; align-items:center; gap:8px; font-size:13px; color:var(--text)"><input type="checkbox" id="reset-imported" checked style="width:auto" /> Seulement les lignes importées (garder mes saisies à la main)</label>
-            </div>
-            <button class="btn" id="reset-go">Effacer et repartir de zéro</button>
-            <button class="btn" id="reset-undo" hidden>Annuler : remettre mes opérations</button>
-            <p class="help" id="reset-status" style="margin-top:8px"></p>
-          </div>
         </div>
         <div class="card" id="op-form" hidden>
           <div class="op-grid">
@@ -586,8 +586,7 @@
           </div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
           <p class="help" id="bench-summary" style="margin-top:8px"></p>
-          <button class="btn" id="history-rebuild" style="margin-top:4px">Reconstituer l'historique depuis mes opérations</button>
-          <p class="help" id="history-status" style="margin-top:6px"></p>
+          <p class="help" id="history-auto-status" style="margin-top:6px"></p>
         </div>
 
         <div class="seg" id="portfolio-tabs" role="tablist">
@@ -723,13 +722,79 @@
     <!-- Réglages -->
     <section class="view" id="view-settings" hidden>
       <header><h1>Réglages</h1></header>
+      <div id="settings-home">
+      <div class="group-title">Mes placements</div><div class="group">
+        <button class="setting" data-spage="accounts"><span class="ic" style="background:#0ea5e9"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></span><span style="min-width:0"><span class="t">Comptes et courtiers</span><span class="d">PEA, CTO et grilles de frais de tes courtiers</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="goals"><span class="ic" style="background:#22c55e"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></span><span style="min-width:0"><span class="t">Allocation cible</span><span class="d">Poches et objectifs de répartition</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="advanced"><span class="ic" style="background:#64748b"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><span style="min-width:0"><span class="t">Opérations avancées</span><span class="d">Doublons, repartir de zéro, reconstituer l'historique</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="group-title">Notifications</div><div class="group">
+        <button class="setting" data-spage="notifications"><span class="ic" style="background:#ef4444"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span style="min-width:0"><span class="t">Notifications ntfy</span><span class="d">Tes alertes de la nuit sur ton téléphone</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="group-title">Apparence</div><div class="group">
+        <button class="setting" data-spage="appearance"><span class="ic" style="background:#334155"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span style="min-width:0"><span class="t">Apparence et affichage</span><span class="d">Thème, couleur, taille du texte, mode Simple ou Détaillé</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="group-title">Analyse (avancé)</div><div class="group">
+        <button class="setting" data-spage="dcf"><span class="ic" style="background:#0f766e"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg></span><span style="min-width:0"><span class="t">Hypothèses du DCF</span><span class="d">Croissance, actualisation, croissance à long terme</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="group-title">Compte</div><div class="group">
+        <button class="setting" data-spage="token"><span class="ic" style="background:#475569"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span style="min-width:0"><span class="t">Code d'accès</span><span class="d">Un code = un Google Sheet, mémorisé sur cet appareil</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="signup"><span class="ic" style="background:#8b5cf6"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span style="min-width:0"><span class="t">Créer un compte</span><span class="d">Gratuit, avec ton propre Google Sheet</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="group-title">Aide</div><div class="group">
+        <button class="setting" data-spage="lexicon"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></span><span style="min-width:0"><span class="t">Lexique des indicateurs</span><span class="d">PER, ROE, prix juste... expliqués simplement</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="help"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg></span><span style="min-width:0"><span class="t">Guide d'utilisation</span><span class="d">Comment tout marche, étape par étape</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      </div>
+      <div class="spage" data-page="accounts" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Comptes et courtiers</strong></div>
+      <div class="card" id="accounts-editor"><p class="help">Saisis ton code d'accès pour gérer tes comptes.</p></div>
 
-      <h2>Aide</h2>
+      </div>
+      <div class="spage" data-page="advanced" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Opérations avancées</strong></div>
       <div class="card">
-        <p class="help" style="margin:0">Comment tout marche, étape par étape : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/guide-utilisation.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'utilisation</a> · pour installer l'appli et créer un compte : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/tutoriel-amis.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'installation</a>. Les mots soulignés en pointillés s'expliquent quand tu les touches.</p>
+        <div class="edit-sub" style="margin-top:0">Historique de la courbe</div>
+        <p class="help">Recalcule la courbe d'évolution jour par jour depuis tes opérations et les cours de clôture, par exemple après avoir importé d'anciens relevés.</p>
+          <button class="btn" id="history-rebuild" style="margin-top:0">Reconstituer l'historique depuis mes opérations</button>
+          <p class="help" id="history-status" style="margin-top:6px"></p>
+      </div>
+      <div class="card" style="margin-top:12px">
+          <div>
+            <button class="btn" id="dup-search" style="margin-top:0">Rechercher les doublons dans mes opérations</button>
+            <p class="help" id="dup-status" style="margin-top:8px"></p>
+            <div id="dup-list"></div>
+            <button class="btn" id="dup-delete" hidden></button>
+          </div>
+          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:10px">
+            <div class="edit-sub" style="margin-top:0">Repartir de zéro</div>
+            <p class="help">Efface des opérations pour réimporter tes relevés proprement. Une sauvegarde est d'abord créée dans ton Sheet : tu peux tout annuler.</p>
+            <div class="op-grid">
+              <label class="wide">Opérations à effacer<select id="reset-account"></select></label>
+              <label class="wide" style="flex-direction:row; align-items:center; gap:8px; font-size:13px; color:var(--text)"><input type="checkbox" id="reset-imported" checked style="width:auto" /> Seulement les lignes importées (garder mes saisies à la main)</label>
+            </div>
+            <button class="btn" id="reset-go">Effacer et repartir de zéro</button>
+            <button class="btn" id="reset-undo" hidden>Annuler : remettre mes opérations</button>
+            <p class="help" id="reset-status" style="margin-top:8px"></p>
+          </div>
+      </div>
+      </div>
+      <div class="spage" data-page="notifications" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Notifications</strong></div>
+      <div class="card">
+        <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
+        <input class="search" id="ntfy-topic" placeholder="Sujet ntfy, ex. portfolio-k3x9q2m1p8" autocomplete="off" />
+        <button class="btn" id="ntfy-generate">Générer un sujet</button>
+        <button class="btn" id="ntfy-save">Enregistrer</button>
+        <button class="btn" id="ntfy-test">Envoyer un test</button>
+        <p class="help"><a id="ntfy-link" target="_blank" rel="noopener" hidden></a></p>
+        <p class="help" id="ntfy-default" hidden>Sans sujet enregistré ici, tes notifications partent sur le sujet du secret GitHub NTFY_TOPIC, comme avant.</p>
+        <p class="help" id="ntfy-status"></p>
       </div>
 
-      <h2>Apparence</h2>
+      </div>
+      <div class="spage" data-page="appearance" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Apparence et affichage</strong></div>
       <div class="card" id="appearance">
         <div class="appearance-row" style="margin-top:0"><span>Thème</span>
           <div class="segmented" data-pref="theme">
@@ -757,7 +822,29 @@
         <p class="help" style="margin-top:10px">« Auto » suit le mode clair ou sombre du téléphone. Les gains restent en vert et les pertes en rouge quelle que soit la couleur. Nouvelle icône : supprime l'appli de l'écran d'accueil puis ajoute-la à nouveau (sur Android, elle peut aussi se mettre à jour toute seule d'ici un jour).</p>
       </div>
 
-      <h2>Code d'accès</h2>
+      <div class="card" style="margin-top:12px">
+        <div class="appearance-row" style="margin-top:0"><span>Affichage du Marché et des fiches</span>
+          <div class="segmented" id="settings-density"><button data-density="simple">Simple</button><button data-density="detailed">Détaillé</button></div>
+        </div>
+        <p class="help" style="margin-top:10px">Simple : verdicts en mots et une phrase d'explication sous chaque ratio. Détaillé : qualité, PER et potentiel dans les listes, toutes les rubriques des fiches ouvertes.</p>
+      </div>
+      </div>
+      <div class="spage" data-page="dcf" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Hypothèses du DCF</strong></div>
+      <div class="card">
+        <p class="help">Laisse un champ vide pour garder le calcul automatique : croissance tirée de l'historique de cash-flow de chaque entreprise, actualisation selon son bêta. Une valeur saisie s'applique à toutes les actions, dans le portefeuille comme dans le screener.</p>
+        <label class="field"><span>Croissance initiale du cash-flow (% par an)</span><input id="hyp-growth" type="number" step="0.5" min="-10" max="30" placeholder="auto (0 à 12 %)" inputmode="decimal" /></label>
+        <label class="field"><span>Taux d'actualisation (%)</span><input id="hyp-discount" type="number" step="0.5" min="3" max="20" placeholder="auto (7 à 11 %)" inputmode="decimal" /></label>
+        <label class="field"><span>Croissance à long terme (%)</span><input id="hyp-terminal" type="number" step="0.5" min="0" max="4" placeholder="2" inputmode="decimal" /></label>
+        <button class="btn" id="hyp-save">Appliquer</button>
+        <button class="btn" id="hyp-reset">Revenir à l'automatique</button>
+        <p class="help" id="hyp-status"></p>
+        <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
+      </div>
+
+      </div>
+      <div class="spage" data-page="token" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Code d'accès</strong></div>
       <div class="card">
         <p class="help">Protège tes positions et tes montants. À saisir une fois par appareil, il reste mémorisé sur celui-ci.</p>
         <input class="search" id="settings-token" type="password" placeholder="Code d'accès" autocomplete="current-password" />
@@ -765,7 +852,9 @@
         <span class="help" id="settings-token-status"></span>
       </div>
 
-      <h2>Pas encore de compte ?</h2>
+      </div>
+      <div class="spage" data-page="signup" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Créer un compte</strong></div>
       <div class="card" id="signup">
         <p class="help">Gratuit, en 5 minutes. Tes données restent dans <b>ton</b> Google Sheet, que l'appli lit et complète. L'administrateur de l'appli gère le robot Google qui y accède : il a donc techniquement accès à ton Sheet.</p>
         <ol>
@@ -784,37 +873,20 @@
         <p class="help" id="signup-status" style="margin-top:8px"></p>
       </div>
 
-      <h2>Hypothèses du DCF</h2>
-      <div class="card">
-        <p class="help">Laisse un champ vide pour garder le calcul automatique : croissance tirée de l'historique de cash-flow de chaque entreprise, actualisation selon son bêta. Une valeur saisie s'applique à toutes les actions, dans le portefeuille comme dans le screener.</p>
-        <label class="field"><span>Croissance initiale du cash-flow (% par an)</span><input id="hyp-growth" type="number" step="0.5" min="-10" max="30" placeholder="auto (0 à 12 %)" inputmode="decimal" /></label>
-        <label class="field"><span>Taux d'actualisation (%)</span><input id="hyp-discount" type="number" step="0.5" min="3" max="20" placeholder="auto (7 à 11 %)" inputmode="decimal" /></label>
-        <label class="field"><span>Croissance à long terme (%)</span><input id="hyp-terminal" type="number" step="0.5" min="0" max="4" placeholder="2" inputmode="decimal" /></label>
-        <button class="btn" id="hyp-save">Appliquer</button>
-        <button class="btn" id="hyp-reset">Revenir à l'automatique</button>
-        <p class="help" id="hyp-status"></p>
-        <p class="help">La croissance initiale décroît chaque année jusqu'à la croissance à long terme, sur 10 ans. Un DCF est jugé « fiable » quand la valeur obtenue reste entre 0,4 et 2,5 fois le cours.</p>
       </div>
-
-      <h2>Mes comptes et courtiers</h2>
-      <div class="card" id="accounts-editor"><p class="help">Saisis ton code d'accès pour gérer tes comptes.</p></div>
-
-      <h2>Notifications</h2>
-      <div class="card">
-        <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
-        <input class="search" id="ntfy-topic" placeholder="Sujet ntfy, ex. portfolio-k3x9q2m1p8" autocomplete="off" />
-        <button class="btn" id="ntfy-generate">Générer un sujet</button>
-        <button class="btn" id="ntfy-save">Enregistrer</button>
-        <button class="btn" id="ntfy-test">Envoyer un test</button>
-        <p class="help"><a id="ntfy-link" target="_blank" rel="noopener" hidden></a></p>
-        <p class="help" id="ntfy-default" hidden>Sans sujet enregistré ici, tes notifications partent sur le sujet du secret GitHub NTFY_TOPIC, comme avant.</p>
-        <p class="help" id="ntfy-status"></p>
-      </div>
-
-      <h2>Lexique des indicateurs</h2>
+      <div class="spage" data-page="lexicon" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Lexique des indicateurs</strong></div>
       <div class="card">
         <p class="help">Dans les fiches, touche un libellé souligné (PER, ROE…) pour afficher son explication.</p>
         <div class="lexicon" id="lexicon"></div>
+      </div>
+      </div>
+      <div class="spage" data-page="help" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Guide d'utilisation</strong></div>
+      <div class="card">
+        <p class="help" style="margin:0">Comment tout marche, étape par étape : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/guide-utilisation.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'utilisation</a> · pour installer l'appli et créer un compte : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/tutoriel-amis.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'installation</a>. Les mots soulignés en pointillés s'expliquent quand tu les touches.</p>
+      </div>
+
       </div>
     </section>
   </main>
@@ -988,7 +1060,7 @@
       window.scrollTo(0, 0);
       history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
       if (view === "market") { loadMarket(); loadInvestors(); }
-      if (view === "settings") loadAccountsEditor();
+      if (view === "settings") { loadAccountsEditor(); if (settingsPage) closeSettingsPage(); }
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-view]");
@@ -2911,7 +2983,9 @@
 
     // --- Historique reconstitué à partir des opérations (cours de clôture de chaque jour) ---
     async function rebuildHistory(since) {
-      const status = document.getElementById("history-status");
+      // Message sous la courbe (reconstitution après une saisie ou un import) et dans Réglages > Opérations avancées
+      const targets = ["history-status", "history-auto-status"].map((id) => document.getElementById(id));
+      const status = { set textContent(t) { targets.forEach((el) => (el.textContent = t)); } };
       status.textContent = "Reconstitution de l'historique à partir de tes opérations…";
       try {
         const r = await postJson("/history/rebuild", { since: since || null });
@@ -3169,6 +3243,52 @@
 
     document.getElementById("realized-year").addEventListener("change", (e) => renderRealized(e.target.value));
 
+    // --- Réglages : l'accueil liste les rubriques, chacune s'ouvre sur sa page ---
+    let settingsPage = null;
+    function openSettingsPage(name) {
+      if (name === "goals") {  // l'allocation cible se règle dans le Portefeuille, rubrique Répartition
+        showView("portfolio");
+        showPortfolioTab("repartition");
+        document.getElementById("allocation").scrollIntoView({ block: "start" });
+        return;
+      }
+      if (!settingsPage) history.pushState({ settings: name }, "", location.hash || location.pathname);
+      settingsPage = name;
+      document.getElementById("settings-home").hidden = true;
+      document.querySelectorAll("#view-settings .spage").forEach((pg) => (pg.hidden = pg.dataset.page !== name));
+      window.scrollTo(0, 0);
+      if (name === "advanced") prepareAdvancedTools();
+      if (name === "appearance") syncDensityButtons();
+    }
+    function closeSettingsPage() {
+      settingsPage = null;
+      document.getElementById("settings-home").hidden = false;
+      document.querySelectorAll("#view-settings .spage").forEach((pg) => (pg.hidden = true));
+      window.scrollTo(0, 0);
+    }
+    async function prepareAdvancedTools() {
+      if (!opSettings) {
+        try { opSettings = await api("/settings"); } catch (e) { opEl("dup-status").textContent = e.message; return; }
+      }
+      fillResetAccounts();
+    }
+    function syncDensityButtons() {
+      document.querySelectorAll("#settings-density button").forEach((b) => b.classList.toggle("active", b.dataset.density === (marketDetailed() ? "detailed" : "simple")));
+    }
+    document.getElementById("view-settings").addEventListener("click", (e) => {
+      const open = e.target.closest("[data-spage]");
+      if (open) return openSettingsPage(open.dataset.spage);
+      if (e.target.closest("[data-spage-back]")) history.back();
+      const density = e.target.closest("#settings-density [data-density]");
+      if (density) {
+        settings.marketDensity = density.dataset.density;
+        saveSettings();
+        syncDensityButtons();
+        renderMarket();
+      }
+    });
+    window.addEventListener("popstate", () => { if (!stockReturn && settingsPage) closeSettingsPage(); });
+
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     let briefs = null;
@@ -3190,14 +3310,20 @@
       tab.hidden = !briefs.length;
       if (tab.hidden && location.hash === "#briefs") showView("portfolio");
       status.hidden = true;
-      document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => `
-        <button class="card brief-item" data-id="${escapeHtml(b.id)}">
-          <div>
-            <div class="title">Brief du ${escapeHtml(longDate.format(new Date(b.date + "T12:00:00")))}</div>
-            <div class="sub">${i === 0 ? "Le plus récent" : escapeHtml(b.name)}</div>
+      document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => {
+        const day = new Date(b.date + "T12:00:00");
+        const monday = new Date(day.getTime() - ((day.getDay() + 6) % 7) * 864e5);
+        const fresh = i === 0 && Date.now() - day.getTime() < 8 * 864e5;
+        return `
+        <button class="card brief-item" data-id="${escapeHtml(b.id)}" title="${escapeHtml(longDate.format(day))}">
+          <div class="bdate"><b>${day.getDate()}</b><span>${escapeHtml(day.toLocaleDateString("fr-FR", { month: "short" }))}</span></div>
+          <div style="min-width:0">
+            <div class="title">Brief marchés de la semaine</div>
+            <div class="sub">Semaine du ${escapeHtml(monday.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }))}</div>
           </div>
-          <span class="chev">›</span>
-        </button>`).join("");
+          ${fresh ? '<span class="new">Nouveau</span>' : '<span class="chev">›</span>'}
+        </button>`;
+      }).join("");
     }
 
     async function openBrief(id) {
