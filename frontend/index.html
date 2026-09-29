@@ -240,6 +240,42 @@
     .stock-head .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .bigprice { font-size: 30px; font-weight: 700; margin: 12px 0 4px; letter-spacing: -0.01em; }
 
+    /* Fiche action : verdict, jauge et rubriques */
+    .analysis.fiche { border-top: 0; padding-top: 0; font-size: 14px; }
+    .verdict-card { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 12px; }
+    .verdict-card .vtitle { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+    .verdict-card .vtext { margin: 6px 0 0; color: var(--muted); }
+    .verdict-card .vtext b { color: var(--text); }
+    .gauge { position: relative; height: 58px; margin: 18px 4px 0; }
+    .gauge .track { position: absolute; left: 0; right: 0; top: 16px; height: 6px; border-radius: 3px; opacity: 0.55;
+      background: linear-gradient(90deg, var(--positive) 0 38%, var(--warn) 38% 62%, var(--accent-neg) 62% 100%); }
+    .gauge .mark { position: absolute; top: 9px; width: 3px; height: 20px; border-radius: 2px; background: var(--text); transform: translateX(-50%); }
+    .gauge .mark.fair { opacity: 0.55; }
+    .gauge .mark span { position: absolute; left: 50%; transform: translateX(-50%); font-size: 11px; white-space: nowrap; color: var(--text); }
+    .gauge .mark.fair span { top: -17px; } .gauge .mark.now span { top: 22px; }
+    .gauge .ends { position: absolute; top: 42px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    .caveat { margin-top: 8px; font-size: 13px; color: var(--muted); display: flex; gap: 6px; }
+    .caveat.warn { color: var(--warn); }
+    .vfoot { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .vfoot [data-term] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+    .pillars { display: grid; gap: 8px; margin-top: 12px; }
+    .pillar { background: var(--card); border-radius: 14px; }
+    .pillar > summary { list-style: none; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 13px 14px; cursor: pointer; }
+    .pillar > summary::-webkit-details-marker { display: none; }
+    .pillar .ptitle { display: block; font-size: 12px; color: var(--muted); }
+    .pillar .psum { display: block; font-weight: 600; color: var(--text); }
+    .pillar .chev { color: var(--muted); transition: transform 0.15s; }
+    .pillar[open] .chev { transform: rotate(90deg); }
+    .pillar .pbody { padding: 0 14px 12px 36px; }
+    .pillar .pbody .row { margin-top: 0; padding-top: 8px; border-top: 1px solid var(--line); }
+    .pillar .pbody .row:first-child { border-top: 0; padding-top: 0; }
+    .pillar .why { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+    .pillar .pbody .metrics { grid-template-columns: 1fr; gap: 0; }
+    .fiche-actions { display: flex; flex-wrap: wrap; gap: 0 8px; }
+    .fiche .holders { margin-top: 12px; }
+    @media (prefers-reduced-motion: reduce) { .pillar .chev { transition: none; } }
+
     /* Super investisseurs */
     .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
     .rank-row:first-child { border-top: 0; padding-top: 0; }
@@ -1803,55 +1839,103 @@
         </div>`;
     }
 
+    // --- Fiche action : verdict en une phrase avec sa jauge, puis 5 rubriques notées par couleur (vert = point fort,
+    // orange = moyen, rouge = point faible, gris = non applicable), dépliées d'office en mode Détaillé.
+    // Seuils indicatifs expliqués dans le lexique (Rentabilité, Santé financière...) ---
+    const PILLAR_COLOR = { good: "var(--positive)", warn: "var(--warn)", bad: "var(--accent-neg)", na: "var(--muted)" };
+    const BALANCE_SHEET = /bank|insurance|asset management|capital markets|credit services|banque|assurance/i;
+    // Ligne d'une rubrique : le libellé ouvre le lexique ; en mode Simple, une phrase d'explication en dessous
+    function fRow(label, value, why = "", cls = "") {
+      return `<div class="row"><span>${label}</span><span${cls ? ` class="${cls}"` : ""}>${value}</span></div>`
+        + (why && !marketDetailed() ? `<div class="why">${why}</div>` : "");
+    }
+    function pillar(title, color, summary, body) {
+      return `<details class="pillar"${marketDetailed() ? " open" : ""}>
+          <summary><span class="dot" style="background:${PILLAR_COLOR[color]}"></span>
+            <span style="min-width:0"><span class="ptitle">${title}</span><span class="psum">${summary}</span></span><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="pbody">${body}</div></details>`;
+    }
+
+    function fairSummary(s, f, cur) {
+      if (!f) {
+        return `<div class="verdict-card"><div class="vtitle"><span class="dot" style="background:var(--muted)"></span>Pas d'estimation fiable</div>
+          <p class="vtext">Les méthodes disponibles donnent un prix juste trop éloigné du cours pour être crédible (données Yahoo incomplètes ou entreprise atypique).</p></div>`;
+      }
+      const [label, color] = { under: ["Paraît sous-évaluée", "good"], fair: ["Paraît à son juste prix", "warn"], over: ["Paraît chère", "bad"] }[f.verdict];
+      // Jauge : cours et prix juste placés entre 0,4 et 2,5 fois le prix juste (échelle log, bornes des méthodes)
+      const pos = (x) => Math.min(100, Math.max(0, (Math.log(x / f.value) - Math.log(RELIABLE_MIN)) / (Math.log(RELIABLE_MAX) - Math.log(RELIABLE_MIN)) * 100));
+      const caveats = fairCaveats(s, f);
+      return `<div class="verdict-card">
+          <div class="vtitle"><span class="dot" style="background:${PILLAR_COLOR[color]}"></span>${label}</div>
+          <p class="vtext">Prix juste estimé <b>${money(f.value, cur)}</b>, soit ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} % par rapport au cours${f.methods.length > 1 ? ` (fourchette ${money(f.low, cur)} – ${money(f.high, cur)})` : ""}.</p>
+          <div class="gauge" role="img" aria-label="Cours comparé au prix juste">
+            <div class="track"></div>
+            <div class="mark fair" style="left:${pos(f.value)}%"><span>Prix juste</span></div>
+            <div class="mark now" style="left:${pos(s.price)}%"><span>Cours</span></div>
+            <div class="ends"><span>Bon marché</span><span>Cher</span></div>
+          </div>
+          ${caveats.map((c) => `<div class="caveat${c.warn ? " warn" : ""}">${c.warn ? "⚠" : "ⓘ"} <span>${escapeHtml(c.text)}</span></div>`).join("")}
+          <div class="vfoot">Moyenne de : ${f.methods.map((m) => `${escapeHtml(m.label)} ${money(m.value, cur)}`).join(" · ")}. Estimation, pas un conseil d'investissement : <span data-term="Limites du prix juste">limites de la méthode</span>.</div>
+        </div>`;
+    }
+
     // extraRows : lignes propres au portefeuille (investi, quantité) ; showDates : date d'analyse et indices
     function renderStockDetail(s, extraRows = "", showDates = true) {
       const cur = s.currency || "";
       const v = valuationOf(s);
-      let dcf = `<div class="row"><span>Valeur intrinsèque</span><span>N/A</span></div>`;
+      const f = fairValueOf(s);
+
+      const verdictColor = f ? { under: "good", fair: "warn", over: "bad" }[f.verdict] : "na";
+      let dcf = fRow("Valeur intrinsèque", "N/A");
       if (v.iv != null) {
         // Hors fourchette de fiabilité, chiffre gardé pour info mais sans marge : il ne veut rien dire en l'état
         dcf = v.reliable
-          ? `<div class="row"><span>Valeur intrinsèque</span><span>${money(v.iv, cur)}</span></div>
-             <div class="row"><span>Marge de sécurité</span><span class="${signClass(v.margin)}">${num(v.margin)} %</span></div>`
-          : `<div class="row"><span>Valeur intrinsèque</span><span class="unreliable">${money(v.iv, cur)} (indicatif)</span></div>`;
-      }
-      const f = fairValueOf(s);
-      let fair = `<div class="row"><span>Prix juste</span><span>N/A</span></div>`;
-      if (f) {
-        const { label, cls } = VERDICTS[f.verdict] || {};
-        const caveats = fairCaveats(s, f);
-        fair = `<div class="row"><span>Prix juste</span><span><b>${money(f.value, cur)}</b>${label ? ` · <span class="${cls}${f.divergent ? " unreliable" : ""}">${label}</span>` : ""}</span></div>
-          ${f.upside != null ? `<div class="row"><span>Potentiel</span><span class="${signClass(f.upside)}">${f.upside > 0 ? "+" : ""}${num(f.upside)} %</span></div>` : ""}
-          ${f.methods.length > 1 ? `<div class="row"><span>Fourchette</span><span>${money(f.low, cur)} – ${money(f.high, cur)}</span></div>` : ""}
-          <div class="hypotheses">Moyenne de : ${f.methods.map((m) => `${escapeHtml(m.label)} ${money(m.value, cur)}`).join(" · ")}</div>
-          ${caveats.length ? `<ul class="caveats">${caveats.map((c) => `<li>${escapeHtml(c.text)}</li>`).join("")}</ul>` : ""}
-          <div class="hypotheses">Estimation, pas un conseil d'investissement : <span data-term="Limites du prix juste">limites de la méthode</span></div>`;
+          ? fRow("Valeur intrinsèque", money(v.iv, cur), "Valeur des flux de trésorerie futurs actualisés (DCF).") + fRow("Marge de sécurité", `${num(v.margin)} %`, "", signClass(v.margin))
+          : fRow("Valeur intrinsèque", `${money(v.iv, cur)} (indicatif)`, "Trop éloignée du cours pour être fiable.", "unreliable");
       }
       const hypotheses = v.g != null
         ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
-      const notes = (s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : "";
+      const valuation = pillar("Valorisation", verdictColor, f ? { under: "Paraît sous-évaluée", fair: "Prix correct", over: "Paraît chère" }[f.verdict] : "Pas d'estimation fiable",
+        (f ? fRow("Prix juste", `<b>${money(f.value, cur)}</b>`) + fRow("Potentiel", `${f.upside > 0 ? "+" : ""}${num(f.upside)} %`, "", signClass(f.upside)) : fRow("Prix juste", "N/A"))
+        + fRow("PER", num(s.pe), "Combien d'années de bénéfices coûte l'action au prix actuel : plus c'est bas, moins c'est cher.")
+        + fRow("PER prévisionnel", num(s.forward_pe), "Même calcul avec les bénéfices attendus l'an prochain.")
+        + fRow("Cours / valeur comptable", num(s.pb), "Prix payé pour 1 de fonds propres de l'entreprise.")
+        + fRow("VE / EBITDA", num(s.ev_ebitda), "Comme le PER, mais en tenant compte de la dette : autour de 10, prix moyen.")
+        + fRow("Capitalisation", s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A")
+        + dcf + hypotheses);
+
+      const q = s.quality_score;
+      const quality = pillar("Qualité", q == null ? "na" : q >= 12 ? "good" : q >= 8 ? "warn" : "bad",
+        q == null ? "Non notée" : `${qualityWord(q)[0].toUpperCase()}${qualityWord(q).slice(1)} · ${num(q)}/20`,
+        fRow("Score qualité", q != null ? num(q) + " / 20" : "N/A", "Note sur 20 : rentabilité, dette, croissance et prix, comparés aux standards du secteur.")
+        + ((s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : ""));
+
+      const roe = s.roe;
+      const profitability = pillar("Rentabilité", roe == null ? "na" : roe >= 0.15 ? "good" : roe >= 0.08 ? "warn" : "bad",
+        roe == null ? "Données manquantes" : roe >= 0.15 ? "Très rentable" : roe >= 0.08 ? "Rentable" : "Peu rentable",
+        fRow("ROE", pctPlain(roe), "Bénéfice gagné pour 100 de fonds propres : au-dessus de 15 %, c'est très bon.")
+        + fRow("Marge opérationnelle", pctPlain(s.operating_margin), "Ce qui reste de 100 de ventes une fois les coûts d'exploitation payés."));
+
+      const bank = BALANCE_SHEET.test(`${s.industry || ""}`) || s.sector === "Finance";
+      const de = s.debt_to_equity;
+      const health = pillar("Santé financière", bank || de == null ? "na" : de < 50 ? "good" : de < 150 ? "warn" : "bad",
+        bank ? "Non comparable (banque, assurance)" : de == null ? "Données manquantes" : de < 50 ? "Peu endettée" : de < 150 ? "Endettement modéré" : "Très endettée",
+        fRow("Dette / fonds propres", de != null ? num(de, 0) + " %" : "N/A", bank ? "Pour une banque ou un assureur, la dette fait partie du métier : ce ratio ne dit pas grand-chose." : "Dette rapportée à l'argent des actionnaires : au-delà de 150 %, l'entreprise devient fragile si les taux montent."));
+
+      const y = s.dividend_yield;
+      const noDividend = !y && !(s.dividend_history || []).length;
+      const dividend = pillar("Dividende", noDividend || !y ? "na" : s.dividend_cut ? "bad" : (s.dividend_streak ?? 0) >= 10 ? "good" : "warn",
+        noDividend || !y ? "Pas de dividende" : s.dividend_cut ? `${pctPlain(y)} · réduit récemment` : `${pctPlain(y)} par an · ${s.dividend_streak ?? 0} an${(s.dividend_streak ?? 0) > 1 ? "s" : ""} de hausse`,
+        noDividend ? `<div class="hypotheses" style="margin-top:0">L'entreprise garde ses bénéfices pour se développer ou racheter ses actions.</div>` : dividendBlock(s));
+
       const analysed = s.fundamentals_updated ? new Date(s.fundamentals_updated).toLocaleDateString("fr-FR") : "?";
       return `
-        <div class="analysis">
+        <div class="analysis fiche">
           ${extraRows}
-          <div class="metrics">
-            <div class="row"><span>Cours</span><span>${money(s.price, cur)}</span></div>
-            <div class="row"><span>Capitalisation</span><span>${s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A"}</span></div>
-            <div class="row"><span>PER</span><span>${num(s.pe)}</span></div>
-            <div class="row"><span>PER prévisionnel</span><span>${num(s.forward_pe)}</span></div>
-            <div class="row"><span>Cours / valeur comptable</span><span>${num(s.pb)}</span></div>
-            <div class="row"><span>VE / EBITDA</span><span>${num(s.ev_ebitda)}</span></div>
-            <div class="row"><span>ROE</span><span>${pctPlain(s.roe)}</span></div>
-            <div class="row"><span>Marge opérationnelle</span><span>${pctPlain(s.operating_margin)}</span></div>
-            <div class="row"><span>Dette / fonds propres</span><span>${s.debt_to_equity != null ? num(s.debt_to_equity, 0) + " %" : "N/A"}</span></div>
-            <div class="row"><span>Score qualité</span><span>${s.quality_score != null ? num(s.quality_score) + " / 20" : "N/A"}</span></div>
-          </div>
-          ${fair}
-          ${dcf}
-          ${hypotheses}
-          ${dividendBlock(s)}
+          ${fairSummary(s, f, cur)}
+          <div class="pillars">${valuation}${quality}${profitability}${health}${dividend}</div>
           ${holdersLine(s.ticker)}
-          <div>
+          <div class="fiche-actions">
             <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
             <button class="btn" data-price-alert="${escapeHtml(s.ticker)}" data-price="${s.price ?? ""}" data-currency="${escapeHtml(cur)}">🔔 Alerte de prix</button>
             <button class="btn" data-history="${escapeHtml(s.ticker)}">Historique du screener</button>
@@ -1860,7 +1944,6 @@
           <div class="pa-slot"></div>
           <div class="history-slot" data-history-slot="${escapeHtml(s.ticker)}"></div>
           <div class="history-slot" data-financials-slot="${escapeHtml(s.ticker)}"></div>
-          ${notes}
           ${showDates ? `<div class="hypotheses">Fondamentaux analysés le ${analysed}, cours du dernier jour de bourse. ${escapeHtml((s.indices || []).join(", "))}</div>` : ""}
         </div>`;
     }
@@ -2037,7 +2120,7 @@
     function dividendBlock(s) {
       if (s.dividend_yield == null && !(s.dividend_history || []).length) return "";
       if (!s.dividend_yield && !(s.dividend_history || []).length) {
-        return `<div class="div-title">Dividende</div><div class="hypotheses">Pas de dividende versé.</div>`;
+        return `<div class="hypotheses">Pas de dividende versé.</div>`;
       }
       const cur = s.currency || "";
       const hist = (s.dividend_history || []).slice(-12);
@@ -2046,7 +2129,6 @@
         <div class="div-bars">${hist.map((h) => `<span style="height:${max ? (h[1] / max) * 100 : 0}%" title="${h[0]} : ${money(h[1], cur)}"></span>`).join("")}</div>
         <div class="div-years"><span>${hist[0][0]}</span><span>${hist[hist.length - 1][0]}</span></div>` : "";
       return `
-        <div class="div-title">Dividende</div>
         <div class="metrics">
           <div class="row"><span>Rendement</span><span>${pctPlain(s.dividend_yield)}</span></div>
           <div class="row"><span>Versé sur 12 mois</span><span>${money(s.dividend_ttm, cur)}</span></div>
@@ -3100,6 +3182,10 @@
         "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Réglages.</p>",
       }],
       ["Qualité de l'entreprise", {
+        "Valorisation": "<p>La rubrique qui répond à « cher ou pas cher ? » : le verdict du prix juste (vert sous-évaluée, orange prix correct, rouge chère), puis les ratios de prix (PER, cours / valeur comptable, VE / EBITDA) et le DCF.</p>",
+        "Qualité": "<p>Le score qualité sur 20, en mots : très solide (15 et plus), solide (12 à 15), moyenne (8 à 12), fragile (moins de 8). Vert à partir de 12, orange de 8 à 12, rouge en dessous.</p>",
+        "Rentabilité": "<p>Vert quand le ROE dépasse 15 % (très rentable), orange entre 8 et 15 %, rouge en dessous. Repères généraux : un secteur peu rentable par nature (distribution, services publics) ressort plus souvent en orange.</p>",
+        "Santé financière": "<p>Mesurée par la dette rapportée aux fonds propres : vert sous 50 %, orange jusqu'à 150 %, rouge au-delà. Non comparable pour les banques et les assureurs, dont la dette fait partie du métier (gris).</p>",
         "ROE": "<p>Return on Equity : bénéfice net ÷ capitaux propres. Ce que l'entreprise gagne avec l'argent de ses actionnaires.</p><p>Repère : au-dessus de 15 % c'est bien, au-dessus de 20 % excellent. Attention, une grosse dette gonfle artificiellement le ROE.</p>",
         "Marge opérationnelle": "<p>Résultat d'exploitation ÷ chiffre d'affaires : ce qui reste de 100 € de ventes une fois payés les coûts de l'activité.</p><p>Une marge élevée et stable signale souvent un avantage durable (marque, brevets). Elle dépend beaucoup du secteur : 25 % est courant dans le logiciel, rare dans la distribution.</p>",
         "Dette / fonds propres": "<p>Dette totale ÷ capitaux propres, en %.</p><p>Repère : sous 50 % l'entreprise est peu endettée, au-dessus de 200 % elle l'est beaucoup (normal pour les services publics ou l'immobilier, plus risqué ailleurs).</p>",
