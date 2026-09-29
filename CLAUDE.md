@@ -35,6 +35,17 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
 `SCREENER_URL` avec un `screener.json` (Playwright `page.route`). Le vrai fichier se récupère sur
 `https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/screener.json`.
 
+## Workflow Git (consigne d'Enzo, permanente)
+
+- Travailler sur une branche, pousser, ouvrir une pull request vers `main` avec une description en
+  français (pourquoi, ce que fait la PR, vérification).
+- **Enzo autorise Claude à fusionner lui-même ses pull requests sur `main`, à chaque fois, sans
+  redemander confirmation** (consigne donnée le 29/09/2026). Conditions : tests locaux verts, check
+  `pytest` de la PR vert, PR sans conflit. Fusion en « merge » (pas de squash) pour garder les commits.
+- La fusion met en ligne : Render redéploie l'appli depuis `main`, et le screener de la nuit tourne
+  sur `main`. Le dire à Enzo après la fusion, avec ce qui change pour lui.
+- Ne jamais pousser directement sur `main` sans PR, ni toucher à la branche `screener-data`.
+
 ## Règles à respecter
 
 - **Calculs en double Python / JavaScript.** Le front refait certains calculs pour appliquer les
