@@ -220,6 +220,8 @@
        fine marge blanche pour qu'un logo ne touche pas les bords, un peu plus pour un logo en longueur */
     img.avatar { object-fit: contain; background: #fff; box-sizing: border-box; padding: 3px; }
     img.avatar.wide { padding: 5px; }
+    /* Logo clair sur fond transparent (pomme blanche d'Apple, texte blanc d'Amazon) : fond sombre sinon invisible */
+    img.avatar.light { background: #1e293b; }
     .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
     .pill.good { color: var(--positive); background: color-mix(in srgb, var(--positive) 15%, transparent); }
     .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
@@ -321,6 +323,13 @@
     .setting .chev { color: var(--muted); font-size: 18px; }
     .spage-title { font-size: 18px; }
     .spage > .card:first-of-type { margin-top: 8px; }
+
+    /* Super investisseurs : cartes des fonds (réutilisent le style des rubriques de la fiche) */
+    .pillar.fund > summary { grid-template-columns: 40px minmax(0, 1fr) auto; }
+    .pillar.fund .ptitle { margin-top: 1px; }
+    .fund-size { font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .fund-lines { background: transparent; border-top: 1px solid var(--line); border-radius: 0; }
+    .move { white-space: nowrap; }
 
     /* Super investisseurs */
     .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
@@ -680,12 +689,19 @@
       </header>
       <div id="investors-pane" hidden>
         <div class="market-meta" id="investors-meta">Chargement…</div>
-        <h2>Les plus achetés ce trimestre</h2>
-        <div class="card" id="investors-bought"></div>
-        <h2>Les plus détenus</h2>
-        <div class="card" id="investors-held"></div>
-        <h2>Les fonds</h2>
-        <div id="investors-funds"></div>
+        <section class="msection">
+          <div class="msection-head"><div><h2>Les plus achetés ce trimestre</h2><p>Nouvelles positions ou renforcées par au moins 2 fonds</p></div></div>
+          <div class="mlist" id="investors-bought"></div>
+        </section>
+        <section class="msection">
+          <div class="msection-head"><div><h2>Les plus détenus</h2><p>Les actions présentes chez le plus de fonds</p></div></div>
+          <div class="mlist" id="investors-held"></div>
+        </section>
+        <section class="msection">
+          <div class="msection-head"><div><h2>Les fonds</h2><p>Touche un fonds pour voir ses plus grosses positions et ses mouvements</p></div></div>
+          <div class="pillars" id="investors-funds" style="margin-top:0"></div>
+        </section>
+        <p class="help" style="margin-top:12px" id="investors-note"></p>
       </div>
       <div id="screener-pane">
       <div class="market-meta" id="market-meta">Chargement du screener…</div>
@@ -1900,10 +1916,34 @@
     window.logoLoaded = (img) => {
       const ratio = img.naturalWidth / (img.naturalHeight || 1);
       img.classList.toggle("wide", ratio > 1.15 || ratio < 0.87);
+      img.classList.toggle("light", isLightLogo(img));
     };
+    // Logo en partie transparent dont les pixels visibles sont presque blancs. Lecture des pixels possible
+    // seulement pour une image servie avec CORS (jsDelivr) ; sinon on garde le fond blanc
+    function isLightLogo(img) {
+      if (!img.crossOrigin) return false;
+      try {
+        const c = document.createElement("canvas");
+        c.width = c.height = 16;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0, 16, 16);
+        const px = ctx.getImageData(0, 0, 16, 16).data;
+        let opaque = 0, lum = 0;
+        for (let i = 0; i < px.length; i += 4) {
+          if (px[i + 3] < 128) continue;
+          opaque++;
+          lum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+        }
+        return opaque > 0 && opaque < 0.8 * 256 && lum / opaque > 190;
+      } catch { return false; }
+    }
     window.logoFallback = (img) => {
       const next = (img.dataset.next || "").split(" ").filter(Boolean);
-      if (next.length) { img.dataset.next = next.slice(1).join(" "); img.src = next[0]; }
+      if (next.length) {
+        img.dataset.next = next.slice(1).join(" ");
+        if (!next[0].startsWith(LOGO_REPO)) img.removeAttribute("crossorigin");  // autre source : peut-être sans CORS
+        img.src = next[0];
+      }
       else img.outerHTML = img.dataset.initials;
     };
     function initialsAvatar(s) {
@@ -1915,7 +1955,7 @@
       const initials = initialsAvatar(s);
       const [first, ...rest] = logoUrls(s.ticker);
       if (!first) return initials;
-      return `<img class="avatar" src="${first}" data-next="${rest.join(" ")}" data-initials="${escapeHtml(initials)}" alt="" loading="lazy" onload="logoLoaded(this)" onerror="logoFallback(this)" />`;
+      return `<img class="avatar"${first.startsWith(LOGO_REPO) ? ' crossorigin="anonymous"' : ""} src="${first}" data-next="${rest.join(" ")}" data-initials="${escapeHtml(initials)}" alt="" loading="lazy" onload="logoLoaded(this)" onerror="logoFallback(this)" />`;
     }
     const marketDetailed = () => settings.marketDensity === "detailed";
     function marketRow(s) {
@@ -2286,21 +2326,32 @@
       if (market) renderMarket();  // ajoute « détenue par » aux fiches du screener
     }
 
+    // Super investisseurs : mêmes lignes que le Marché (logo, nom, verdict), un toucher ouvre la fiche de l'action
+    const titleCase = (t) => String(t || "").toLowerCase().replace(/(^|[\s.&-])(\p{L})/gu, (m, sep, c) => sep + c.toUpperCase());
+    function investorName(ticker, fallback) {
+      return market?.stocks.find((x) => x.ticker === ticker)?.name || titleCase(fallback) || ticker;
+    }
+    function investorRow(ticker, holders, funds, names) {
+      const s = market?.stocks.find((x) => x.ticker === ticker);
+      const managers = holders.map((h) => funds[h.fund].manager);
+      return `<button class="mrow" data-open-stock="${escapeHtml(ticker)}">
+          ${avatar(s || { ticker, name: names[ticker] })}
+          <div style="min-width:0"><div class="name">${escapeHtml(investorName(ticker, names[ticker]))}</div>
+            <div class="sub">${escapeHtml(managers.slice(0, 3).join(", "))}${managers.length > 3 ? ` et ${managers.length - 3} autre${managers.length > 4 ? "s" : ""}` : ""}</div></div>
+          <div class="right"><span class="price">${holders.length} fonds</span>${s ? verdictPill(s) : `<span class="pill na">${escapeHtml(ticker)}</span>`}</div>
+        </button>`;
+    }
     function renderInvestors() {
       const funds = Object.fromEntries(investors.funds.map((f) => [f.id, f]));
       const periods = [...new Set(investors.funds.map((f) => f.period))].sort();
       document.getElementById("investors-meta").textContent =
-        `${investors.funds.length} fonds suivis · positions au ${new Date(periods[periods.length - 1]).toLocaleDateString("fr-FR")} (déclarations 13F publiées jusqu'à 45 jours après la fin du trimestre, actions américaines uniquement)`;
+        `${investors.funds.length} fonds suivis · positions au ${new Date(periods[periods.length - 1]).toLocaleDateString("fr-FR")}`;
+      document.getElementById("investors-note").textContent =
+        "D'après les déclarations trimestrielles (13F) des fonds à l'autorité américaine : publiées jusqu'à 45 jours après la fin du trimestre, et limitées aux actions cotées aux États-Unis. Un fonds a pu vendre depuis.";
 
       const names = {};
       for (const f of investors.funds) for (const p of f.positions) if (p.ticker && !names[p.ticker]) names[p.ticker] = p.name;
       const entries = Object.entries(investors.by_ticker);
-      const row = (ticker, holders, right) => `
-        <div class="rank-row">
-          <div><div>${escapeHtml(names[ticker] || ticker)} <span class="muted">${escapeHtml(ticker)}</span></div>
-          <div class="who">${holders.map((h) => escapeHtml(funds[h.fund].manager)).join(", ")}</div></div>
-          <div class="right">${right}</div>
-        </div>`;
 
       const bought = entries
         .map(([t, hs]) => [t, hs.filter((h) => h.change === "nouvelle" || h.change === "renforcée")])
@@ -2308,30 +2359,33 @@
         .sort((a, b) => b[1].length - a[1].length)
         .slice(0, 12);
       document.getElementById("investors-bought").innerHTML = bought.length
-        ? bought.map(([t, hs]) => row(t, hs, `${hs.length} fonds`)).join("")
-        : `<div class="muted">Pas d'achat commun à plusieurs fonds ce trimestre.</div>`;
+        ? bought.map(([t, hs]) => investorRow(t, hs, funds, names)).join("")
+        : `<div class="help" style="padding:12px 14px;margin:0">Pas d'achat commun à plusieurs fonds ce trimestre.</div>`;
 
       const held = entries.slice().sort((a, b) => b[1].length - a[1].length).slice(0, 12);
-      document.getElementById("investors-held").innerHTML = held.map(([t, hs]) => row(t, hs, `${hs.length} fonds`)).join("");
+      document.getElementById("investors-held").innerHTML = held.map(([t, hs]) => investorRow(t, hs, funds, names)).join("");
 
+      // Fonds : carte dépliable (gérant, taille), puis ses 25 plus grosses lignes avec leur mouvement du trimestre
       document.getElementById("investors-funds").innerHTML = investors.funds
         .slice().sort((a, b) => b.total_value - a.total_value)
-        .map((f) => `
-          <details class="stock">
-            <summary>
-              <div><div class="title">${escapeHtml(f.manager)}</div><div class="sub">${escapeHtml(f.name)} · au ${new Date(f.period).toLocaleDateString("fr-FR")}</div></div>
-              <div class="right"><div>${usd.format(f.total_value)}</div><div class="muted">${f.positions_count} positions</div></div>
-            </summary>
-            <div class="analysis">
-              ${f.positions.slice(0, 25).map((p) => `
-                <div class="rank-row">
-                  <div>${escapeHtml(p.name)} <span class="muted">${escapeHtml(p.ticker || "")}</span></div>
-                  <div class="right">${weightPct(p.weight)} ${moveBadge(p.change, p.change_pct)}</div>
-                </div>`).join("")}
-              ${f.positions_count > 25 ? `<div class="hypotheses">+ ${f.positions_count - 25} autres positions</div>` : ""}
-              ${f.sold.length ? `<div class="hypotheses">Vendues ce trimestre : ${f.sold.slice(0, 10).map((p) => escapeHtml(p.ticker || p.name)).join(", ")}</div>` : ""}
+        .map((f) => {
+          const moves = f.positions.filter((p) => p.change && p.change !== "inchangée").length;
+          return `<details class="pillar fund">
+            <summary>${initialsAvatar({ ticker: f.id, name: f.manager })}
+              <span style="min-width:0"><span class="psum">${escapeHtml(f.manager)}</span>
+                <span class="ptitle">${escapeHtml(f.name)} · ${f.positions_count} positions${moves ? ` · ${moves} mouvement${moves > 1 ? "s" : ""}` : ""}</span></span>
+              <span class="fund-size">${usd.format(f.total_value)}</span></summary>
+            <div class="mlist fund-lines">
+              ${f.positions.slice(0, 25).map((p) => `<button class="mrow"${p.ticker ? ` data-open-stock="${escapeHtml(p.ticker)}"` : ""}>
+                  ${avatar(market?.stocks.find((x) => x.ticker === p.ticker) || { ticker: p.ticker || "", name: p.name })}
+                  <div style="min-width:0"><div class="name">${escapeHtml(investorName(p.ticker, p.name))}</div><div class="sub">${escapeHtml(p.ticker || "")}</div></div>
+                  <div class="right"><span class="price">${weightPct(p.weight)}</span>${moveBadge(p.change, p.change_pct)}</div>
+                </button>`).join("")}
             </div>
-          </details>`).join("");
+            ${f.positions_count > 25 ? `<div class="hypotheses" style="padding:0 14px">+ ${f.positions_count - 25} autres positions</div>` : ""}
+            ${f.sold.length ? `<div class="hypotheses" style="padding:0 14px 12px">Vendues ce trimestre : ${f.sold.slice(0, 10).map((p) => escapeHtml(titleCase(p.name) || p.ticker)).join(", ")}</div>` : ""}
+          </details>`;
+        }).join("");
     }
 
     // Section dividende d'une fiche (rendement, croissance, régularité, versements annuels)
