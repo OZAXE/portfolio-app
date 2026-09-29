@@ -81,11 +81,12 @@ def compute_returns(operations: list[Operation], envelopes: dict[str, str],
                     prices: dict[str, float | None], today: date) -> dict:
     """prices : cours actuel en euros de chaque titre détenu (None s'il est inconnu)."""
     total, by_envelope, by_ticker = _Bucket(), defaultdict(_Bucket), defaultdict(_Bucket)
+    by_line = defaultdict(_Bucket)  # (enveloppe, titre) : une ligne de l'onglet Positions
     quantities: dict[tuple[str, str], float] = defaultdict(float)  # (enveloppe, titre) -> quantité
 
     for op in sorted(operations, key=lambda o: o.day):
         envelope = envelopes.get(op.account, "Autre")
-        buckets = (total, by_envelope[envelope], by_ticker[op.ticker])
+        buckets = (total, by_envelope[envelope], by_ticker[op.ticker], by_line[(envelope, op.ticker)])
         if op.kind == "Achat":
             quantities[(envelope, op.ticker)] += op.quantity
             flow = -op.net
@@ -108,7 +109,7 @@ def compute_returns(operations: list[Operation], envelopes: dict[str, str],
         if quantity <= 1e-9:
             continue
         price = prices.get(ticker)
-        for b in (total, by_envelope[envelope], by_ticker[ticker]):
+        for b in (total, by_envelope[envelope], by_ticker[ticker], by_line[(envelope, ticker)]):
             if price is None:
                 b.missing_price = True
             else:
@@ -118,6 +119,9 @@ def compute_returns(operations: list[Operation], envelopes: dict[str, str],
         "total": total.summary(today) if operations else None,
         "envelopes": {name: b.summary(today) for name, b in sorted(by_envelope.items())},
         "positions": {ticker: b.summary(today) for ticker, b in sorted(by_ticker.items())},
+        # Même titre sur le PEA et le CTO (Air Liquide) : une ligne par enveloppe dans l'appli
+        "positions_by_envelope": {env: {t: b.summary(today) for (e, t), b in sorted(by_line.items()) if e == env}
+                                  for env in sorted({e for e, _ in by_line})},
     }
 
 

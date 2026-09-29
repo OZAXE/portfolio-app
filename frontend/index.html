@@ -1114,7 +1114,9 @@
     }
 
     function renderAnalysis(h, a) {
-      const r = returns?.positions?.[String(h.ticker).toUpperCase()];
+      const ticker = String(h.ticker).toUpperCase();
+      // Rendement de la ligne (titre dans cette enveloppe) ; ancienne API : rendement du titre
+      const r = returns?.positions_by_envelope?.[h.envelope]?.[ticker] ?? returns?.positions?.[ticker];
       const label = returnLabel(r);
       const chartButton = `<div style="margin-top:4px"><button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button></div><div class="buy-chart-slot"></div>`;
       const investedRow = chartButton + `<div class="row"><span>Investi</span><span>${h.invested != null ? eur.format(h.invested) : "N/A"}</span></div>`
@@ -1219,8 +1221,8 @@
         </div>`).join("");
       const unknown = overview.holdings.filter((h) => h.kind === "ETF" && !etfIndex(h));
       document.getElementById("breakdown-note").textContent = looking
-        ? `ETF décomposés selon la composition de leur indice : ${matched.map((h) => `${h.name || h.ticker} → ${lookthrough.indices[etfIndex(h)].label}`).join(", ")}.`
-          + (unknown.length ? ` Non reconnus, comptés tels quels : ${unknown.map((h) => h.name || h.ticker).join(", ")}.` : "")
+        ? `ETF décomposés selon la composition de leur indice : ${[...new Set(matched.map((h) => `${h.name || h.ticker} → ${lookthrough.indices[etfIndex(h)].label}`))].join(", ")}.`
+          + (unknown.length ? ` Non reconnus, comptés tels quels : ${[...new Set(unknown.map((h) => h.name || h.ticker))].join(", ")}.` : "")
         : BREAKDOWN_NOTES[breakdownDim] || "";
     }
 
@@ -1330,7 +1332,10 @@
       const d = allocDraft;
       const names = d.pockets.map((p) => p.name.trim()).filter(Boolean);
       const total = d.pockets.reduce((sum, p) => sum + (parseFloat(String(p.pct).replace(",", ".")) || 0), 0);
-      const holdings = [...overview.holdings].sort((a, b) => (b.value || 0) - (a.value || 0));
+      // La poche est rangée par titre (onglet Titres) : une seule ligne même s'il est sur le PEA et le CTO
+      const seen = new Set();
+      const holdings = [...overview.holdings].sort((a, b) => (b.value || 0) - (a.value || 0))
+        .filter((h) => { const key = h.yahoo_ticker || h.ticker; return !seen.has(key) && seen.add(key); });
       document.getElementById("allocation").innerHTML = `
         <div class="edit-sub" style="margin-top:0">Poches et cibles</div>
         ${d.pockets.map((p, i) => `<div class="edit-row">
