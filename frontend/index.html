@@ -81,7 +81,11 @@
     .privacy-toggle { border: 0; background: transparent; color: var(--muted); padding: 4px; margin: -4px; cursor: pointer; line-height: 0; }
     .privacy-toggle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     /* Mode discret : montants floutés, pourcentages visibles */
-    body.private .amt { filter: blur(7px); user-select: none; }
+    /* Mode discret : des points à la place des montants (plus lisible qu'un flou), dans la même couleur.
+       Chaque montant porte sa version masquée : pas de trou quand le chiffre est plus long que les points */
+    .amt .mask { display: none; }
+    body.private .amt .real { display: none; }
+    body.private .amt .mask { display: inline; user-select: none; }
     .hero .value { font-size: 32px; font-weight: 700; margin-top: 4px; }
     .hero .gain { font-size: 15px; margin-top: 4px; }
     .hero .returns { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
@@ -919,7 +923,8 @@
 
     const eurFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
     // HTML : chaque montant est floutable (mode discret). Texte brut et graphiques : eurFmt
-    const eur = { format: (v) => `<span class="amt">${eurFmt.format(v)}</span>` };
+    const hideable = (text, mask = "••••") => `<span class="amt"><span class="real">${text}</span><span class="mask">${mask}</span></span>`;
+    const eur = { format: (v) => hideable(eurFmt.format(v), "•••• €") };
     const pctFmt = new Intl.NumberFormat("fr-FR", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
     const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
     const signClass = (x) => (x == null ? "" : x >= 0 ? "positive" : "negative");
@@ -1343,7 +1348,7 @@
             ${cell("Valeur", h.value != null ? eur.format(h.value) : "N/A")}
             ${cell("Plus-value latente", h.gain != null ? `${signedEur(h.gain)}${h.gain_pct != null ? ` · ${pctFmt.format(h.gain_pct)}` : ""}` : "N/A", signClass(h.gain))}
             ${cell("Investi", h.invested != null ? eur.format(h.invested) : "N/A")}
-            ${a?.quantity != null ? cell("Quantité", `<span class="amt">${num(a.quantity, 6)}</span>`) : ""}
+            ${a?.quantity != null ? cell("Quantité", hideable(num(a.quantity, 6))) : ""}
             ${r ? cell("Gain total", signedEur(r.gain), signClass(r.gain)) : ""}
             ${label ? cell(label.term, label.text, signClass(r.xirr)) : ""}
           </div>
@@ -3083,7 +3088,7 @@
         <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
-            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · <span class="amt">${num(o.quantity, 6)}</span> × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
               ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${o.account && o.account !== opEl("imp-account").value ? ` · <b>${escapeHtml(o.account)}</b>` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${["no_ticker", "no_account"].includes(o.status) ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
@@ -3257,7 +3262,7 @@
           ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">${e.estimated_tax < 0 ? "Impôt à récupérer estimé" : "Impôt restant estimé"} (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(Math.abs(e.estimated_tax))}${e.withheld_tax ? ` · déjà prélevé sur les dividendes : ${eur.format(e.withheld_tax)}${e.foreign_withheld ? `, dont ${eur.format(e.foreign_withheld)} à l'étranger` : ""}` : ""}</div>` : ""}
         </div>`).join("");
       const sales = y.sales.map((s) => `
-        <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · <span class="amt">${num(s.quantity, 4)}</span> × PRU ${money(s.unit_cost, "€")}</span></div>
+        <div class="rank-row"><div>${escapeHtml(s.name)} <span class="muted">${new Date(s.date).toLocaleDateString("fr-FR")} · ${escapeHtml(s.envelope)} · ${hideable(num(s.quantity, 4))} × PRU ${money(s.unit_cost, "€")}</span></div>
           <div class="right ${signClass(s.gain)}">${signedEur(s.gain)}</div></div>`).join("");
       const dividends = y.dividends.map((d) => `
         <div class="rank-row"><div>${escapeHtml(d.name)} <span class="muted">${new Date(d.date).toLocaleDateString("fr-FR")} · ${escapeHtml(d.envelope)}</span></div>
