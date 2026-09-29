@@ -137,6 +137,26 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   « ETF (plusieurs secteurs) ». Un titre absent du screener (ADR comme TSMC) reste à compléter à la main
   dans l'onglet Titres.
 
+- **Interface (septembre 2026, maquette validée par Enzo).** Inspirée des applis bancaires et d'analyse :
+  - Marché : accueil en sections (`MARKET_PRESETS` : Tes actions, Ta watchlist, Solides et sous-évaluées, Les
+    plus solides, Dividendes réguliers), recherche + panneau de filtres (`renderFilterSheet`, puces supprimables),
+    lignes `marketRow` (logo, cours, verdict en mots via `verdictPill`, qualité en mots) ;
+  - mode Simple / Détaillé (`settings.marketDensity`) : Détaillé ajoute les chiffres aux lignes et ouvre toutes
+    les rubriques des fiches, Simple ajoute une phrase d'explication sous chaque ratio ;
+  - fiche action plein écran (`openStock`, vue `view-stock`, retour du téléphone géré par `history.pushState`) :
+    verdict en une phrase + jauge (`fairSummary`), puis 5 rubriques colorées (`pillar` : Valorisation, Qualité,
+    Rentabilité, Santé financière, Dividende ; seuils dans le lexique). Depuis une position, carte « Ta position »
+    en tête (`positionCard`) ; ETF et crypto ont une fiche réduite (`minimal`) ;
+  - Portefeuille : cloche des alertes, 3 boutons d'action, courbe, puis sous-onglets Positions / Répartition /
+    Revenus / Fiscalité (`showPortfolioTab`) ; cartes PEA / CTO = filtre des positions ;
+  - Réglages : rubriques groupées ouvrant chacune leur page (`openSettingsPage`) ; outils rares (doublons,
+    repartir de zéro, reconstituer l'historique) dans « Opérations avancées » ;
+  - logos (`logoUrls`) : dépôt nvstly/icons via jsDelivr pour les tickers américains, les cryptos et les ADR
+    vérifiés (`ADR_LOGOS`), puis Financial Modeling Prep, puis initiales (`logoFallback`). Jamais de
+    correspondance devinée (« AI » = C3.ai, pas Air Liquide).
+  Pour tester le front : servir `frontend/`, intercepter l'API (réponses générées avec les fonctions du backend)
+  et le screener avec Playwright, comme décrit dans « Commandes ».
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
