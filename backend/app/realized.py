@@ -7,8 +7,9 @@ Le PRU suit la méthode du prix moyen pondéré (règle fiscale française), par
 frais d'achat inclus : une vente ne modifie pas le PRU des titres restants.
 
 L'estimation d'impôt ne concerne que le CTO (prélèvement forfaitaire unique, 31,4 % depuis 2026) : le PEA
-n'est pas imposé tant qu'on n'en retire rien. Elle reste indicative (moins-values reportables,
-option pour le barème, prélèvements déjà faits à la source...).
+n'est pas imposé tant qu'on n'en retire rien. C'est l'impôt qui reste à payer : les retenues déjà faites
+sur les dividendes (colonne Taxes) en sont déduites. Elle reste indicative (moins-values reportables,
+option pour le barème, retenue étrangère qui ne s'impute que sur les 12,8 % d'impôt sur le revenu...).
 """
 
 import threading
@@ -161,10 +162,13 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
         for envelope, b in summary.envelopes.items():
             rounded = {k: round(v, 2) if isinstance(v, float) else v for k, v in b.items()}
             if envelope == "CTO":
-                # Base indicative : plus-values nettes de l'année (si positives) + dividendes bruts
-                base = max(b["realized_gain"], 0.0) + b["dividends_gross"]
-                rounded["flat_tax_rate"] = flat_tax_rate(year)
-                rounded["estimated_tax"] = round(base * flat_tax_rate(year), 2)
+                rate = flat_tax_rate(year)
+                # Dividendes : flat tax moins ce qui est déjà prélevé à la source. Trade Republic France
+                # retient 15 % (États-Unis) + 31,4 % sur un dividende Meta : il ne reste rien à payer
+                dividend_tax = max(b["dividends_gross"] * rate - b["dividends_taxes"], 0.0)
+                rounded["flat_tax_rate"] = rate
+                rounded["estimated_tax"] = round(max(b["realized_gain"], 0.0) * rate + dividend_tax, 2)
+                rounded["withheld_tax"] = round(b["dividends_taxes"], 2)
             envelopes_out[envelope] = rounded
         result.append({"year": year, "envelopes": envelopes_out,
                        "sales": sorted(summary.sales, key=lambda s: s["date"], reverse=True),

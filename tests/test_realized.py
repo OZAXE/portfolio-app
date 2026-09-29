@@ -50,9 +50,24 @@ def test_dividends_by_year_and_cto_tax_estimate():
     years = {y["year"]: y for y in compute_realized(ops, ENVELOPES)["years"]}
     assert list(years) == [2026, 2025]
     assert years[2026]["envelopes"]["CTO"]["dividends_net"] == pytest.approx(4.42)
-    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.2 * 0.314, abs=0.005)  # PFU 31,4 % depuis 2026
-    assert years[2025]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.0 * 0.30)
+    # PFU 31,4 % depuis 2026, moins la retenue américaine déjà prélevée : 5,2 x 0,314 - 0,78 = 0,85
+    assert years[2026]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(0.85)
+    assert years[2025]["envelopes"]["CTO"]["estimated_tax"] == pytest.approx(5.0 * 0.30 - 0.75)
+    assert years[2026]["envelopes"]["CTO"]["withheld_tax"] == pytest.approx(0.78)
     assert years[2026]["envelopes"]["PEA"]["dividends_gross"] == pytest.approx(6.0)
+
+
+def test_impot_estime_deduit_les_retenues_trade_republic():
+    # Dividende Applied Materials de l'export d'Evan : 0,47 € brut, 0,22 € retenus (15 % US + 31,4 % France).
+    # 0,47 x 0,314 = 0,15 < 0,22 : rien à ajouter ; il reste l'impôt sur la plus-value (10 x 0,314 = 3,14)
+    ops = [
+        op("2026-01-10", "CTO Trade Republic", "Achat", "AMAT", 1, 100.0),
+        op("2026-09-10", "CTO Trade Republic", "Dividende", "AMAT", 1, 0.47, taxes=0.22),
+        op("2026-09-20", "CTO Trade Republic", "Vente", "AMAT", 1, 110.0),
+    ]
+    cto = compute_realized(ops, ENVELOPES)["years"][0]["envelopes"]["CTO"]
+    assert cto["estimated_tax"] == pytest.approx(3.14)
+    assert cto["withheld_tax"] == pytest.approx(0.22)
 
 
 def test_same_day_buy_before_sell():
