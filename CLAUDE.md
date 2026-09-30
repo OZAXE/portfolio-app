@@ -130,6 +130,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »
   pris sur les positions actuelles (`withLivePoint`), sinon une vente du jour (Evan, 29/09) laissait la
   courbe au-dessus de la valeur affichée en haut jusqu'au relevé de la nuit.
+  Puces sous le graphique (Total, PEA, CTO, Investi ; en comparaison à un indice : portefeuille, indice,
+  montant investi), même mécanisme que la fiche (`lineChip`, `settings.hiddenLines`). « Investi » (demande
+  d'Enzo) = colonnes investi de l'onglet Historique (prix payé pour les titres détenus ce jour-là, frais
+  compris, pas les versements en espèces que l'appli ne suit pas) : une courbe en pointillés par enveloppe
+  affichée, de sa couleur ; grisée en mode Performance et sur un historique à l'ancien format.
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont
