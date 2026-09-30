@@ -130,7 +130,7 @@ def get_analysis(ticker: str):
         raise HTTPException(status_code=503, detail=SOURCE_UNAVAILABLE_ERROR)
     if cf.raw_error:
         raise HTTPException(status_code=502, detail=f"Erreur de récupération des données : {cf.raw_error}")
-    result = evaluate_company(cf)
+    result = evaluate_company(cf, _pe_history(ticker))
     return {
         "financials": cf.__dict__,
         "valuation": result.__dict__,
@@ -143,9 +143,10 @@ def get_portfolio_analysis(user: User = Depends(require_access)):
     positions = [p for p in _load_positions(user) if not re.fullmatch(r"[A-Z0-9]{2,10}-(EUR|USD)", p.ticker.upper())]
     with ThreadPoolExecutor(max_workers=ANALYSIS_WORKERS) as pool:
         financials = list(pool.map(cached_financials, [pos.ticker for pos in positions]))
+        pe_histories = list(pool.map(_pe_history, [pos.ticker for pos in positions]))
     output = []
-    for pos, cf in zip(positions, financials):
-        result = evaluate_company(cf)
+    for pos, cf, pe_history in zip(positions, financials, pe_histories):
+        result = evaluate_company(cf, pe_history)
         output.append(
             {
                 "ticker": pos.ticker,
@@ -317,6 +318,12 @@ def _screener_data(name: str) -> dict | None:
         return cached[1] if cached else None
     _data_cache[name] = (time.monotonic(), data)
     return data
+
+
+def _pe_history(ticker: str) -> dict | None:
+    """PER historique archivé chaque semaine par screener/financials.py (actions du screener seulement)."""
+    data = _screener_data(f"financials/{ticker.strip().upper()}.json")
+    return (data or {}).get("pe_history")
 
 
 @app.get("/alerts")

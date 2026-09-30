@@ -119,8 +119,9 @@ Chaque ami a son propre Sheet et son propre code d'accès sur la même appli :
 
 - Données Yahoo non officielles : certaines valeurs peuvent manquer ou être fausses, surtout hors US.
 - Le DCF est volontairement simple : il est marqué « non fiable » quand il s'écarte trop du cours.
-- Le prix juste compare au PER « normal » du secteur : une entreprise de grande qualité, que le marché
-  paie durablement plus cher que son secteur (Air Liquide, Hermès), ressortira souvent surévaluée. Il
+- Le prix juste compare notamment au PER « normal » du secteur : une entreprise de grande qualité, que le marché
+  paie durablement plus cher que son secteur (Air Liquide, Hermès), ressortira souvent surévaluée. Le PER
+  historique de l'action (4e méthode, médiane sur 10 ans) corrige en partie ce biais quand il est connu. Il
   ignore aussi la croissance propre à l'entreprise (sauf via le DCF) et se laisse tromper par les
   cycliques en haut de cycle. Ces limites sont affichées dans la fiche (`fairCaveats`) et dans le
   lexique (« Limites du prix juste »).

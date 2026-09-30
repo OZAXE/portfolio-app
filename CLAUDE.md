@@ -84,7 +84,18 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
      11 banques). BPA = moyenne des BPA passé et prévisionnel retrouvés via cours / PER ; si les deux
      diffèrent de plus d'un facteur 3, seul le passé est gardé ;
   3. banques / assurances seulement : valeur comptable × P/B justifié `(ROE − 2 %) / (r − 2 %)`,
-     r = coût des fonds propres MEDAF, borné entre 0,3 et 3.
+     r = coût des fonds propres MEDAF, borné entre 0,3 et 3 ;
+  4. (septembre 2026) BPA du dernier exercice × **PER historique de l'action** (médiane de ses 10 dernières
+     années au plus, au moins 3 exercices bénéficiaires, PER > 100 écartés) : `historical_pe` dans
+     `screener/financials.py`, archivé chaque semaine dans `financials/<ticker>.json` (`pe_history`), lu par le
+     screener (`load_pe_history`) et par l'API pour les analyses en direct (`_pe_history`). PER d'une année = cours
+     moyen de l'année civile (clôtures mensuelles Yahoo corrigées des divisions, pence ramenés en livres) ÷
+     bénéfice net par action. Nombre d'actions ramené à la base actuelle (`adjusted_shares` : produit des
+     divisions le plus proche du nombre d'actions actuel du screener), car les vieux 10-K ne sont pas retraités
+     (Apple 2015-2017 à 5,8 milliards d'actions, 2018 et après à 20). BPA actuel = bénéfice du dernier exercice ÷
+     nombre d'actions actuel (Yahoo donne 579 M d'actions pour Air Liquide en 2025 au lieu d'environ 699). Pas de
+     PER historique si comptes et cotation sont dans deux devises (Shell), comme le DCF. Vérifié sur les vrais
+     comptes : Apple médiane 25, Air Liquide 32.
   Verdict : cours < 85 % du prix juste → sous-évaluée, > 115 % → surévaluée, sinon correcte.
   « Divergent » quand la méthode la plus haute dépasse le double de la plus basse (affiché en italique).
   Choix validés par Enzo : mix de méthodes, seuil ±15 %, affichage fiche + liste + positions.
@@ -93,8 +104,9 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   score < 8 jugés sous-évalués) et entrée « Limites du prix juste » du lexique, liée sous chaque prix
   juste. Toute nouvelle limite identifiée doit y être ajoutée.
   Limite principale : les entreprises de qualité durablement chères (Air Liquide, Hermès) ressortent
-  surévaluées face au PER moyen de leur secteur. Piste possible : PER normal ajusté par la qualité
-  ou la croissance (attention, le score qualité contient déjà un pilier PER : risque de circularité).
+  surévaluées face au PER moyen de leur secteur ; la méthode 4 (PER historique) corrige en partie ce biais,
+  au prix d'une autre hypothèse (le marché payait l'action au bon prix en moyenne sur 10 ans). Les fiches ne
+  l'ont qu'après le passage de `financials.py` (400 actions par nuit) puis la réanalyse suivante.
 - **DCF** : deux phases, croissance qui décroît vers 2 %, FCF moyenné sur 3 ans, actualisation MEDAF
   bornée 7-11 %, non calculé pour banques / assurances / ETF.
 
