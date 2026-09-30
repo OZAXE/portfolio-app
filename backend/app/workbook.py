@@ -3,7 +3,7 @@ Sheet "modèle" de l'appli (format v2) : des tableaux simples, une ligne par él
 que l'appli lit et complète sans dépendre de positions de cellules.
 
 Onglets :
-- Opérations  : une ligne par achat / vente / dividende (seule source de vérité) ;
+- Opérations  : une ligne par achat / vente / dividende / division / versement (seule source de vérité) ;
 - Titres      : ticker Yahoo et ticker Google (pour GOOGLEFINANCE), nom, secteur, zone, devise ;
 - Positions   : calculé par formules à partir des opérations (quantité, PRU frais inclus, valeur...) ;
 - Historique  : un relevé par ligne (valeur et montant investi par enveloppe) ;
@@ -27,10 +27,15 @@ OPERATIONS_HEADERS = [
     "Montant brut €", "Frais €", "Taxes €", "Montant net €", "Type d'ordre", "Pourquoi", "Terme", "Note",
 ]
 TRADE_TYPES = ("Achat", "Vente", "Dividende")
+# Opérations sur titres (octobre 2026) : actions reçues sans rien payer, colonne Quantité = actions en plus
+# (négative pour un regroupement), prix 0. Division : Apple 4 pour 1 en 2020, 10 actions -> 30 de plus.
+# Actions gratuites : Air Liquide 1 pour 10 en juin 2025, 10 actions -> 1 de plus. Le coût total ne change
+# pas, le PRU baisse d'autant (règle fiscale : prix d'achat réparti sur toutes les actions)
+SHARE_TYPES = ("Division", "Actions gratuites")
 # Mouvements d'espèces d'un compte (septembre 2026) : sans titre, montant en « Prix unitaire » (quantité 1).
 # Intérêts : rémunération des espèces (Trade Republic), comptés comme de l'argent qui entre sur le compte
 CASH_TYPES = ("Versement", "Retrait", "Intérêts")
-OPERATION_TYPES = [*TRADE_TYPES, *CASH_TYPES]
+OPERATION_TYPES = [*TRADE_TYPES, *SHARE_TYPES, *CASH_TYPES]
 ORDER_TYPES = ["Ordre", "Plan d'investissement"]
 TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche", "Frais courants %"]
 ALLOCATION_HEADERS = ["Poche", "Cible %"]
@@ -65,17 +70,22 @@ POSITION_FORMULAS = {
     "C2": '=IFERROR(ARRAYFORMULA(INDEX(SPLIT(SORT(UNIQUE(FILTER(Opérations!D2:D&"|"&Opérations!B2:B; Opérations!D2:D<>"";'
           ' (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")))); "|"; FALSE; FALSE); 0; 2)); "")',
     "D2": '=MAP(C2:C; LAMBDA(c; IF(c=""; ""; IFERROR(VLOOKUP(c; Comptes!A:B; 2; FALSE); ""))))',
+    # Quantité = achats + actions reçues (divisions, actions gratuites) - ventes
     "E2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat")'
+          ' + SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Division")'
+          ' + SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Actions gratuites")'
           ' - SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Vente"))))',
     # PRU = prix moyen pondéré frais compris (règle fiscale), par compte, en rejouant les opérations dans
     # l'ordre (REDUCE sur le couple quantité / coût) : une vente retire sa part du coût sans changer le PRU,
     # une vente totale remet tout à zéro. Avant (coût de tous les achats / quantité achetée), une ligne vendue
     # restait dans la moyenne : Alphabet C acheté 170,74 € (2025), vendu, puis racheté 78 € vers 295 € en 2026
     # -> PRU de 197 € et +52 % affichés au lieu de ~+2 %. Même ordre que history.reconstruct : date, achats
-    # avant ventes le même jour, puis ordre de saisie
+    # avant ventes le même jour, puis ordre de saisie. Division et actions gratuites passent par la branche
+    # « achat » avec un montant net nul : la quantité change, le coût non
     "F2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; IFERROR(LET('
           'ops; SORT(FILTER(HSTACK(Opérations!A2:A; (Opérations!C2:C="Vente")*1; Opérations!E2:E; Opérations!L2:L; ROW(Opérations!A2:A));'
-          ' Opérations!D2:D=t; Opérations!B2:B=c; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")); 1; TRUE; 2; TRUE; 5; TRUE);'
+          ' Opérations!D2:D=t; Opérations!B2:B=c; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")'
+          '+(Opérations!C2:C="Division")+(Opérations!C2:C="Actions gratuites")); 1; TRUE; 2; TRUE; 5; TRUE);'
           ' pos; REDUCE(HSTACK(0; 0); SEQUENCE(ROWS(ops)); LAMBDA(acc; i; LET(q; INDEX(acc; 1; 1); k; INDEX(acc; 1; 2); n; INDEX(ops; i; 3);'
           ' IF(INDEX(ops; i; 2)=0; HSTACK(q+n; k+INDEX(ops; i; 4)); IF(n>=q; HSTACK(0; 0); HSTACK(q-n; k*(q-n)/q))))));'
           ' INDEX(pos; 1; 2)/INDEX(pos; 1; 1)); 0))))',
@@ -93,7 +103,8 @@ POSITION_FORMULAS = {
 }
 
 # Les Sheets créés avant septembre 2026 faisaient une ligne par ticker (quantité de tous les comptes,
-# enveloppe du premier), ceux d'avant octobre 2026 un PRU qui ignorait les ventes : leurs formules
+# enveloppe du premier), ceux d'avant octobre 2026 un PRU qui ignorait les ventes, puis une quantité et un
+# PRU qui ignoraient divisions et actions gratuites : leurs formules
 # Positions sont remplacées à la première lecture
 _positions_checked: set[str] = set()
 
@@ -108,6 +119,11 @@ def is_old_pru_formula(formula: str) -> bool:
     return "SUMIFS" in formula and "REDUCE" not in formula
 
 
+def is_old_quantity_formula(formula: str) -> bool:
+    """Quantité en E2 jusqu'en octobre 2026 : ignore divisions et actions gratuites."""
+    return "SUMIFS" in formula and "Division" not in formula
+
+
 def ensure_position_formulas(sheet_id: str) -> None:
     if sheet_id in _positions_checked:
         return
@@ -115,7 +131,8 @@ def ensure_position_formulas(sheet_id: str) -> None:
     try:
         ws = _find_worksheet(sheets_client(write=True).open_by_key(sheet_id), "Positions")
         read = lambda cell: str(ws.acell(cell, value_render_option=gspread.utils.ValueRenderOption.formula).value or "")
-        if ws and (is_old_positions_formula(read("A2")) or is_old_pru_formula(read("F2"))):
+        if ws and (is_old_positions_formula(read("A2")) or is_old_quantity_formula(read("E2"))
+                   or is_old_pru_formula(read("F2")) or "Division" not in read("F2")):
             ws.batch_update([{"range": cell, "values": [[f]]} for cell, f in POSITION_FORMULAS.items()],
                             value_input_option="USER_ENTERED")
     except Exception:
@@ -331,8 +348,8 @@ _types_checked: set[str] = set()
 
 def ensure_operation_types(sheet: gspread.Spreadsheet) -> None:
     """Les Sheets créés avant l'arrivée des espèces limitent la colonne Type à Achat / Vente / Dividende
-    (liste stricte) : la liste est complétée avant d'écrire un premier versement. Une fois par Sheet et par
-    démarrage de l'API, comme ensure_position_formulas."""
+    (liste stricte) : la liste est complétée avant d'écrire un premier versement ou une division. Une fois
+    par Sheet et par démarrage de l'API, comme ensure_position_formulas."""
     if sheet.id in _types_checked:
         return
     rule = next(r for r in _validation_requests(sheet) if r["setDataValidation"]["range"]["startColumnIndex"] == _col_index("C"))

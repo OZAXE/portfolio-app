@@ -118,7 +118,7 @@ def test_route_accounts_prefers_same_broker():
 
 
 def test_preview_statement_routes_pea_to_pea_account(monkeypatch):
-    monkeypatch.setattr(imports, "read_operations", lambda sheet_id: ([], {}, {}))
+    monkeypatch.setattr(imports, "read_operations", lambda sheet_id, raw=False: ([], {}, {}))
     monkeypatch.setattr(imports, "read_cash", lambda sheet_id: [])
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: isin[-4:])
     monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": ACCOUNTS})

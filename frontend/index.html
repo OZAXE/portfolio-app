@@ -405,6 +405,7 @@
     .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
     .op-grid .wide { grid-column: 1 / -1; }
+    .op-ratio { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; color: var(--text); }
     .op-grid input, .op-grid select {
       background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
       font: inherit; font-size: 15px; padding: 8px; width: 100%;
@@ -626,6 +627,8 @@
             <label>Type d'ordre<select id="op-order"></select></label>
             <label class="wide">Titre (ticker Yahoo)<input id="op-ticker" list="op-tickers" placeholder="ex : MC.PA, AAPL, SAP.DE, BTC-EUR" autocomplete="off" /></label>
             <datalist id="op-tickers"></datalist>
+            <label class="wide" id="op-ratio-label" style="display:none"><span id="op-ratio-title">Parité</span>
+              <span class="op-ratio"><input id="op-ratio-new" type="number" step="any" min="0" inputmode="decimal" /><span id="op-ratio-mid">pour</span><input id="op-ratio-old" type="number" step="any" min="0" inputmode="decimal" /></span></label>
             <label><span id="op-qty-label">Quantité</span><input id="op-qty" type="number" step="any" min="0" inputmode="decimal" /></label>
             <label><span id="op-price-label">Prix unitaire</span><input id="op-price" type="number" step="any" min="0" inputmode="decimal" /></label>
             <label>Devise du prix<select id="op-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>GBp</option><option>CHF</option><option>JPY</option><option>DKK</option><option>SEK</option><option>NOK</option><option>HKD</option></select></label>
@@ -3884,13 +3887,23 @@
       Intérêts: "rémunération des espèces versée par le courtier (montant brut, et en taxes ce qu'il a déjà prélevé)",
     };
     const TRADE_ONLY_FIELDS = ["op-order", "op-ticker", "op-qty", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
+    // Division, actions gratuites : actions reçues sans rien payer (même liste que workbook.SHARE_TYPES)
+    const SHARE_TYPES = ["Division", "Actions gratuites"];
+    const SHARE_HIDDEN_FIELDS = ["op-order", "op-price", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
 
     function updateOperationForm() {
       const type = opEl("op-type").value;
-      const cashType = CASH_TYPES.includes(type);
+      const cashType = CASH_TYPES.includes(type), shareType = SHARE_TYPES.includes(type);
       // display plutôt que hidden : la grille du formulaire impose display aux libellés
       // Intérêts : les prélèvements déjà faits par le courtier restent saisissables (estimation d'impôt)
-      for (const id of TRADE_ONLY_FIELDS) opEl(id).closest("label").style.display = cashType && !(id === "op-taxes" && type === "Intérêts") ? "none" : "";
+      for (const id of new Set([...TRADE_ONLY_FIELDS, ...SHARE_HIDDEN_FIELDS])) {
+        const hidden = cashType ? TRADE_ONLY_FIELDS.includes(id) && !(id === "op-taxes" && type === "Intérêts")
+          : shareType && SHARE_HIDDEN_FIELDS.includes(id);
+        opEl(id).closest("label").style.display = hidden ? "none" : "";
+      }
+      opEl("op-ratio-label").style.display = shareType ? "" : "none";
+      if (!shareType) opEl("op-qty").classList.remove("auto");
+      if (shareType) { updateShareForm(type); return; }
       if (cashType) {
         opEl("op-price-label").textContent = type === "Intérêts" ? "Montant brut €" : "Montant €";
         if (!opEdited.has("op-taxes")) opEl("op-taxes").value = 0;
@@ -3913,6 +3926,33 @@
           + (type === "Dividende" ? " · indique en taxes la retenue à la source ou le prélèvement" : "")
           + " · les champs en pointillés sont calculés, tu peux les corriger."
         : "";
+    }
+
+    // Actions reçues = quantité détenue x parité (division 4 pour 1 : 10 -> 40, donc 30 reçues ; actions gratuites
+    // 1 pour 10 : 20 -> 2 reçues ; regroupement 1 pour 10 : 100 -> 10, donc -90), d'après la quantité actuelle
+    function updateShareForm(type) {
+      const split = type === "Division";
+      const ticker = opEl("op-ticker").value.trim().toUpperCase();
+      const held = (opSettings.holdings || []).find((h) => h.account === opEl("op-account").value && h.ticker === ticker)?.quantity || 0;
+      opEl("op-qty-label").textContent = "Actions reçues";
+      opEl("op-ratio-title").textContent = split ? "Parité : nouvelles actions pour une ancienne (regroupement : 1 pour 10)" : "Parité : actions gratuites reçues pour tant d'actions détenues";
+      opEl("op-ratio-new").placeholder = split ? "4" : "1";
+      opEl("op-ratio-old").placeholder = split ? "1" : "10";
+      const a = opNum("op-ratio-new"), b = opNum("op-ratio-old");
+      if (!opEdited.has("op-qty") && held && a && b) {
+        opEl("op-qty").value = +((split ? held * a / b - held : held * a / b).toFixed(6));
+        opEl("op-qty").classList.add("auto");
+      }
+      const received = opNum("op-qty");
+      if (!held) {
+        opEl("op-summary").textContent = ticker ? `Aucune action ${ticker} sur ce compte : choisis le titre et le compte concernés.` : "Choisis le titre et le compte concernés.";
+        return;
+      }
+      opEl("op-summary").textContent = `Tu détiens ${num(held, 6)} action${held > 1 ? "s" : ""} sur ce compte`
+        + (received ? `, ${num(held + received, 6)} après l'opération` : "")
+        + ". Le montant investi ne change pas : ton PRU baisse d'autant."
+        + (split ? "" : " Si ton courtier ne gère pas les fractions, arrondis à l'entier inférieur (les rompus sont payés en espèces).")
+        + " Calculé sur ta quantité actuelle : corrige le nombre reçu si tu as acheté ou vendu depuis.";
     }
 
     async function refreshFx() {
@@ -3946,7 +3986,7 @@
         if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
         status.textContent = `Enregistré (ligne ${body.row} de l'onglet Opérations)${body.new_ticker ? ", nouveau titre ajouté à l'onglet Titres" : ""}. Mise à jour du portefeuille…`;
         opSettings = null;  // titres et barèmes relus à la prochaine saisie
-        ["op-qty", "op-price", "op-why", "op-note", "op-ticker"].forEach((id) => (opEl(id).value = ""));
+        ["op-qty", "op-price", "op-why", "op-note", "op-ticker", "op-ratio-new", "op-ratio-old"].forEach((id) => (opEl(id).value = ""));
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
         // Opération passée : la courbe est recalculée depuis cette date (les espèces n'y figurent pas)
@@ -4145,11 +4185,11 @@
         <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
-            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))}${CASH_TYPES.includes(o.type) ? "" : ` · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}`}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))}${CASH_TYPES.includes(o.type) ? "" : SHARE_TYPES.includes(o.type) ? ` · ${hideable(num(o.quantity, 6))} action${o.quantity > 1 ? "s" : ""} reçue${o.quantity > 1 ? "s" : ""}` : ` · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}`}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
               ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${o.account && o.account !== opEl("imp-account").value ? ` · <b>${escapeHtml(o.account)}</b>` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${["no_ticker", "no_account"].includes(o.status) ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
-          <div class="right">${eur.format(o.quantity * o.price)}</div>
+          <div class="right">${SHARE_TYPES.includes(o.type) ? "" : eur.format(o.quantity * o.price)}</div>
         </div>`).join("");
       updateImportButton();
     }
@@ -4218,10 +4258,16 @@
     opEl("op-submit").addEventListener("click", submitOperation);
     opEl("op-currency").addEventListener("change", refreshFx);
     opEl("op-form").addEventListener("input", (e) => {
-      if (["op-fees", "op-taxes", "op-fx"].includes(e.target.id)) { opEdited.add(e.target.id); e.target.classList.remove("auto"); }
+      const edited = ["op-fees", "op-taxes", "op-fx"].includes(e.target.id) || (e.target.id === "op-qty" && SHARE_TYPES.includes(opEl("op-type").value));
+      if (edited) { opEdited.add(e.target.id); e.target.classList.remove("auto"); }
+      if (["op-ratio-new", "op-ratio-old", "op-ticker"].includes(e.target.id)) opEdited.delete("op-qty");
       updateOperationForm();
     });
-    opEl("op-form").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") updateOperationForm(); });
+    opEl("op-form").addEventListener("change", (e) => {
+      if (e.target.tagName !== "SELECT") return;
+      if (e.target.id === "op-type" || e.target.id === "op-account") opEdited.delete("op-qty");
+      updateOperationForm();
+    });
 
     // --- Plus-values réalisées et dividendes perçus, par année ---
     let realized = null;

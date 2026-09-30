@@ -16,11 +16,12 @@ au taux de la convention fiscale. Elle reste indicative (moins-values reportable
 import threading
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 
 from . import sheets
 from .sheets import UNFORMATTED, _open_sheet, _serial_to_iso, _worksheet
+from .workbook import SHARE_TYPES, TRADE_TYPES
 
 # PFU : 12,8 % d'impôt sur le revenu + prélèvements sociaux (17,2 %, puis 18,6 % depuis la hausse de CSG de 2026)
 FLAT_TAX = 0.30
@@ -76,7 +77,7 @@ def dividend_tax(gross: float, withheld: float, credit_rate: float, year: int) -
 class Operation:
     day: date
     account: str
-    kind: str  # Achat / Vente / Dividende
+    kind: str  # Achat / Vente / Dividende (Division / Actions gratuites dans Ledger.raw seulement)
     ticker: str
     quantity: float
     gross: float  # montant brut en euros
@@ -107,6 +108,39 @@ def _num(value) -> float:
     return float(value) if isinstance(value, (int, float)) else 0.0
 
 
+def apply_splits(operations: list[Operation]) -> list[Operation]:
+    """Opérations sans divisions ni actions gratuites, les quantités d'avant chaque division ramenées sur la
+    base d'aujourd'hui. Les cours Yahoo sont corrigés des divisions : 10 Apple achetées en 2019 à 200 $,
+    division 4 pour 1 en août 2020, deviennent 40 actions à 50 $, ce qui colle au cours Yahoo de 2019 (50 $)
+    au lieu de compter 10 actions à 50 $ dans l'historique. Le coût et les montants ne changent pas, donc le
+    PRU, les plus-values et le rendement sont les mêmes qu'en rejouant les opérations d'origine.
+
+    Rapport d'une division = (quantité détenue + actions reçues) / quantité détenue, dans le compte concerné :
+    Air Liquide 1 pour 10, 20 actions + 2 reçues -> x 1,1. Une division sans actions détenues est ignorée."""
+    order = {"Achat": 0, "Dividende": 1, "Division": 2, "Actions gratuites": 2, "Vente": 3}
+    ordered = sorted(operations, key=lambda o: (o.day, order.get(o.kind, 1)))
+    adjusted = [replace(op) for op in ordered if op.kind not in SHARE_TYPES]
+    positions: dict[tuple[str, str], list[Operation]] = defaultdict(list)  # (compte, titre) -> opérations vues
+    held: dict[tuple[str, str], float] = defaultdict(float)
+    copies = iter(adjusted)
+    for op in ordered:
+        key = (op.account, op.ticker)
+        if op.kind in SHARE_TYPES:
+            if held[key] > 1e-9 and held[key] + op.quantity > 1e-9:
+                ratio = (held[key] + op.quantity) / held[key]
+                for earlier in positions[key]:
+                    earlier.quantity *= ratio
+                held[key] += op.quantity
+            continue
+        copy = next(copies)
+        positions[key].append(copy)
+        if op.kind == "Achat":
+            held[key] += op.quantity
+        elif op.kind == "Vente":
+            held[key] = max(held[key] - op.quantity, 0.0)
+    return adjusted
+
+
 @dataclass
 class Ledger:
     operations: list[Operation]
@@ -116,6 +150,9 @@ class Ledger:
     kinds: dict[str, str] = field(default_factory=dict)  # titre -> Action / ETF / Crypto (onglet Titres)
     # Versements, retraits et intérêts, à part : les calculs de rendement ne voient que les titres
     cash: list[CashMovement] = field(default_factory=list)
+    # Opérations telles que saisies (quantités d'origine, divisions comprises) : operations les ramène sur
+    # la base d'aujourd'hui (apply_splits). Seul le repérage des doublons à l'import compare aux originales
+    raw: list[Operation] = field(default_factory=list)
 
 
 # Rendement, plus-values, frais, dividendes et comparaison à un indice lisent tous les opérations :
@@ -136,10 +173,11 @@ def read_ledger(sheet_id: str) -> Ledger:
     return ledger
 
 
-def read_operations(sheet_id: str) -> tuple[list[Operation], dict[str, str], dict[str, str]]:
-    """Opérations datées, enveloppe de chaque compte (onglet Comptes) et nom de chaque titre (onglet Titres)."""
+def read_operations(sheet_id: str, raw: bool = False) -> tuple[list[Operation], dict[str, str], dict[str, str]]:
+    """Opérations datées, enveloppe de chaque compte (onglet Comptes) et nom de chaque titre (onglet Titres).
+    raw : quantités telles que saisies, divisions comprises (sinon ramenées sur la base d'aujourd'hui)."""
     ledger = read_ledger(sheet_id)
-    return list(ledger.operations), dict(ledger.envelopes), dict(ledger.names)
+    return list(ledger.raw if raw else ledger.operations), dict(ledger.envelopes), dict(ledger.names)
 
 
 def read_cash(sheet_id: str) -> list[CashMovement]:
@@ -162,7 +200,11 @@ def _parse_ledger(sheet_id: str) -> Ledger:
                 cash.append(CashMovement(date.fromisoformat(iso), str(row[1]), row[2], abs(float(amount)),
                                          abs(float(gross or amount)), _num(row[10])))
             continue
-        if not iso or row[2] not in ("Achat", "Vente", "Dividende") or not isinstance(row[4], (int, float)):
+        if not iso or row[2] not in (*TRADE_TYPES, *SHARE_TYPES) or not isinstance(row[4], (int, float)):
+            continue
+        if row[2] in SHARE_TYPES:
+            operations.append(Operation(date.fromisoformat(iso), str(row[1]), row[2], str(row[3]).strip().upper(),
+                                        float(row[4]), 0.0, 0.0, 0.0, 0.0))
             continue
         gross = row[8] if isinstance(row[8], (int, float)) else row[4] * _num(row[5]) * (_num(row[7]) or 1)
         fees, taxes = _num(row[9]), _num(row[10])
@@ -175,7 +217,7 @@ def _parse_ledger(sheet_id: str) -> Ledger:
     names = {str(r[0]).strip().upper(): str(r[2]) for r in titres if len(r) > 2 and r[0]}
     currencies = {str(r[0]).strip().upper(): str(r[5] or "EUR").strip() for r in titres if len(r) > 5 and r[0]}
     kinds = {str(r[0]).strip().upper(): str(r[6]).strip() for r in titres if len(r) > 6 and r[0]}
-    return Ledger(operations, envelopes, names, currencies, kinds, cash)
+    return Ledger(apply_splits(operations), envelopes, names, currencies, kinds, cash, raw=operations)
 
 
 def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None,

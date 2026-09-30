@@ -92,7 +92,7 @@ def test_boursorama_inconsistent_amounts_rejected():
 
 def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
     existing = [Operation(date(2026, 8, 24), "CTO Trade Republic", "Achat", "NVDA", 0.005567, 1.0, 0, 0, 1.0)]
-    monkeypatch.setattr(imports, "read_operations", lambda sheet_id: (existing, {}, {}))
+    monkeypatch.setattr(imports, "read_operations", lambda sheet_id, raw=False: (existing, {}, {}))
     monkeypatch.setattr(imports, "read_cash", lambda sheet_id: [])
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: {"US67066G1040": "NVDA"}.get(isin))
     monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": [{"name": "CTO Trade Republic", "envelope": "CTO", "broker": "Trade Republic"}]})
@@ -107,7 +107,7 @@ def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
 
 
 # Extrait de l'export d'Evan : Air Liquide acheté sur le PEA, Rolls-Royce vendu sur le CTO (DEFAULT),
-# actions gratuites Air Liquide (BONUS_ISSUE) à saisir à la main
+# actions gratuites Air Liquide (BONUS_ISSUE) sur le PEA
 TR_CSV_PEA_CTO = '''"datetime","date","account_type","category","type","asset_class","name","symbol","shares","price","amount","fee","tax","currency","original_amount","original_currency","fx_rate","description","transaction_id","counterparty_name","counterparty_iban","payment_reference","mcc_code"
 "2025-12-10T07:12:44.293Z","2025-12-10","PEA","TRADING","BUY","STOCK","Air Liquide","FR0000120073","1.0000000000","157.9600000000","-157.96","-0.79","-0.63","EUR","","","","Buy trade FR0000120073 AIR LIQUIDE INH. EO 5,50, quantity: 1","a1","","","",""
 "2026-06-02T10:00:00Z","2026-06-02","DEFAULT","TRADING","SELL","STOCK","Rolls Royce","GB00B63H8491","-1.0000000000","14.7920000000","14.79","-1.00","","EUR","","","","Sell trade GB00B63H8491 ROLLS ROYCE","a2","","","",""
@@ -118,25 +118,26 @@ TR_CSV_PEA_CTO = '''"datetime","date","account_type","category","type","asset_cl
 def test_trade_republic_csv_separe_pea_et_cto():
     skipped = {}
     ops = parse_trade_republic_csv(TR_CSV_PEA_CTO, "tr.csv", skipped)
-    assert [(o.isin, o.envelope) for o in ops] == [("FR0000120073", "PEA"), ("GB00B63H8491", "CTO")]
-    assert skipped == {"corporate": 1}  # actions gratuites signalées, pas importées
+    assert [(o.isin, o.type, o.envelope) for o in ops] == [
+        ("FR0000120073", "Achat", "PEA"), ("GB00B63H8491", "Vente", "CTO"), ("FR0000120073", "Actions gratuites", "PEA")]
+    assert skipped == {}
     # Ancien export sans colonne account_type : pas d'enveloppe, le compte choisi s'applique
     old = "\n".join(",".join(c for i, c in enumerate(line.split(",")) if i != 2) for line in TR_CSV_PEA_CTO.splitlines())
-    assert [o.envelope for o in parse_trade_republic_csv(old, "tr.csv")] == [None, None]
+    assert [o.envelope for o in parse_trade_republic_csv(old, "tr.csv")] == [None, None, None]
 
 
 def test_preview_csv_range_pea_et_cto_dans_leurs_comptes(monkeypatch):
     accounts = [{"name": "PEA Trade Republic", "envelope": "PEA", "broker": "Trade Republic"},
                 {"name": "CTO Trade Republic", "envelope": "CTO", "broker": "Trade Republic"}]
-    monkeypatch.setattr(imports, "read_operations", lambda sheet_id: ([], {}, {}))
+    monkeypatch.setattr(imports, "read_operations", lambda sheet_id, raw=False: ([], {}, {}))
     monkeypatch.setattr(imports, "read_cash", lambda sheet_id: [])
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: isin[-4:])
     monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": accounts})
     content = base64.b64encode(TR_CSV_PEA_CTO.encode()).decode()
     result = preview_import("sheet", "PEA Trade Republic", [{"name": "tr.csv", "content": content}], {})
     assert [(o["isin"], o["account"]) for o in result["operations"]] == [
-        ("FR0000120073", "PEA Trade Republic"), ("GB00B63H8491", "CTO Trade Republic")]
-    assert any("opérations sur titres" in e for e in result["errors"])
+        ("FR0000120073", "PEA Trade Republic"), ("GB00B63H8491", "CTO Trade Republic"), ("FR0000120073", "PEA Trade Republic")]
+    assert result["errors"] == []  # actions gratuites importées, plus signalées
 
 
 class FakeTab:
