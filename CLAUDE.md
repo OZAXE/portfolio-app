@@ -27,6 +27,8 @@ architecture, configuration Render / GitHub / Google : le lire avant un gros cha
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest tests -q                                    # doit rester vert avant tout push
+# test du front : Chromium de Playwright ; dans le conteneur web, Chart.js local (jsDelivr bloqué), sinon ignoré :
+CHART_JS_PATH=/chemin/chart.umd.js FRONT_TESTS_REQUIRED=1 python -m pytest tests/test_front.py -q
 cd backend && uvicorn app.main:app --reload                  # API locale
 python screener/run.py --data-dir data --max-fundamentals 20 # mini screener local
 ```
@@ -244,7 +246,7 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     hors de 0,2 à 5 fois le cours ou sous 3 analystes ; recommandation moyenne 1 à 5. Champs du screener
     `target_price`, `target_low`, `target_high`, `recommendation`, `analyst_count`, `earnings_date`. Potentiel vs
     cours recalculé dans le front (le cours change chaque nuit). Lignes de la Valorisation (`consensusRows`) et
-    carte « Résultats à venir » (onglet Revenus : positions + watchlist, 45 jours devant, 7 derrière).
+    carte « Résultats à venir » (Suivi > Revenus : positions + watchlist, 45 jours devant, 7 derrière).
   - Comparaison côte à côte (`renderCompare`, vue `view-compare`) : bouton « ⇄ Comparer » en haut de la fiche,
     4 actions au plus (`settings.compare`, la plus ancienne sort), meilleure valeur de chaque ligne en couleur
     d'accent (pas en vert : « −21 % » n'est pas une bonne nouvelle parce que c'est le moins pire), noms courts
@@ -311,13 +313,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Saisie (`_add_shares`) : titre détenu dans ce compte à cette date ; le formulaire calcule les actions reçues depuis
   la parité et la quantité actuelle (`/settings` renvoie `holdings`). Import CSV Trade Republic : `BONUS_ISSUE`
   -> Actions gratuites (`shares` = actions reçues) ; autres `CORPORATE_ACTION` (format inconnu) toujours signalées.
-- **Écran Transactions (octobre 2026).** Bouton du Portefeuille, vue `view-transactions` (`transactions.py`, routes
+- **Transactions (octobre 2026), aujourd'hui Suivi > Opérations.** (`transactions.py`, routes
   `/transactions`, `/transactions/update`, `/transactions/delete`). Une ligne = son numéro dans l'onglet + son
   empreinte (`fingerprint` : date, type, titre, quantité, prix) ; le serveur refuse si la ligne ne correspond plus
   (Sheet modifié à la main entre-temps). Correction = `add_operation(row=...)`, mêmes contrôles que la saisie, la
   ligne corrigée exclue du calcul de la quantité détenue. Après écriture : courbe reconstituée depuis la plus
-  ancienne des deux dates. Retour du téléphone : `popstate` ignoré quand on retombe sur l'entrée `{transactions}`
-  (fiche ouverte depuis le journal).
+  ancienne des deux dates. Liste dessinée au premier passage dans Suivi (`txListReady`) : `transactions` seul ne
+  suffit pas, la carte « Ton journal » d'une fiche la charge aussi pour ses motifs sans la dessiner.
 - **Variation du jour et effet du change (octobre 2026).** `daily.py`, route `/portfolio/daily` (10 min). Variation
   = valeur de l'onglet Positions x variation Yahoo des deux dernières clôtures (titre et taux de change), corrigée
   des achats / ventes de la séance (`line_day_change`). Effet du change = valeur x (1 - taux payé / taux actuel),
@@ -330,7 +332,7 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   enregistrement, une ligne par titre (thèse, objectif, stop dans la devise de cotation, horizon, date de revue,
   bilan) ; routes `/journal`. Carte « Ton journal » dans la fiche (`renderJournalCard`, écarts au cours, motifs
   Pourquoi / Terme des opérations), alertes de prix proposées sur l'objectif et le stop (`journalAlerts`, sans
-  doublon), onglet Journal de l'écran Transactions (`renderJournalList`). Analyse technique calculée dans le front
+  doublon), Suivi > Journal (`renderJournalList`). Analyse technique calculée dans le front
   sur les clôtures de `/prices` (`technicals` : RSI de Wilder 14 j, moyennes 50 / 200 j et dernier croisement sur
   un an, plus haut / bas sur 252 séances, momentum 1 / 3 / 6 / 12 mois), rubrique `pillar` sous la courbe, puce
   « Moyenne 50 j ». Ton prudent : jamais un signal d'achat ou de vente.
@@ -359,7 +361,7 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (`lookthroughRows`) ; entreprise trop lourde en direct + via les ETF (`companyExposure`, extrait de `renderExposure`) ;
   nombre effectif de lignes = 1 / somme des poids² sur les actions en direct ; `trimSuggestion` (vendre l'excédent
   réinvesti ailleurs, ou investir ailleurs sans vendre) ; phrase quand le plafond est inatteignable faute de lignes.
-  Alertes sous la cloche (`concentrationAlerts`, regroupées au-delà de 2 lignes) fusionnées avec celles du serveur
+  Alertes dans « À regarder » de l'Accueil (`concentrationAlerts`, regroupées au-delà de 2 lignes) fusionnées avec celles du serveur
   (`renderAlertsList`, `serverAlerts`). Rééquilibrage (`rebalancePlan`, mode « Rééquilibrer » de l'allocation,
   `settings.allocMode`) : écart = cible x (valeur des poches ciblées + versement) - valeur ; ventes d'une poche dans
   l'ordre PEA, CTO en moins-value, CTO du plus petit au plus grand % de plus-value (`sellOrder`) ; impôt = plus-values
@@ -409,8 +411,27 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     z-index 5) passaient par-dessus la barre du bas quand ils arrivaient en bas de l'écran.
   Tout texte qui renvoie à un réglage dit « Plus > … » (plus « Réglages », qui désigne aussi l'onglet du Sheet).
 
+- **Test du front et alerte de nuit (octobre 2026, demande d'Enzo).**
+  - `tests/test_front.py` + `tests/front_bench.py` : vraie API (TestClient) sur un faux Sheet (Air Liquide, Apple, LVMH,
+    journal à relire, historique jusqu'à la veille), `tests/fixtures/screener_sample.json` (12 actions figées, aussi
+    servi à l'API via `main._screener_data`), yfinance et requests coupés (`cut_network`, même sur la CI qui a
+    internet : test identique partout), cours simulés. Parcours : Accueil (valeur 6 346,80 €, À regarder, masquer,
+    tuiles), Portefeuille (3 lignes, Perf., Répartition, fiche puis retour), Marché, Suivi (4 rubriques), pages de
+    Plus, Essentiel / Complet, lien direct `#suivi`. Échoue sur toute `pageerror` ou réponse 5xx de l'API. CI :
+    `playwright install --with-deps chromium` et `FRONT_TESTS_REQUIRED=1` (échec au lieu d'ignorer). Chart.js
+    téléchargé par Python avant la coupure, ou `CHART_JS_PATH`. A trouvé dès sa première exécution la liste
+    Suivi > Opérations vide après l'ouverture d'une fiche (`txListReady`). À enrichir avec chaque nouvel écran.
+  - Nuit : chaque étape de `screener.yml` a un `id` ; dernière étape `if: always()` qui passe `OUTCOMES`
+    (« nom=outcome; ... ») à `screener/night_report.py` (bibliothèque standard seulement) : ntfy au sujet `NTFY_TOPIC`
+    si une étape est `failure` / `cancelled` (les `continue-on-error` gardaient le workflow vert, donc aucun mail
+    GitHub), avec les étapes pas lancées et le lien du run. Détails privés (noms, tickers) par `add_detail` dans le
+    fichier `NIGHT_REPORT` (journaux GitHub publics). `snapshot.py` y écrit chaque relevé impossible et termine en
+    échec (`sys.exit`) après avoir traité tous les utilisateurs.
+
 ## Tester le front (banc Playwright)
 
+Le banc réutilisable est dans le dépôt (`tests/front_bench.py`) : partir de lui pour vérifier un écran à la main
+(captures) et ajouter l'écran au parcours de `tests/test_front.py`.
 Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
 `screener.json` par raw.githubusercontent. Le plus fiable : vraie API (`TestClient(main.app)`) sur un faux Sheet en
 mémoire (patcher `sheets.sheets_client` et `workbook.sheets_client`, `main.resolve`), `performance.download_closes` et
@@ -424,7 +445,7 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
   du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, notification ntfy de
-  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, momentum
+  concentration (aujourd'hui seulement dans « À regarder »), rééquilibrage par enveloppe, momentum
   comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
   actuel, en ligne horizontale), une fois l'historique assez long pour être utile.

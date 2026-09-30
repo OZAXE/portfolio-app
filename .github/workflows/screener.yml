@@ -33,9 +33,12 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - run: pip install -r backend/requirements.txt openpyxl==3.1.5
+      - name: Installe les paquets
+        id: install
+        run: pip install -r backend/requirements.txt openpyxl==3.1.5
 
       - name: Récupère les résultats précédents
+        id: previous
         run: |
           if git fetch origin screener-data --depth=1; then
             git worktree add data origin/screener-data
@@ -45,38 +48,47 @@ jobs:
 
       # En premier : les cours de la veille sont prêts et la notification de la semaine part tôt
       - name: Relevé quotidien du patrimoine et plus-value de la semaine
+        id: snapshot
         continue-on-error: true
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NIGHT_REPORT: ${{ runner.temp }}/rapport-nuit.txt
         run: python screener/snapshot.py
 
       - name: Super investisseurs (13F de la SEC)
+        id: superinvestors
         continue-on-error: true
         run: python screener/superinvestors.py --data-dir data
 
       - name: Lance le screener
+        id: screener
         run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
 
       - name: Traduction en français des présentations d'entreprise
+        id: translate
         continue-on-error: true
         run: python screener/translate_profiles.py --data-dir data --max 800 --time-budget-min 20
 
       - name: Contenu des ETF (composition des grands indices)
+        id: lookthrough
         continue-on-error: true
         run: python screener/etf_lookthrough.py --data-dir data
 
       - name: Frais courants des ETF détenus
+        id: etf_fees
         continue-on-error: true
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
         run: python screener/etf_fees.py --data-dir data
 
       - name: Historique financier (SEC pour les US, Yahoo archivé pour le reste)
+        id: financials
         continue-on-error: true
         run: python screener/financials.py --data-dir data --max 400 --time-budget-min 30
 
       - name: Notifications des alertes (ntfy)
+        id: notify
         continue-on-error: true
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
@@ -85,6 +97,7 @@ jobs:
 
       # Publié même si une étape a échoué : le travail déjà fait n'est pas perdu
       - name: Publie sur la branche screener-data
+        id: publish
         if: always()
         run: |
           cd data
@@ -100,3 +113,25 @@ jobs:
           # Un seul commit gardé : l'historique de ce gros fichier n'a pas d'intérêt et alourdirait le repo
           git commit --amend -m "Screener du $(date -u +%F)" || git commit -m "Screener du $(date -u +%F)"
           git push --force origin screener-data
+
+      # Les étapes en « continue-on-error » laissent le workflow vert même quand elles plantent : sans ce rapport,
+      # un relevé refusé ou un screener cassé passait inaperçu (la courbe s'arrêtait sans prévenir)
+      - name: Prévient en cas d'échec (ntfy)
+        if: always()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NIGHT_REPORT: ${{ runner.temp }}/rapport-nuit.txt
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTCOMES: >-
+            Installation des paquets=${{ steps.install.outcome }};
+            Résultats précédents=${{ steps.previous.outcome }};
+            Relevé du patrimoine=${{ steps.snapshot.outcome }};
+            Super investisseurs=${{ steps.superinvestors.outcome }};
+            Screener=${{ steps.screener.outcome }};
+            Traduction des présentations=${{ steps.translate.outcome }};
+            Contenu des ETF=${{ steps.lookthrough.outcome }};
+            Frais des ETF=${{ steps.etf_fees.outcome }};
+            Historique financier=${{ steps.financials.outcome }};
+            Notifications des alertes=${{ steps.notify.outcome }};
+            Publication des données=${{ steps.publish.outcome }}
+        run: python screener/night_report.py

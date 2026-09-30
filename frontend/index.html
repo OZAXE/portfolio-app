@@ -1728,7 +1728,7 @@
         b.setAttribute("aria-selected", String(b.dataset.stab === tab));
       });
       document.querySelectorAll("#view-suivi .stab").forEach((p) => (p.hidden = p.dataset.spane !== tab));
-      if (tab === "ops" && !transactions) { txOpen = null; loadTransactions(); }
+      if (tab === "ops" && !txListReady) { txOpen = null; loadTransactions(); }
       if (tab === "journal") renderJournalList();
       if (tab === "revenus" && dividendCalendar) renderYieldCard();  // croissance des dividendes : screener chargé entre-temps
     }
@@ -2556,7 +2556,7 @@
       }
     }
     async function loadPortfolio() {
-      if (document.getElementById("view-suivi").hidden) transactions = null;  // relues à la prochaine visite du Suivi
+      if (document.getElementById("view-suivi").hidden) { transactions = null; txListReady = false; }  // relues à la prochaine visite du Suivi
       const snap = overview ? null : readSnapshot();
       const since = snap ? `Valeurs du ${snapshotTime.format(new Date(snap.at))}` : "";
       if (snap) {
@@ -5138,7 +5138,9 @@
 
     // --- Transactions : toutes les lignes de l'onglet Opérations, à corriger ou supprimer (transactions.py) ---
     // Chaque ligne garde son numéro et son empreinte (key) : le serveur refuse d'écrire si le Sheet a bougé
-    let transactions = null, txOpen = null;
+    // txListReady : liste du Suivi affichée. Pas « transactions » seul : la carte « Ton journal » d'une fiche charge
+    // aussi la liste (pour les motifs), sans la dessiner dans le Suivi, qui restait alors vide.
+    let transactions = null, txOpen = null, txListReady = false;
     const txFilter = { kind: "", account: "", query: "" };
     const TX_KINDS = [["", "Tout"], ["trade", "Achats et ventes"], ["Dividende", "Dividendes"], ["cash", "Espèces"], ["share", "Divisions"]];
     const txMonth = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
@@ -5161,6 +5163,7 @@
       document.getElementById("tx-account").innerHTML = `<option value="">Tous les comptes</option>`
         + accounts.map((a) => `<option ${a === txFilter.account ? "selected" : ""}>${escapeHtml(a)}</option>`).join("");
       renderTransactions();
+      txListReady = true;
     }
 
     function txKind(t) {
