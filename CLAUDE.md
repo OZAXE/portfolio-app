@@ -180,8 +180,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     fichier n'est remplacé que par une présentation non vide. Une analyse en direct l'apporte directement.
     Les fiches se remplissent au fil des réanalyses (3-4 jours pour tout l'univers).
 
+- **Prix juste dans l'historique hebdomadaire (septembre 2026).** 6e valeur des relevés de `history.json`
+  (`update_history`), calculée avec les hypothèses standard ; les relevés plus anciens restent à 5 valeurs et
+  le front lit `p[5] ?? null`. Graphique « Historique du screener » : cours, prix juste (bleu, tirets) et
+  valeur intrinsèque (orange, pointillés).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
-- Ajouter le prix juste à l'historique hebdomadaire (`update_history`) et au graphique de la fiche.
+- Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
+  actuel, en ligne horizontale), une fois l'historique assez long pour être utile.
