@@ -881,7 +881,7 @@
       <div id="tx-ops">
       <input class="search" id="tx-search" type="search" placeholder="Rechercher (titre, ticker, note)" autocomplete="off" />
       <div class="filters" id="tx-kinds"></div>
-      <div class="filters"><select id="tx-account" aria-label="Compte"></select></div>
+      <div class="filters"><select id="tx-account" aria-label="Compte"></select><button class="btn" id="tx-export" style="margin-top:0">⬇ Exporter en CSV</button></div>
       <div class="status" id="tx-status"></div>
       <div id="tx-list"></div>
       <p class="help">Touche une ligne pour la corriger ou la supprimer : l'onglet Opérations du Sheet est modifié, puis ton portefeuille et ta courbe sont recalculés.</p>
@@ -4891,6 +4891,36 @@
       updateOperationForm();
     });
 
+    // --- Export CSV pour un tableur en français : point-virgule, virgule décimale, dates JJ/MM/AAAA, UTF-8 avec BOM
+    // (sans lui, Excel affiche « Opérations » en « OpÃ©rations »). Le fichier est créé dans l'appli, rien n'est envoyé ---
+    const csvCell = (v) => {
+      const text = typeof v === "number" ? (Number.isFinite(v) ? String(Math.round(v * 1e6) / 1e6).replace(".", ",") : "") : String(v ?? "");
+      return /[;"\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csvDate = (iso) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "");
+    const csvMoney = (x) => (x == null ? "" : Math.round(x * 100) / 100);
+    function downloadCsv(filename, rows) {
+      const text = "\ufeff" + rows.map((r) => r.map(csvCell).join(";")).join("\r\n");
+      const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+      const link = Object.assign(document.createElement("a"), { href: url, download: filename });
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    const todayStamp = () => new Date().toISOString().slice(0, 10);
+
+    // Opérations affichées (filtres compris), de la plus ancienne à la plus récente, colonnes de l'onglet Opérations
+    function exportTransactions() {
+      const list = (transactions || []).filter(txMatches).slice().reverse();
+      if (!list.length) return;
+      const header = ["Date", "Compte", "Type", "Ticker", "Nom", "Quantité", "Prix unitaire", "Devise", "Taux de change",
+        "Montant brut €", "Frais €", "Taxes €", "Montant net €", "Type d'ordre", "Pourquoi", "Terme", "Note"];
+      downloadCsv(`operations-${todayStamp()}.csv`, [header, ...list.map((t) => [csvDate(t.date), t.account, t.type, t.ticker,
+        t.ticker ? t.name : "", t.quantity, t.price, t.currency, t.fx, csvMoney(t.gross), csvMoney(t.fees), csvMoney(t.taxes),
+        csvMoney(t.net), t.order_type, t.why, t.term, t.note])]);
+    }
+
     // --- Transactions : toutes les lignes de l'onglet Opérations, à corriger ou supprimer (transactions.py) ---
     // Chaque ligne garde son numéro et son empreinte (key) : le serveur refuse d'écrire si le Sheet a bougé
     let transactions = null, txReturn = null, txOpen = null;
@@ -5079,6 +5109,7 @@
     document.getElementById("tx-back").addEventListener("click", () => history.back());
     document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
     document.getElementById("tx-account").addEventListener("change", (e) => { txFilter.account = e.target.value; renderTransactions(); });
+    document.getElementById("tx-export").addEventListener("click", exportTransactions);
     document.getElementById("tx-kinds").addEventListener("click", (e) => {
       const chip = e.target.closest("[data-tx-kind]");
       if (chip) { txFilter.kind = chip.dataset.txKind; renderTransactions(); }
@@ -5292,12 +5323,60 @@
           <div class="right">${eur.format(d.net)}</div></div>`).join("");
       body.innerHTML = `
         <div class="realized-grid">${cards}</div>
+        ${taxRecap(y)}
         ${sales ? `<details class="realized-list"><summary>Ventes ${y.year} (${y.sales.length})</summary>${sales}</details>` : ""}
         ${dividends ? `<details class="realized-list"><summary>Dividendes ${y.year} (${y.dividends.length})</summary>${dividends}</details>` : ""}
         <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation de ce qui reste à payer, dividende par dividende : la retenue étrangère (15 % aux États-Unis) efface les 12,8 % d'impôt sur le revenu, pas les prélèvements sociaux. Quand ton courtier a déjà prélevé l'acompte de 12,8 % sur un dividende étranger (Trade Republic), il est en trop : tu le récupères via ta déclaration. Le taux de la convention est déduit de la place de cotation (un ADR comme TSMC est compté américain). Les intérêts des espèces (Trade Republic) sont imposés à la même flat tax, sans convention ni abattement : dû = brut × flat tax, moins ce que le courtier a déjà prélevé (s'il n'a rien retenu, tout est à payer à la déclaration, case 2TR). Moins-values reportables et option pour le barème non prises en compte : fie-toi à ton IFU.</p>`;
     }
 
     document.getElementById("realized-year").addEventListener("change", (e) => renderRealized(e.target.value));
+
+    // --- Récap pour la déclaration de revenus : les revenus de l'année N se déclarent au printemps N+1. Cases
+    // calculées par realized.declaration_boxes, indicatives : l'IFU du courtier (courtier français) fait foi ---
+    function taxRecap(y) {
+      const d = y.envelopes.CTO?.declaration;
+      const pea = y.envelopes.PEA ? `<p class="help">PEA : rien à déclarer tant que tu ne fais pas de retrait (ni plus-values, ni dividendes).</p>` : "";
+      if (!d) return pea ? `<div class="div-title">Pour ta déclaration ${y.year + 1}</div>${pea}` : "";
+      const row = (box, label, value, note = "") => `<div class="rank-row"><div>${label}${note ? `<div class="who">${note}</div>` : ""}</div>
+          <div class="right">${eur.format(value)}<div class="who">${box}</div></div></div>`;
+      const rows = [
+        d.cessions ? row("2074", "Prix de cession total", d.cessions, `${y.envelopes.CTO.sales} vente${y.envelopes.CTO.sales > 1 ? "s" : ""}, frais de vente déduits`) : "",
+        d.cessions ? row("2074", "Prix d'acquisition total", d.acquisitions, "prix moyen pondéré, frais d'achat compris") : "",
+        d["3VG"] ? row("case 3VG", "Plus-value nette", d["3VG"]) : "",
+        d["3VH"] ? row("case 3VH", "Moins-value nette", d["3VH"], "reportable sur les plus-values des 10 années suivantes") : "",
+        d["2DC"] ? row("case 2DC", "Dividendes bruts", d["2DC"]) : "",
+        d["2AB"] ? row("case 2AB", "Crédit d'impôt étranger", d["2AB"], "retenue à la source, dans la limite de la convention fiscale") : "",
+        d["2CK"] ? row("case 2CK", "Acompte de 12,8 % déjà prélevé", d["2CK"], "déduit de ton impôt, remboursé s'il est en trop") : "",
+        d["2TR"] ? row("case 2TR", "Intérêts bruts", d["2TR"], "rémunération des espèces") : "",
+      ].join("");
+      if (!rows) return `<div class="div-title">Pour ta déclaration ${y.year + 1}</div><p class="help">Rien à déclarer pour le CTO en ${y.year}.</p>${pea}`;
+      return `<div class="div-title">Pour ta déclaration ${y.year + 1} <span class="muted" style="font-weight:400">(revenus ${y.year}, CTO)</span></div>
+        <div style="margin-top:6px">${rows}</div>
+        ${d.social_withheld ? `<p class="help">Prélèvements sociaux déjà retenus en France sur les dividendes : ${eur.format(d.social_withheld)}. Ils ne sont pas dus une seconde fois.</p>` : ""}
+        ${pea}
+        <p class="help">Cases indicatives, à vérifier avec la notice de la déclaration. Si ton courtier est français, il t'envoie un IFU et pré-remplit la déclaration : c'est lui qui fait foi. Un courtier étranger n'en envoie pas, c'est à toi de reporter ces montants. Un compte ouvert auprès d'un établissement à l'étranger se déclare aussi chaque année (formulaire 3916, case 8UU) : vérifie auprès de ton courtier si c'est ton cas. Moins-values des années précédentes non déduites ici.</p>
+        <button class="btn" data-tax-export="${y.year}">⬇ Exporter le récap et le détail (CSV)</button>`;
+    }
+    function exportTaxRecap(year) {
+      const y = realized.years.find((x) => x.year === Number(year));
+      if (!y) return;
+      const d = y.envelopes.CTO?.declaration || {};
+      const rows = [[`Récap fiscal ${y.year} (déclaration ${y.year + 1})`], ["Case", "Libellé", "Montant €"],
+        ["2074", "Prix de cession total (CTO)", csvMoney(d.cessions)], ["2074", "Prix d'acquisition total (CTO)", csvMoney(d.acquisitions)],
+        ["3VG", "Plus-value nette", csvMoney(d["3VG"])], ["3VH", "Moins-value nette", csvMoney(d["3VH"])],
+        ["2DC", "Dividendes bruts", csvMoney(d["2DC"])], ["2AB", "Crédit d'impôt étranger", csvMoney(d["2AB"])],
+        ["2CK", "Acompte de 12,8 % déjà prélevé", csvMoney(d["2CK"])], ["2TR", "Intérêts bruts", csvMoney(d["2TR"])],
+        [], ["Ventes"], ["Date", "Compte", "Enveloppe", "Ticker", "Nom", "Quantité", "Prix de cession net €", "PRU €", "Prix d'acquisition €", "Plus-value €"],
+        ...y.sales.slice().reverse().map((x) => [csvDate(x.date), x.account, x.envelope, x.ticker, x.name, x.quantity, csvMoney(x.proceeds), x.unit_cost, csvMoney(x.cost), csvMoney(x.gain)]),
+        [], ["Dividendes"], ["Date", "Compte", "Enveloppe", "Ticker", "Nom", "Brut €", "Retenues €", "Net €"],
+        ...y.dividends.slice().reverse().map((x) => [csvDate(x.date), x.account, x.envelope, x.ticker, x.name, csvMoney(x.gross), csvMoney(x.taxes), csvMoney(x.net)]),
+        [], ["Montants indicatifs calculés par Portfolio Insights (prix moyen pondéré, frais compris) : l'IFU du courtier fait foi."]];
+      downloadCsv(`recap-fiscal-${y.year}.csv`, rows);
+    }
+    document.getElementById("realized-body").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-tax-export]");
+      if (b) exportTaxRecap(b.dataset.taxExport);
+    });
 
     // --- Réglages : l'accueil liste les rubriques, chacune s'ouvre sur sa page ---
     let settingsPage = null;

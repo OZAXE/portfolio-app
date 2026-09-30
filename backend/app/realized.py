@@ -69,8 +69,13 @@ def dividend_tax(gross: float, withheld: float, credit_rate: float, year: int) -
             french = candidate
             break
     foreign = max(withheld - french, 0.0)
-    due = social * gross + max(INCOME_TAX * gross - min(foreign, credit_rate * gross), 0.0)
-    return {"remaining": due - french, "french": french, "foreign": foreign}
+    credit = min(foreign, credit_rate * gross)
+    due = social * gross + max(INCOME_TAX * gross - credit, 0.0)
+    # Pour la déclaration : acompte de 12,8 % déjà versé en France (case 2CK), prélèvements sociaux déjà retenus,
+    # crédit d'impôt étranger imputable, dans la limite de la convention (case 2AB)
+    ir_withheld = max(french - social * gross, 0.0)
+    return {"remaining": due - french, "french": french, "foreign": foreign,
+            "ir_withheld": ir_withheld, "social_withheld": french - ir_withheld, "credit": credit}
 
 
 @dataclass
@@ -236,9 +241,10 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
     def envelope_bucket(year: int, envelope: str) -> dict:
         summary = years.setdefault(year, YearSummary(year))
         return summary.envelopes.setdefault(envelope, {
-            "realized_gain": 0.0, "sales": 0, "sale_proceeds": 0.0,
+            "realized_gain": 0.0, "sales": 0, "sale_proceeds": 0.0, "sale_cost": 0.0,
             "dividends_gross": 0.0, "dividends_taxes": 0.0, "dividends_net": 0.0,
             "dividends_tax_remaining": 0.0, "foreign_withheld": 0.0,
+            "dividends_ir_withheld": 0.0, "dividends_social_withheld": 0.0, "foreign_credit": 0.0,
             "interest_gross": 0.0, "interest_taxes": 0.0,
         })
 
@@ -261,6 +267,7 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
             bucket["realized_gain"] += gain
             bucket["sales"] += 1
             bucket["sale_proceeds"] += op.net
+            bucket["sale_cost"] += cost
             years[op.day.year].sales.append({
                 "date": op.day.isoformat(), "account": op.account, "envelope": envelope, "ticker": op.ticker,
                 "name": names.get(op.ticker, op.ticker), "quantity": op.quantity, "proceeds": round(op.net, 2),
@@ -274,6 +281,9 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
             tax = dividend_tax(op.gross, op.taxes + op.fees, treaty_credit(op.ticker, kinds.get(op.ticker, "")), op.day.year)
             bucket["dividends_tax_remaining"] += tax["remaining"]
             bucket["foreign_withheld"] += tax["foreign"]
+            bucket["dividends_ir_withheld"] += tax["ir_withheld"]
+            bucket["dividends_social_withheld"] += tax["social_withheld"]
+            bucket["foreign_credit"] += tax["credit"]
             years[op.day.year].dividends.append({
                 "date": op.day.isoformat(), "account": op.account, "envelope": envelope, "ticker": op.ticker,
                 "name": names.get(op.ticker, op.ticker), "gross": round(op.gross, 2),
@@ -308,11 +318,27 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
                                                  + interest_remaining, 2)
                 rounded["withheld_tax"] = round(b["dividends_taxes"], 2)
                 rounded["foreign_withheld"] = round(b["foreign_withheld"], 2)
+                rounded["declaration"] = declaration_boxes(b)
             envelopes_out[envelope] = rounded
         result.append({"year": year, "envelopes": envelopes_out,
                        "sales": sorted(summary.sales, key=lambda s: s["date"], reverse=True),
                        "dividends": sorted(summary.dividends, key=lambda d: d["date"], reverse=True)})
     return {"years": result, "flat_tax_rate": flat_tax_rate(date.today().year)}
+
+
+def declaration_boxes(bucket: dict) -> dict:
+    """Montants à reporter sur la déclaration de revenus pour le CTO d'une année (indicatif : l'IFU du courtier fait
+    foi quand il en fournit un). Formulaire 2074 : prix de cession et d'acquisition (frais compris, prix moyen
+    pondéré), plus-value nette en 3VG ou moins-value en 3VH. Déclaration 2042 : dividendes bruts en 2DC, intérêts
+    bruts en 2TR, acompte de 12,8 % déjà prélevé en France en 2CK, retenue étrangère dans la limite de la convention
+    en 2AB. Ex. 1 000 € de dividendes américains chez Trade Republic, 150 € retenus aux États-Unis et 314 € en
+    France : 2DC 1 000, 2AB 150, 2CK 128."""
+    gain = bucket["realized_gain"]
+    return {"cessions": round(bucket["sale_proceeds"], 2), "acquisitions": round(bucket["sale_cost"], 2),
+            "3VG": round(max(gain, 0.0), 2), "3VH": round(max(-gain, 0.0), 2),
+            "2DC": round(bucket["dividends_gross"], 2), "2TR": round(bucket["interest_gross"], 2),
+            "2CK": round(bucket["dividends_ir_withheld"], 2), "2AB": round(bucket["foreign_credit"], 2),
+            "social_withheld": round(bucket["dividends_social_withheld"], 2)}
 
 
 def realized_summary(sheet_id: str) -> dict:

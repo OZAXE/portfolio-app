@@ -136,7 +136,8 @@ banques, utilise le bouton **Opération**.
 
 Bouton **Transactions** : toutes tes opérations, des plus récentes aux plus anciennes, rangées par mois. Tu
 peux chercher un titre ou une note, et filtrer par type (achats et ventes, dividendes, espèces, divisions) ou
-par compte. **Touche une ligne** pour ouvrir sa fiche de correction : change ce qui est faux, puis
+par compte. **Exporter en CSV** télécharge les opérations affichées (filtres compris), à ouvrir
+dans Excel ou Google Sheets. **Touche une ligne** pour ouvrir sa fiche de correction : change ce qui est faux, puis
 **Enregistrer**, ou **Supprimer** la ligne. Le portefeuille et la courbe sont recalculés. Si ton Sheet a été
 modifié entre-temps (ligne ajoutée à la main), l'appli refuse d'écrire et te demande de recharger la liste :
 elle ne touche jamais une autre ligne que celle affichée.
@@ -263,6 +264,11 @@ titre sur 5 ans).
   de 31,4 % en 2026), dividende par dividende et avec les intérêts : un montant négatif est à récupérer (par
   exemple l'acompte de 12,8 % prélevé en trop sur un dividende américain chez Trade Republic). Sur le PEA,
   rien n'est imposé tant que tu ne retires pas d'argent. C'est une estimation : ton IFU fait foi.
+- **Pour ta déclaration** : sous l'année choisie, les montants du CTO à reporter et leurs cases (prix de
+  cession et d'acquisition pour le formulaire 2074, plus-value en 3VG ou moins-value en 3VH, dividendes bruts en
+  2DC, crédit d'impôt étranger en 2AB, acompte de 12,8 % déjà prélevé en 2CK, intérêts en 2TR). Indispensable
+  avec un courtier étranger, qui n'envoie pas d'IFU. **Exporter le récap et le détail (CSV)** télécharge ces
+  montants avec la liste des ventes et des dividendes de l'année, à ouvrir dans Excel ou Google Sheets.
 - **Plafond PEA et frais** : ce que tu as versé sur les 150 000 € autorisés (calculé sur tes vrais
   versements s'ils sont saisis, sinon estimé d'après tes achats), les frais payés par année (courtage,
   taxes, retenues) et les frais courants de tes ETF.
