@@ -1,5 +1,5 @@
 """
-Saisie d'opérations (achat, vente, dividende) depuis l'appli dans le Sheet modèle (format v2).
+Saisie d'opérations (achat, vente, dividende, division, versement...) depuis l'appli dans le Sheet modèle (v2).
 
 - read_settings() : comptes, barèmes de frais et titres connus, pour pré-remplir le formulaire ;
 - add_operation() : ajoute une ligne à l'onglet Opérations (montants en formules, comme à la main)
@@ -14,8 +14,9 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from .sheets import UNFORMATTED, _find_worksheet, _open_sheet, _worksheet
-from .workbook import CASH_TYPES, OPERATION_TYPES, ORDER_TYPES, cash_row, ensure_operation_types, operation_row
+from .sheets import SHEETS_EPOCH, UNFORMATTED, _find_worksheet, _open_sheet, _worksheet
+from .workbook import (CASH_TYPES, OPERATION_TYPES, ORDER_TYPES, SHARE_TYPES, cash_row, ensure_operation_types,
+                       operation_row)
 
 # Suffixe Yahoo -> préfixe de place GOOGLEFINANCE
 YAHOO_TO_GOOGLE_EXCHANGE = {
@@ -57,7 +58,10 @@ def read_settings(sheet_id: str) -> dict:
         {"ticker": t, "google": g, "name": n, "sector": s, "zone": z, "currency": c, "kind": k}
         for t, g, n, s, z, c, k in _records(_worksheet(sheet, "Titres"), 7)
     ]
-    return {"accounts": accounts, "fees": fees, "titres": titres,
+    # Quantités détenues par compte : le formulaire en déduit les actions reçues lors d'une division
+    held = held_quantities(_operation_records(sheet))
+    holdings = [{"account": a, "ticker": t, "quantity": round(q, 6)} for (a, t), q in sorted(held.items()) if q > 1e-9]
+    return {"accounts": accounts, "fees": fees, "titres": titres, "holdings": holdings,
             "operation_types": OPERATION_TYPES, "order_types": ORDER_TYPES}
 
 
@@ -108,8 +112,21 @@ def _non_negative(value, label: str) -> float:
     return number
 
 
-def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = "") -> dict:
-    """Valide et enregistre une opération. Renvoie la ligne écrite (numéro et montant brut)."""
+def _operation_records(sheet, exclude_row: int | None = None) -> list[list]:
+    """Lignes de l'onglet Opérations (5 premières colonnes), sans la ligne en cours de modification : une vente
+    corrigée ne doit pas se compter elle-même dans la quantité disponible."""
+    rows = _worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:]
+    return [(row + [""] * 5)[:5] for i, row in enumerate(rows, start=2) if row and row[0] != "" and i != exclude_row]
+
+
+def _target_row(sheet, row: int | None) -> int:
+    """Ligne à écrire : celle modifiée, sinon la première ligne libre."""
+    return row or len(_worksheet(sheet, "Opérations").col_values(1)) + 1
+
+
+def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = "", row: int | None = None) -> dict:
+    """Valide et enregistre une opération. Renvoie la ligne écrite (numéro et montant brut).
+    row : ligne existante à remplacer (modification depuis l'écran Transactions)."""
     sheet = _open_sheet(sheet_id, write=True)
     settings = read_settings(sheet_id)
     accounts = {a["name"] for a in settings["accounts"]}
@@ -121,7 +138,9 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     if account not in accounts:
         raise OperationError("Compte inconnu : ajoute-le d'abord dans l'onglet Comptes du Sheet")
     if kind in CASH_TYPES:
-        return _add_cash(sheet, payload, kind, account)
+        return _add_cash(sheet, payload, kind, account, row)
+    if kind in SHARE_TYPES:
+        return _add_shares(sheet, payload, kind, account, row)
     order_type = payload.get("order_type") or "Ordre"
     if order_type not in ORDER_TYPES:
         raise OperationError("Type d'ordre invalide")
@@ -138,7 +157,7 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     currency = str(payload.get("currency") or "EUR").strip()
 
     if kind == "Vente":
-        held = _held_quantity(sheet, ticker)
+        held = sum(q for (_, t), q in held_quantities(_operation_records(sheet, row)).items() if t == ticker)
         if quantity > held + 1e-9:
             raise OperationError(f"Vente impossible : seulement {held:g} {ticker} en portefeuille")
 
@@ -153,7 +172,7 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
         titres.update(range_name=f"A{next_row}", values=[[ticker, info.google, info.name, sector, zone, info.currency, info.kind]])
 
     ops = _worksheet(sheet, "Opérations")
-    row = len(ops.col_values(1)) + 1
+    row = _target_row(sheet, row)
     op = {
         "date": when, "account": account, "type": kind, "ticker": ticker, "quantity": quantity,
         "price": price, "currency": currency, "fx": fx, "fees": fees, "taxes": taxes,
@@ -174,7 +193,7 @@ def _operation_date(payload: dict) -> date:
     return when
 
 
-def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
+def _add_cash(sheet, payload: dict, kind: str, account: str, row: int | None = None) -> dict:
     """Versement, retrait ou intérêts : seulement une date, un compte et un montant en euros."""
     when = _operation_date(payload)
     amount = _positive(payload.get("amount") or payload.get("price"), "Montant")
@@ -183,19 +202,50 @@ def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
         raise OperationError("Les impôts prélevés dépassent le montant brut des intérêts")
     ensure_operation_types(sheet)
     ops = _worksheet(sheet, "Opérations")
-    row = len(ops.col_values(1)) + 1
+    row = _target_row(sheet, row)
     ops.update(range_name=f"A{row}", values=[cash_row(when, account, kind, amount, payload.get("note") or "", row, taxes)],
                value_input_option="USER_ENTERED")
     return {"row": row, "gross_eur": round(amount, 2), "new_ticker": False}
 
 
-def _held_quantity(sheet, ticker: str) -> float:
-    held = 0.0
-    for row in _records(_worksheet(sheet, "Opérations"), 5):
-        if str(row[3]).upper() != ticker or not isinstance(row[4], (int, float)):
+def _add_shares(sheet, payload: dict, kind: str, account: str, row: int | None = None) -> dict:
+    """Division ou actions gratuites : actions reçues sans rien payer (négatif pour un regroupement), sur un
+    titre détenu dans ce compte à cette date. Prix, frais et taxes à 0 : le coût total ne change pas."""
+    ticker = str(payload.get("ticker") or "").strip().upper()
+    if not ticker:
+        raise OperationError("Ticker manquant")
+    when = _operation_date(payload)
+    try:
+        quantity = float(payload.get("quantity"))
+    except (TypeError, ValueError):
+        raise OperationError("Nombre d'actions reçues invalide")
+    held = held_quantities(_operation_records(sheet, row), until=when).get((account, ticker), 0.0)
+    if held <= 1e-9:
+        raise OperationError(f"Aucune action {ticker} sur le compte {account} le {when.strftime('%d/%m/%Y')}")
+    if not quantity or (kind == "Actions gratuites" and quantity < 0):
+        raise OperationError("Le nombre d'actions reçues doit être positif")
+    if held + quantity <= 1e-9:
+        raise OperationError(f"Regroupement impossible : il ne resterait aucune action (tu en as {held:g})")
+    ensure_operation_types(sheet)
+    ops = _worksheet(sheet, "Opérations")
+    row = _target_row(sheet, row)
+    op = {"date": when, "account": account, "type": kind, "ticker": ticker, "quantity": quantity, "price": 0,
+          "currency": "EUR", "fx": 1, "order_type": "", "why": "", "term": "",
+          "note": payload.get("note") or f"{held:g} -> {held + quantity:g} actions"}
+    ops.update(range_name=f"A{row}", values=[operation_row(op, row)], value_input_option="USER_ENTERED")
+    return {"row": row, "gross_eur": 0.0, "new_ticker": False}
+
+
+def held_quantities(rows: list[list], until: date | None = None) -> dict[tuple[str, str], float]:
+    """(compte, titre) -> quantité détenue d'après les lignes de l'onglet Opérations (date en numéro de série),
+    toutes ou jusqu'au jour `until` compris : achats et actions reçues moins ventes."""
+    held: dict[tuple[str, str], float] = {}
+    last = (until - SHEETS_EPOCH).days if until else None
+    for row in rows:
+        if not isinstance(row[4], (int, float)) or row[2] not in ("Achat", "Vente", *SHARE_TYPES):
             continue
-        if row[2] == "Achat":
-            held += row[4]
-        elif row[2] == "Vente":
-            held -= row[4]
+        if last is not None and not (isinstance(row[0], (int, float)) and row[0] <= last):
+            continue
+        key = (str(row[1]).strip(), str(row[3]).strip().upper())
+        held[key] = held.get(key, 0.0) + (-row[4] if row[2] == "Vente" else row[4])
     return held

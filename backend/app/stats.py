@@ -20,6 +20,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from .workbook import SHARE_TYPES
+
 RISK_FREE = 0.02  # taux sans risque (taux de dépôt BCE, ~2 % depuis juin 2025) pour le ratio de Sharpe
 TRADING_DAYS = 252
 MAX_DAILY_GAP = 5  # jours calendaires : au-delà (anciens relevés hebdomadaires), pas un rendement quotidien
@@ -219,9 +221,11 @@ def compute_attribution(operations, envelopes: dict[str, str], current: dict[tup
     for op in sorted(operations, key=lambda o: o.day):
         key = (envelopes.get(op.account, "CTO"), op.ticker.upper())
         if base_day is not None and op.day <= base_day:
-            if op.kind in ("Achat", "Vente"):
-                quantities[key] += op.quantity if op.kind == "Achat" else -op.quantity
+            if op.kind in ("Achat", "Vente", *SHARE_TYPES):
+                quantities[key] += -op.quantity if op.kind == "Vente" else op.quantity
             continue
+        if op.kind in SHARE_TYPES:
+            continue  # division pendant la période : ni argent qui entre ni argent qui sort
         amount = op.net if op.kind == "Achat" else -op.net
         line = lines[key]
         line["flows"] += amount
@@ -308,7 +312,9 @@ def stats_summary(sheet_id: str, benchmark: str, today: date | None = None) -> d
     today = today or date.today()
     ledger = read_ledger(sheet_id)
     overview = get_overview(sheet_id)
-    operations = [op for op in ledger.operations if op.kind in ("Achat", "Vente", "Dividende")]
+    # Quantités telles que saisies, divisions comprises : la quantité détenue à une date de départ est
+    # multipliée par le cours réel de ce jour-là (eur_closes, cours non corrigés des divisions)
+    operations = [op for op in ledger.raw if op.kind in ("Achat", "Vente", "Dividende", *SHARE_TYPES)]
     first = min((op.day for op in operations), default=today) - timedelta(days=10)
     closes = bench = None
     try:

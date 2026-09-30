@@ -4,7 +4,7 @@ fichiers, tickers retrouvés, doublons signalés), puis écriture des lignes val
 
 Formats reconnus :
 - Trade Republic : export CSV des transactions. Achats, ventes,
-  plans d'investissement et dividendes, crypto comprise (ticker Yahoo BTC-EUR, ETH-EUR...) ; le reste
+  plans d'investissement, dividendes et actions gratuites, crypto comprise (ticker Yahoo BTC-EUR, ETH-EUR...) ; le reste
   (carte, intérêts, virements, Saveback et Stockperk versés en espèces) est ignoré. La colonne
   account_type (PEA ou DEFAULT pour le compte-titres) range chaque opération dans la bonne enveloppe ;
 - Trade Republic : relevé de compte PDF (Profil > Documents). Une section par compte (« Compte
@@ -28,7 +28,7 @@ from datetime import date
 from .operations import OperationError, describe_for_titres
 from .realized import read_cash, read_operations
 from .sheets import _open_sheet, _worksheet
-from .workbook import CASH_TYPES, cash_row, ensure_operation_types, operation_row
+from .workbook import CASH_TYPES, SHARE_TYPES, cash_row, ensure_operation_types, operation_row
 
 MAX_FILES = 60
 MAX_FILE_BYTES = 2_000_000
@@ -37,7 +37,7 @@ MAX_FILE_BYTES = 2_000_000
 @dataclass
 class ParsedOperation:
     date: str  # ISO
-    type: str  # Achat / Vente / Dividende
+    type: str  # Achat / Vente / Dividende / Actions gratuites / Versement...
     isin: str
     name: str
     quantity: float
@@ -86,8 +86,17 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
     operations = []
     cash: dict[tuple[str, str | None, str], list[float]] = {}  # (jour, enveloppe, type) -> [montant, nombre, taxes]
     for row in reader:
-        if row["category"] == "CORPORATE_ACTION":  # ex. actions gratuites Air Liquide (BONUS_ISSUE)
-            skipped["corporate"] = skipped.get("corporate", 0) + 1
+        if row["category"] == "CORPORATE_ACTION":
+            # Actions gratuites (Air Liquide 1 pour 10 en juin 2025 : shares = actions reçues, 0,2 pour 2
+            # détenues) importées ; le reste (divisions, rompus...) au format inconnu, à saisir à la main
+            shares = _num(row["shares"])
+            if row["type"] == "BONUS_ISSUE" and shares > 0 and row["symbol"]:
+                operations.append(ParsedOperation(
+                    date=row["date"], type="Actions gratuites", isin=row["symbol"].strip().upper(),
+                    name=row.get("name") or row["symbol"], quantity=shares, price=0.0, fees=0.0, taxes=0.0,
+                    order_type="", source=source, envelope=TR_CSV_ENVELOPES.get((row.get("account_type") or "").strip().upper())))
+            else:
+                skipped["corporate"] = skipped.get("corporate", 0) + 1
             continue
         if row["category"] == "CASH" and row["type"] != "DIVIDEND":
             _add_cash_row(cash, row)
@@ -327,7 +336,7 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
     accounts = read_settings(sheet_id)["accounts"]
     route_accounts(parsed, account, accounts)
     envelopes = {a["name"]: a["envelope"] for a in accounts}
-    existing, _, _ = read_operations(sheet_id)
+    existing, _, _ = read_operations(sheet_id, raw=True)  # quantités telles que saisies, comme dans les relevés
     tickers: dict[str, str | None] = {}
     for op in sorted(parsed, key=lambda o: o.date):
         if op.ticker or op.type in CASH_TYPES:  # crypto : ticker déjà connu ; espèces : pas de titre
@@ -348,8 +357,8 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
                      else "new" if op.ticker or op.type in CASH_TYPES else "no_ticker")
     operations = [asdict(op) for op in sorted(parsed, key=lambda o: o.date)]
     if skipped.get("corporate"):
-        errors.append(f"{skipped['corporate']} opérations sur titres ignorées (attribution d'actions gratuites, "
-                      "rompus...) : ajoute à la main les actions reçues")
+        errors.append(f"{skipped['corporate']} opérations sur titres ignorées (division, rompus...) : ajoute à la "
+                      "main les actions reçues (type Division dans « Ajouter une opération »)")
     return {"operations": operations, "errors": errors,
             "counts": {s: sum(o["status"] == s for o in operations) for s in ("new", "duplicate", "no_ticker", "no_account")}}
 
@@ -373,7 +382,7 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
                          f"Import {op.get('source', '')}".strip(), float(op.get("taxes") or 0)))
             continue
         ticker = str(op.get("ticker") or "").strip().upper()
-        if not ticker or op.get("type") not in ("Achat", "Vente", "Dividende"):
+        if not ticker or op.get("type") not in ("Achat", "Vente", "Dividende", *SHARE_TYPES):
             raise OperationError("Chaque opération doit avoir un ticker et un type")
         op_account = op.get("account") or account
         if op_account not in known_accounts:
@@ -382,14 +391,15 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
             "date": date.fromisoformat(op["date"]), "account": op_account, "type": op["type"], "ticker": ticker,
             "quantity": float(op["quantity"]), "price": float(op["price"]), "currency": "EUR", "fx": 1,
             "fees": float(op.get("fees") or 0), "taxes": float(op.get("taxes") or 0),
-            "order_type": op.get("order_type") or ("" if op["type"] == "Dividende" else "Ordre"), "why": "", "term": "", "note": f"Import {op.get('source', '')}".strip(),
+            "order_type": op.get("order_type") or ("" if op["type"] in ("Dividende", *SHARE_TYPES) else "Ordre"),
+            "why": "", "term": "", "note": f"Import {op.get('source', '')}".strip(),
         })
     if not clean and not cash:
         return {"written": 0, "new_tickers": []}
     clean.sort(key=lambda o: o["date"])
 
     sheet = _open_sheet(sheet_id, write=True)
-    if cash:
+    if cash or any(op["type"] in SHARE_TYPES for op in clean):
         ensure_operation_types(sheet)
     known = {t["ticker"].upper() for t in settings["titres"]}
     new_tickers = sorted({op["ticker"] for op in clean} - known)

@@ -91,6 +91,7 @@ class HoldingLine:
     kind: str | None = None  # Action / ETF
     pocket: str | None = None  # poche d'allocation (colonne Poche de l'onglet Titres)
     quote_source: str | None = None  # "Yahoo" : cours GOOGLEFINANCE en erreur, valeur sur le cours de secours
+    quantity: float | None = None  # onglet Positions du modèle seulement
 
 
 @dataclass
@@ -370,7 +371,7 @@ def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
             value=_number(_cell(rows, r, 10)), invested=_number(_cell(rows, r, 6)),
             gain=_number(_cell(rows, r, 11)), gain_pct=_number(_cell(rows, r, 12)),
             sector=_cell(rows, r, 13), name=_cell(rows, r, 1),
-            zone=_cell(rows, r, 14), currency=_cell(rows, r, 8),
+            zone=_cell(rows, r, 14), currency=_cell(rows, r, 8), quantity=quantity,
         ), quantity))
     return lines
 

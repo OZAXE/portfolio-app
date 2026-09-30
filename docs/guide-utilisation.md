@@ -28,6 +28,9 @@ L'appli a quatre onglets en bas de l'écran : **Portefeuille**, **Marché**, **B
 - **Valeur des placements** : ce que valent aujourd'hui toutes tes lignes (PEA + CTO).
 - La ligne verte ou rouge en dessous : ta **plus-value latente**, ce que tu gagnerais (ou perdrais) en
   vendant tout maintenant, en euros et en %, par rapport à l'argent investi.
+- **Aujourd'hui** : ce que ton portefeuille a gagné ou perdu depuis la clôture précédente, en euros et en %,
+  taux de change compris (cours Yahoo, rafraîchis toutes les 10 minutes environ). Un achat du jour ne compte
+  que ce qu'il a gagné depuis que tu l'as fait. Le week-end, c'est la variation de la dernière séance.
 - **Rendement annualisé** (ou **rendement réel** la première année) : ce qu'a rapporté ton argent, en
   tenant compte de la date de chaque versement.
 - **Gain total** : plus-value + dividendes touchés + gains des ventes déjà faites.
@@ -43,10 +46,12 @@ Touche l'**œil** en haut : tous les montants en euros et les quantités sont re
 (« •••• € »), les pourcentages restent visibles. Pratique pour montrer l'appli à quelqu'un. Touche à nouveau
 l'œil pour tout réafficher. Le réglage est mémorisé sur ton téléphone.
 
-### Les trois boutons
+### Les quatre boutons
 
-- **Opération** : saisir un achat, une vente, un dividende, un versement… (partie 2).
+- **Opération** : saisir un achat, une vente, un dividende, une division, un versement… (partie 2).
 - **Importer** : importer un relevé de ta banque (partie 2).
+- **Transactions** : toutes tes opérations, pour les relire, les corriger ou les supprimer, et ton
+  **journal** de trading (partie 2).
 - **Objectifs** : aller directement à ton allocation cible (sous-onglet Répartition).
 
 ### La courbe d'évolution
@@ -84,6 +89,18 @@ Bouton **Opération** :
 
 Pour un **dividende** : le montant brut, et en taxes la retenue ou le prélèvement indiqué sur ton relevé.
 
+### Une division ou des actions gratuites
+
+Quand une entreprise divise son action (Apple : 4 pour 1 en 2020, chaque action devient 4) ou distribue des
+actions gratuites (Air Liquide : 1 nouvelle pour 10 détenues en juin 2025), tu reçois des actions sans rien
+payer. Sans cette saisie, ta quantité serait fausse et la ligne afficherait une grosse perte le jour même.
+
+Bouton **Opération**, type **Division** ou **Actions gratuites**, puis le titre, le compte, la date et la
+**parité** : « 4 pour 1 » pour une division, « 1 pour 10 » pour des actions gratuites, « 1 pour 10 » aussi
+pour un regroupement (10 actions n'en font plus qu'une). Le nombre d'**actions reçues** est calculé sur ta
+quantité actuelle : corrige-le d'après ton relevé (rompus arrondis, achats faits depuis). Le montant investi
+ne change pas, ton PRU baisse d'autant. L'import CSV de Trade Republic apporte déjà les actions gratuites.
+
 ### Un versement, un retrait ou des intérêts (espèces)
 
 Pour savoir combien d'argent attend sur chaque compte, l'appli a besoin de tes mouvements d'espèces.
@@ -105,8 +122,8 @@ Bouton **Importer**, choisis le compte puis le ou les fichiers :
   l'ouverture du compte. Les deux contiennent le CTO et le PEA : chaque opération est rangée dans le compte
   de la bonne enveloppe. L'export CSV apporte en plus tes **versements, retraits, paiements par carte et
   intérêts**, regroupés par jour : ton solde d'espèces doit alors correspondre à celui de l'appli Trade
-  Republic. Les attributions d'actions gratuites ne sont pas importées : saisis les actions reçues en
-  **Achat** au prix de 0 € ;
+  Republic. Les actions gratuites sont importées ; une division ne l'est pas encore : saisis-la avec le
+  type **Division** (voir plus haut) ;
 - **Boursorama** : avis d'opéré PDF (Espace client > Documents), tous d'un coup. Ils ne contiennent pas
   les versements : saisis-les à la main pour suivre les espèces du PEA.
 
@@ -114,6 +131,27 @@ Touche **Analyser** : l'appli liste les opérations trouvées **sans rien écrir
 enregistrées sont repérées et décochées (pour les espèces : même jour et même montant au centime). Décoche
 ce que tu ne veux pas, complète un ticker manquant s'il est encadré en rouge, puis valide. Pour les autres
 banques, utilise le bouton **Opération**.
+
+### Relire, corriger ou supprimer une opération (Transactions)
+
+Bouton **Transactions** : toutes tes opérations, des plus récentes aux plus anciennes, rangées par mois. Tu
+peux chercher un titre ou une note, et filtrer par type (achats et ventes, dividendes, espèces, divisions) ou
+par compte. **Touche une ligne** pour ouvrir sa fiche de correction : change ce qui est faux, puis
+**Enregistrer**, ou **Supprimer** la ligne. Le portefeuille et la courbe sont recalculés. Si ton Sheet a été
+modifié entre-temps (ligne ajoutée à la main), l'appli refuse d'écrire et te demande de recharger la liste :
+elle ne touche jamais une autre ligne que celle affichée.
+
+### Ton journal de trading
+
+Dans la fiche d'une action, la carte **Ton journal** : écris **pourquoi** tu achètes (ta thèse), ton
+**objectif** de vente et ton **stop** (le cours où tu reconnaîtrais t'être trompé), ton horizon et une date
+pour **revoir** ta thèse. L'appli peut créer les **alertes de prix** correspondantes. Après une vente, note
+le **bilan** : ce qui s'est passé comme prévu, ou pas. Les motifs saisis à chaque achat (« Pourquoi »,
+« Terme ») sont rappelés sous la thèse.
+
+L'onglet **Journal** de l'écran Transactions rassemble toutes tes thèses : écart du cours à l'objectif et au
+stop, thèses **à revoir**, et pour un titre vendu, ce que ses ventes ont rapporté. Relire ses thèses est ce
+qui fait le plus progresser.
 
 ### Supprimer des opérations en double, repartir de zéro
 
@@ -145,8 +183,9 @@ Sous la courbe, cinq sous-onglets : **Positions**, **Perf.**, **Répartition**, 
 
 ### Positions
 
-Tes lignes, triées par **Valeur** ou par **Perf.** Touche une ligne pour ouvrir sa fiche : en tête, la
-carte **Ta position** (valeur, plus-value, investi, quantité, gain total, rendement de la ligne) et le
+Tes lignes, triées par **Valeur**, par **Perf.** (depuis l'achat) ou par variation du **Jour**. Touche une
+ligne pour ouvrir sa fiche : en tête, la carte **Ta position** (valeur, plus-value, investi, quantité, gain
+total, rendement de la ligne, variation du jour et, pour un titre en devise, l'**effet du change**) et le
 bouton **📈 Graphique des achats** (le cours depuis ton premier achat, avec chaque achat, chaque vente et
 ton PRU). En dessous, la fiche complète de l'action (partie 4). Un ETF ou une crypto a une fiche réduite.
 
@@ -160,6 +199,9 @@ ton PRU). En dessous, la fiche complète de l'action (partie 4). Un ETF ou une c
   baisse** que ton portefeuille a encaissée depuis un sommet, l'écart avec ton plus haut, le **ratio de
   Sharpe** (le rendement obtenu par unité de risque) et le **bêta** (ta sensibilité à l'indice), avec une
   phrase en clair. Il faut quelques semaines de relevés quotidiens avant qu'ils s'affichent.
+- **Effet du change** (si tu as des titres cotés en dollars, livres…) : la part de ta plus-value latente qui
+  vient du taux de change depuis tes achats, par devise et par ligne, et ce qui vient de l'action elle-même.
+  Exemple : Apple +82 € = +164 € venus de l'action et −82 € de change, parce que le dollar a baissé.
 - **Ce qui a fait ta performance** : le gain de chaque ligne sur la période choisie, en euros et en
   points. La somme des lignes donne le total.
 
@@ -234,8 +276,13 @@ screener.
 
 Touche une action pour l'ouvrir en plein écran (le bouton retour du téléphone la ferme) :
 
-- **La courbe du cours** sur 1 mois à 10 ans, avec la moyenne 200 jours et le prix juste en pointillés
-  (puces sous le graphique pour les afficher ou les masquer), et une phrase sur la tendance.
+- **La courbe du cours** sur 1 mois à 10 ans, avec les moyennes 50 et 200 jours et le prix juste en
+  pointillés (puces sous le graphique pour les afficher ou les masquer), et une phrase sur la tendance.
+- **Analyse technique** : le **RSI** (au-dessus de 70, le cours a beaucoup monté très vite ; sous 30, il a
+  beaucoup baissé), les moyennes 50 et 200 jours et leur dernier **croisement**, le plus haut et le plus bas
+  sur un an, et le **momentum** (variation sur 1, 3, 6 et 12 mois). Ils décrivent le passé récent du cours,
+  pas la valeur de l'entreprise : à croiser avec le prix juste.
+- **Ton journal** : ta thèse, ton objectif et ton stop sur ce titre (partie 2).
 - **À propos de l'entreprise** : sa présentation en français (traduite automatiquement, l'original anglais
   est à un toucher), son site et son effectif.
 - **Actualités** : les titres des 30 derniers jours qui citent l'entreprise (Google Actualités, en

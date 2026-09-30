@@ -21,6 +21,7 @@ import pandas as pd
 
 from .sheets import SHEETS_EPOCH, UNFORMATTED, HistoryPoint, _open_sheet, _worksheet, is_v2
 from .sheets import parse_history_v2, parse_positions_v2
+from .workbook import SHARE_TYPES
 
 ENVELOPES = ("PEA", "CTO")
 
@@ -88,8 +89,10 @@ def weekly_gain(points: list[HistoryPoint], end: date) -> dict | None:
 def reconstruct(trades: list, envelopes: dict[str, str], prices_eur: pd.DataFrame,
                 start: date, end: date) -> list[tuple[date, dict]]:
     """Valeur et investi par enveloppe, chaque jour ouvré de start à end. trades : opérations Achat /
-    Vente (realized.Operation). Sans cours connu (titre pas encore coté chez Yahoo ce jour-là), une
-    position vaut son dernier prix d'achat."""
+    Vente / Division / Actions gratuites (realized.Operation), quantités telles que saisies : les cours
+    d'eur_closes sont les cours réels de chaque jour, pas corrigés des divisions. Apple : 10 actions à
+    500 $ la veille de la division 4 pour 1 d'août 2020, 40 à 125 $ le lendemain. Sans cours connu (titre
+    pas encore coté chez Yahoo ce jour-là), une position vaut son dernier prix d'achat."""
     days = pd.bdate_range(start, end)
     if not len(days):
         return []
@@ -97,7 +100,7 @@ def reconstruct(trades: list, envelopes: dict[str, str], prices_eur: pd.DataFram
     prices.index = pd.to_datetime(prices.index).tz_localize(None).normalize()
     prices = prices[~prices.index.duplicated()].sort_index()
     prices = prices.reindex(prices.index.union(days)).ffill().reindex(days)
-    pending = sorted(trades, key=lambda op: (op.day, op.kind != "Achat"))
+    pending = sorted(trades, key=lambda op: (op.day, op.kind == "Vente"))
     holdings: dict[tuple[str, str], list[float]] = {}  # (enveloppe, titre) -> [quantité, coût]
     last_price: dict[str, float] = {}
     rows = []
@@ -110,6 +113,12 @@ def reconstruct(trades: list, envelopes: dict[str, str], prices_eur: pd.DataFram
                 position[0] += op.quantity
                 position[1] += op.net
                 last_price[op.ticker] = op.net / op.quantity
+            elif op.kind in SHARE_TYPES:
+                if position[0] > 0:  # actions reçues sans rien payer : le coût ne change pas
+                    ratio = (position[0] + op.quantity) / position[0]
+                    position[0] += op.quantity
+                    if op.ticker in last_price and ratio > 0:
+                        last_price[op.ticker] /= ratio
             elif position[0] > 0:
                 sold = min(op.quantity, position[0])
                 position[1] -= position[1] * sold / position[0]
@@ -133,7 +142,8 @@ def rebuild_history(sheet_id: str, since: date | None = None, today: date | None
     from .realized import read_ledger
 
     ledger = read_ledger(sheet_id)
-    trades = [op for op in ledger.operations if op.kind in ("Achat", "Vente") and op.quantity]
+    # Quantités telles que saisies, divisions comprises, comme les cours réels d'eur_closes
+    trades = [op for op in ledger.raw if op.kind in ("Achat", "Vente", *SHARE_TYPES) and op.quantity]
     if not trades:
         return {"rows": 0, "from": None}
     first = min(op.day for op in trades)

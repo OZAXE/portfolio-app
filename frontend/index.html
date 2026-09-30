@@ -341,7 +341,7 @@
     .iconbtn { position: relative; width: 40px; height: 40px; border-radius: 12px; background: var(--card); border: 0; color: var(--text); display: grid; place-items: center; cursor: pointer; }
     .iconbtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
     .bell-dot { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-neg); }
-    .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
     .quick button { background: var(--card); border: 0; border-radius: 14px; padding: 10px 6px; display: grid; justify-items: center; gap: 4px;
       color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
     .quick svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -405,6 +405,23 @@
     .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
     .op-grid .wide { grid-column: 1 / -1; }
+    /* Transactions : lignes de l'onglet Opérations, formulaire de correction sous la ligne touchée */
+    .tx-edit { padding: 12px 14px 14px; border-top: 1px solid var(--line); background: var(--card-2); }
+    .tx-edit .op-grid input, .tx-edit .op-grid select { background: var(--card); }
+    .tx-edit .danger { color: var(--accent-neg); }
+    .tx-tag { font-size: 11px; color: var(--muted); }
+    /* Journal de trading : carte de la fiche et formulaire */
+    .journal-card .thesis { white-space: pre-wrap; font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+    .journal-card textarea, .journal-card .op-grid input, .journal-card .op-grid select { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--text); font: inherit; font-size: 15px; padding: 8px; width: 100%; min-width: 0; box-sizing: border-box; }
+    .journal-card textarea { min-height: 84px; resize: vertical; }
+    .journal-card label.check { flex-direction: row; align-items: center; gap: 8px; }
+    .journal-card label.check input { width: auto; accent-color: var(--accent); }
+    .journal-why { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .journal-why li { margin-top: 3px; }
+    .fx-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .fx-row > span:last-child { text-align: right; white-space: nowrap; }
+    .op-ratio { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; color: var(--text); }
     .op-grid input, .op-grid select {
       background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
       font: inherit; font-size: 15px; padding: 8px; width: 100%;
@@ -593,6 +610,7 @@
           <div class="label"><span>Valeur des placements</span></div>
           <div class="value" id="total-value"></div>
           <div class="gain" id="total-gain"></div>
+          <div class="returns" id="day-change" hidden></div>
           <div class="returns" id="total-returns" hidden></div>
           <div class="envelopes" id="envelopes"></div>
           <div class="returns" id="cash-line" hidden></div>
@@ -601,6 +619,7 @@
         <div class="quick">
           <button id="op-open"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Opération</button>
           <button id="imp-open"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>Importer</button>
+          <button id="tx-open"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Transactions</button>
           <button id="goals-open"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Objectifs</button>
         </div>
         <div class="card" id="imp-panel" hidden>
@@ -626,6 +645,8 @@
             <label>Type d'ordre<select id="op-order"></select></label>
             <label class="wide">Titre (ticker Yahoo)<input id="op-ticker" list="op-tickers" placeholder="ex : MC.PA, AAPL, SAP.DE, BTC-EUR" autocomplete="off" /></label>
             <datalist id="op-tickers"></datalist>
+            <label class="wide" id="op-ratio-label" style="display:none"><span id="op-ratio-title">Parité</span>
+              <span class="op-ratio"><input id="op-ratio-new" type="number" step="any" min="0" inputmode="decimal" /><span id="op-ratio-mid">pour</span><input id="op-ratio-old" type="number" step="any" min="0" inputmode="decimal" /></span></label>
             <label><span id="op-qty-label">Quantité</span><input id="op-qty" type="number" step="any" min="0" inputmode="decimal" /></label>
             <label><span id="op-price-label">Prix unitaire</span><input id="op-price" type="number" step="any" min="0" inputmode="decimal" /></label>
             <label>Devise du prix<select id="op-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>GBp</option><option>CHF</option><option>JPY</option><option>DKK</option><option>SEK</option><option>NOK</option><option>HKD</option></select></label>
@@ -672,7 +693,7 @@
 
         <div class="ptab" data-pane="positions">
           <div class="ptools"><span class="result-count" id="positions-count" style="margin:0"></span>
-            <div class="segmented" id="positions-sort"><button data-sort="value" class="active">Valeur</button><button data-sort="perf">Perf.</button></div></div>
+            <div class="segmented" id="positions-sort"><button data-sort="value" class="active">Valeur</button><button data-sort="perf">Perf.</button><button data-sort="day">Jour</button></div></div>
           <div class="mlist" id="positions"></div>
           <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
         </div>
@@ -691,6 +712,11 @@
 
         <h2>Risque</h2>
         <div class="card" id="stats-risk"><div class="help">Chargement…</div></div>
+
+        <div id="fx-block" hidden>
+          <h2><span data-term="Effet du change">Effet du change</span></h2>
+          <div class="card" id="fx-effect"></div>
+        </div>
 
         <h2>Ce qui a fait ta performance</h2>
         <div class="card">
@@ -819,6 +845,26 @@
     <section class="view" id="view-compare" hidden>
       <div class="stock-top"><button class="back" id="compare-back" aria-label="Retour">‹</button><strong>Comparaison</strong></div>
       <div id="compare-body"></div>
+    </section>
+
+    <section class="view" id="view-transactions" hidden>
+      <div class="stock-top"><button class="back" id="tx-back" aria-label="Retour">‹</button><strong>Transactions</strong></div>
+      <div class="seg" id="tx-tabs" role="tablist" style="margin:8px 0 12px;grid-template-columns:1fr 1fr">
+        <button role="tab" data-txtab="ops" class="active">Opérations</button>
+        <button role="tab" data-txtab="journal">Journal</button>
+      </div>
+      <div id="tx-journal" hidden>
+        <p class="help">Tes thèses d'investissement : pourquoi tu as acheté, où tu comptes vendre, où tu t'arrêtes. Écris-les depuis la fiche d'une action (rubrique « Ton journal »), relis-les ici.</p>
+        <div id="journal-list"></div>
+      </div>
+      <div id="tx-ops">
+      <input class="search" id="tx-search" type="search" placeholder="Rechercher (titre, ticker, note)" autocomplete="off" />
+      <div class="filters" id="tx-kinds"></div>
+      <div class="filters"><select id="tx-account" aria-label="Compte"></select></div>
+      <div class="status" id="tx-status"></div>
+      <div id="tx-list"></div>
+      <p class="help">Touche une ligne pour la corriger ou la supprimer : l'onglet Opérations du Sheet est modifié, puis ton portefeuille et ta courbe sont recalculés.</p>
+      </div>
     </section>
 
     <!-- Briefs -->
@@ -1456,7 +1502,13 @@
     }
     function renderPositions() {
       let list = overview.holdings.filter((h) => !portfolioView.envelope || h.envelope === portfolioView.envelope);
-      list = [...list].sort(portfolioView.sort === "perf" ? (a, b) => (b.gain_pct ?? -Infinity) - (a.gain_pct ?? -Infinity) : (a, b) => (b.value || 0) - (a.value || 0));
+      const dayOf = (h) => daily?.lines?.[dailyKey(h)];
+      const sorters = {
+        perf: (a, b) => (b.gain_pct ?? -Infinity) - (a.gain_pct ?? -Infinity),
+        day: (a, b) => (dayOf(b)?.pct ?? -Infinity) - (dayOf(a)?.pct ?? -Infinity),
+        value: (a, b) => (b.value || 0) - (a.value || 0),
+      };
+      list = [...list].sort(sorters[portfolioView.sort] || sorters.value);
       document.getElementById("positions-count").innerHTML = `${list.length} ligne${list.length > 1 ? "s" : ""}`
         + (portfolioView.envelope ? ` <button class="chip on removable" data-penv="${escapeHtml(portfolioView.envelope)}">${escapeHtml(portfolioView.envelope)}</button>` : "");
       document.getElementById("positions").innerHTML = list.map((h) => {
@@ -1468,7 +1520,9 @@
             <div style="min-width:0"><div class="name">${escapeHtml(name)}</div>
               <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
             <div class="right"><span class="price">${h.value != null ? eur.format(h.value) : "N/A"}</span>
-              <span class="pill-gain ${signClass(h.gain)}">${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</span></div>
+              ${portfolioView.sort === "day"
+                ? `<span class="pill-gain ${signClass(dayOf(h)?.change)}">${dayOf(h) ? `${pctFmt.format(dayOf(h).pct ?? 0)} · ${signedEur(dayOf(h).change)}` : "N/A"}</span>`
+                : `<span class="pill-gain ${signClass(h.gain)}">${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</span>`}</div>
           </button>`;
       }).join("");
       document.querySelectorAll("#positions-sort button").forEach((b) => b.classList.toggle("active", b.dataset.sort === portfolioView.sort));
@@ -1481,6 +1535,7 @@
       const r = returns?.positions_by_envelope?.[h.envelope]?.[ticker] ?? returns?.positions?.[ticker];
       const label = returnLabel(r);
       const a = portfolioAnalyses[h.yahoo_ticker];
+      const day = daily?.lines?.[dailyKey(h)], fx = daily?.currency?.lines?.[dailyKey(h)];
       const cell = (k, v, cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
       return `<div class="poscard"><h3>Ta position${h.envelope ? ` · ${escapeHtml(h.envelope)}` : ""}</h3>
           <div class="stat">
@@ -1490,6 +1545,9 @@
             ${a?.quantity != null ? cell("Quantité", hideable(num(a.quantity, 6))) : ""}
             ${r ? cell("Gain total", signedEur(r.gain), signClass(r.gain)) : ""}
             ${label ? cell(label.term, label.text, signClass(r.xirr)) : ""}
+            ${day ? cell(`<span data-term="Variation du jour">Aujourd'hui</span>`, `${signedEur(day.change)}${day.pct != null ? ` · ${pctFmt.format(day.pct)}` : ""}`, signClass(day.change)) : ""}
+            ${fx ? cell(`<span data-term="Effet du change">Effet du change</span>`, `${signedEur(fx.effect)}`, signClass(fx.effect)) : ""}
+            ${fx?.stock_effect != null ? cell("Venu de l'action", signedEur(fx.stock_effect), signClass(fx.stock_effect)) : ""}
           </div>
           <button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button><div class="buy-chart-slot"></div>
         </div>`;
@@ -2104,6 +2162,49 @@
       renderSavings();
     }
 
+    // --- Variation du jour et effet de change (daily.py) : cours Yahoo, chargés après les positions ---
+    // Clé d'une ligne : enveloppe et ticker Yahoo, comme renvoyés par /portfolio/daily
+    let daily = null;
+    const dailyKey = (h) => `${String(h.envelope || "").toUpperCase()}|${String(h.yahoo_ticker || h.ticker).toUpperCase()}`;
+    const sessionDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    async function loadDaily() {
+      try {
+        daily = await api("/portfolio/daily");
+      } catch {
+        return;  // Yahoo injoignable : la page reste utilisable sans la variation du jour
+      }
+      renderDaily();
+      renderPositions(portfolioAnalyses);
+      renderFxEffect();
+    }
+    function renderDaily() {
+      const el = document.getElementById("day-change");
+      const t = daily?.total;
+      if (!t || !t.lines) { el.hidden = true; return; }
+      const today = new Date().toISOString().slice(0, 10);
+      const when = daily.session === today ? "Aujourd'hui" : `Séance du ${sessionDate.format(new Date(daily.session + "T12:00:00"))}`;
+      el.hidden = false;
+      el.innerHTML = `<span data-term="Variation du jour">${when}</span> : <b class="${signClass(t.change)}">${signedEur(t.change)}${t.pct != null ? ` (${pctFmt.format(t.pct)})` : ""}</b>`
+        + (t.missing.length ? ` · sans ${t.missing.map(escapeHtml).join(", ")} (cours Yahoo manquant)` : "");
+    }
+    // Onglet Perf. : part de la plus-value latente des lignes cotées en devise qui vient du taux de change
+    function renderFxEffect() {
+      const fx = daily?.currency;
+      const block = document.getElementById("fx-block");
+      if (!fx || !fx.by_currency.length) { block.hidden = true; return; }
+      block.hidden = false;
+      const lines = Object.entries(fx.lines).map(([key, l]) => {
+        const h = overview.holdings.find((x) => dailyKey(x) === key);
+        return { ...l, name: h?.name || key.split("|")[1], envelope: key.split("|")[0] };
+      }).sort((a, b) => a.effect - b.effect);
+      document.getElementById("fx-effect").innerHTML = `
+        <div class="stat">${fx.by_currency.map((c) => `<div><div class="k">${escapeHtml(c.currency)}</div><div class="v ${signClass(c.effect)}">${signedEur(c.effect)}</div>
+          <div class="help" style="margin:2px 0 0;font-size:12px">sur ${eur.format(c.value)} de titres</div></div>`).join("")}</div>
+        <div style="margin-top:10px">${lines.map((l) => `<div class="fx-row"><span>${escapeHtml(l.name)} <span class="muted">· ${escapeHtml(l.envelope)}</span></span>
+            <span><span class="${signClass(l.effect)}">${signedEur(l.effect)}</span> <span class="muted">change</span>${l.stock_effect != null ? ` · <span class="${signClass(l.stock_effect)}">${signedEur(l.stock_effect)}</span> <span class="muted">action</span>` : ""}</span></div>`).join("")}</div>
+        <p class="help" style="margin-top:10px">Part de ta plus-value latente due au taux de change : ${fx.total < 0 ? "la baisse" : "la hausse"} des devises face à l'euro depuis tes achats ${fx.total < 0 ? "t'a coûté" : "t'a rapporté"} ${hideable(eurFmt.format(Math.abs(fx.total)), "•••• €")}. Seule la devise de cotation compte : un ETF coté en euros n'en a pas, même s'il détient des actions américaines.</p>`;
+    }
+
     async function loadReturns() {
       try {
         returns = await api("/portfolio/returns");
@@ -2151,6 +2252,8 @@
       loadLookthrough();
 
       loadReturns();
+      loadDaily();
+      loadJournal();
       loadCash();
       loadDividends();
       loadPriceAlerts();
@@ -2700,6 +2803,7 @@
       const all = data.points;
       const closes = all.map((p) => p[1]);
       const ma = movingAverage(closes, MA_DAYS);
+      const ma50 = movingAverage(closes, MA_SHORT_DAYS);
       const start = new Date(all[all.length - 1][0]);
       start.setMonth(start.getMonth() - months);
       const from = Math.max(0, all.findIndex((p) => p[0] >= start.toISOString().slice(0, 10)));
@@ -2725,12 +2829,16 @@
       // Une action cotée depuis moins de 200 séances n'en a pas du tout : pas de puce
       const maAvailable = ma[ma.length - 1] != null;
       const withMa = maAvailable && lineShown("ma");
-      document.getElementById("price-lines").innerHTML = (maAvailable ? lineChip("ma", "Moyenne 200 j", cssVar("--muted")) : "")
+      const ma50Available = ma50[ma50.length - 1] != null;
+      const withMa50 = ma50Available && lineShown("ma50");
+      document.getElementById("price-lines").innerHTML = (ma50Available ? lineChip("ma50", "Moyenne 50 j", cssVar("--warn")) : "")
+        + (maAvailable ? lineChip("ma", "Moyenne 200 j", cssVar("--muted")) : "")
         + (f ? lineChip("fair", "Prix juste", cssVar("--series-pea"), fairFits ? "" : "Trop loin de la courbe sur cette période") : "");
 
       const color = change >= 0 ? cssVar("--positive") : cssVar("--accent-neg");
       const datasets = [{ label: "Cours", data: idx.map((i) => closes[i]), borderColor: color, borderWidth: 1.8, pointRadius: 0, tension: 0.1,
         fill: true, backgroundColor: color + "22" }];
+      if (withMa50) datasets.push({ label: "Moyenne 50 jours", data: idx.map((i) => ma50[i]), borderColor: cssVar("--warn"), borderWidth: 1.2, pointRadius: 0, tension: 0.1 });
       if (withMa) datasets.push({ label: "Moyenne 200 jours", data: idx.map((i) => ma[i]), borderColor: cssVar("--muted"), borderWidth: 1.2, pointRadius: 0, tension: 0.1 });
       if (fairOnChart) datasets.push({ label: "Prix juste actuel", data: idx.map(() => f.value), borderColor: cssVar("--series-pea"), borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0 });
 
@@ -2768,7 +2876,239 @@
       if (f && !fairFits) legend.push(`Prix juste actuel ${money(f.value, cur)}, trop loin de la courbe sur cette période pour y figurer.`);
       else if (fairOnChart) legend.push(`Pointillés bleus : prix juste actuel (${money(f.value, cur)}), estimation d'aujourd'hui et non historique.`);
       document.getElementById("price-legend").innerHTML = legend.join(" ");
+      // Indicateurs : sur toutes les clôtures, quelle que soit la période affichée (calculés une fois par fiche)
+      lastCloses[s.yahoo_ticker || s.ticker] = last;
+      closeCurrencies[s.yahoo_ticker || s.ticker] = cur;
+      if (techFor !== s) {
+        techFor = s;
+        document.getElementById("stock-tech").innerHTML = techBlock(technicals(all), cur);
+        if (s.minimal || s.price == null || !s.currency) renderJournalCard(s);  // cours et devise de la courbe
+      }
     }
+
+    // --- Analyse technique : indicateurs usuels calculés sur les clôtures quotidiennes de la courbe ---
+    // Indicatifs : ils décrivent le passé récent du cours, ils ne prédisent rien
+    const MA_SHORT_DAYS = 50;
+    const SESSIONS_YEAR = 252;
+    let techFor = null;
+    const lastCloses = {}, closeCurrencies = {};
+
+    // RSI de Wilder : moyenne des hausses / moyenne des baisses sur 14 séances, lissée ; 100 - 100 / (1 + rapport).
+    // 14 hausses de 1 et aucune baisse -> 100 ; autant de hausses que de baisses de même taille -> 50
+    function rsi(closes, days = 14) {
+      if (closes.length <= days) return null;
+      let gain = 0, loss = 0;
+      for (let i = 1; i <= days; i++) {
+        const d = closes[i] - closes[i - 1];
+        if (d > 0) gain += d; else loss -= d;
+      }
+      gain /= days; loss /= days;
+      for (let i = days + 1; i < closes.length; i++) {
+        const d = closes[i] - closes[i - 1];
+        gain = (gain * (days - 1) + Math.max(d, 0)) / days;
+        loss = (loss * (days - 1) + Math.max(-d, 0)) / days;
+      }
+      return loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+    }
+    // Dernier croisement des moyennes 50 et 200 jours sur l'année écoulée : { index, up } ou null
+    function lastCross(fast, slow, lookback = SESSIONS_YEAR) {
+      for (let i = fast.length - 1; i > Math.max(0, fast.length - lookback); i--) {
+        if ([fast[i], slow[i], fast[i - 1], slow[i - 1]].some((v) => v == null)) return null;
+        const now = fast[i] > slow[i], before = fast[i - 1] > slow[i - 1];
+        if (now !== before) return { index: i, up: now };
+      }
+      return null;
+    }
+    function technicals(points) {
+      const closes = points.map((p) => p[1]);
+      const n = closes.length, last = closes[n - 1];
+      const ma50 = movingAverage(closes, MA_SHORT_DAYS), ma200 = movingAverage(closes, MA_DAYS);
+      const year = closes.slice(-SESSIONS_YEAR);
+      const back = (sessions) => (n > sessions ? last / closes[n - 1 - sessions] - 1 : null);
+      const cross = lastCross(ma50, ma200);
+      return {
+        last, rsi: rsi(closes.slice(-SESSIONS_YEAR * 2)), ma50: ma50[n - 1], ma200: ma200[n - 1],
+        cross: cross ? { date: points[cross.index][0], up: cross.up } : null,
+        high: Math.max(...year), low: Math.min(...year), yearDays: year.length,
+        perf: [["1 mois", back(21)], ["3 mois", back(63)], ["6 mois", back(126)], ["1 an", back(SESSIONS_YEAR)]],
+      };
+    }
+    function techBlock(t, cur) {
+      const gap = (x) => (x ? `${last(x) >= 0 ? "+" : ""}${num(last(x) * 100)} %` : "");
+      const last = (x) => t.last / x - 1;
+      const rsiState = t.rsi == null ? null : t.rsi >= 70 ? ["surachat", "bad"] : t.rsi <= 30 ? ["survente", "good"] : ["zone neutre", "na"];
+      const trendUp = t.ma200 ? last(t.ma200) > 0.02 : null, trendDown = t.ma200 ? last(t.ma200) < -0.02 : null;
+      const color = t.ma200 == null ? "na" : trendUp ? "good" : trendDown ? "bad" : "warn";
+      const summary = [t.ma200 == null ? "Historique trop court" : trendUp ? "Tendance haussière" : trendDown ? "Tendance baissière" : "Sans tendance nette",
+        t.rsi != null ? `RSI ${num(t.rsi, 0)}` : ""].filter(Boolean).join(" · ");
+      const perf = t.perf.filter(([, v]) => v != null).map(([k, v]) => `${k} <span class="${signClass(v)}">${v >= 0 ? "+" : ""}${num(v * 100)} %</span>`).join(" · ");
+      const rows = (t.rsi != null ? fRow("RSI (14 jours)", `${num(t.rsi, 0)} · ${rsiState[0]}`, "Vitesse des dernières hausses face aux baisses, de 0 à 100 : au-dessus de 70 le cours a beaucoup monté très vite, sous 30 il a beaucoup baissé.") : "")
+        + (t.ma50 != null ? fRow("Moyenne 50 jours", `${money(t.ma50, cur)} <span class="muted">(cours ${gap(t.ma50)})</span>`, "Tendance des 2-3 derniers mois.") : "")
+        + (t.ma200 != null ? fRow("Moyenne 200 jours", `${money(t.ma200, cur)} <span class="muted">(cours ${gap(t.ma200)})</span>`, "Tendance de fond, sur environ 10 mois.") : "")
+        + (t.ma200 != null ? fRow("Croisement 50 / 200 jours", t.cross ? `<span class="${t.cross.up ? "positive" : "negative"}">${t.cross.up ? "haussier" : "baissier"}</span> le ${dayFmt.format(new Date(t.cross.date))}` : "aucun sur un an", "La moyenne courte qui passe au-dessus de la longue signale un changement de tendance (après coup).") : "")
+        + fRow("Plus haut sur 1 an", `${money(t.high, cur)} <span class="muted">(cours ${gap(t.high)})</span>`)
+        + fRow("Plus bas sur 1 an", `${money(t.low, cur)} <span class="muted">(cours ${gap(t.low)})</span>`)
+        + (perf ? fRow("Momentum", perf, "Variation du cours sur plusieurs durées : ce qui monte a tendance à continuer quelques mois, sans garantie.") : "");
+      return pillar("Analyse technique", color, summary, rows
+        + `<div class="hypotheses">Calculée sur les cours de clôture${t.yearDays < SESSIONS_YEAR ? " (moins d'un an de cotation)" : ""}. Ces indicateurs décrivent le passé récent du cours, pas la valeur de l'entreprise : à croiser avec le prix juste, jamais un signal d'achat ou de vente à eux seuls.</div>`);
+    }
+
+    // --- Journal de trading (journal.py) : une thèse par titre, objectif et stop dans la devise de cotation ---
+    let journal = null, journalEditing = null;
+    async function loadJournal() {
+      try { journal = await api("/journal"); } catch { return; }
+      if (openedStock) renderJournalCard(openedStock);
+      if (!document.getElementById("tx-journal").hidden) renderJournalList();
+    }
+    const journalOf = (ticker) => (journal || []).find((e) => e.ticker === String(ticker).toUpperCase());
+    const journalTicker = (s) => String(s.yahoo_ticker || s.ticker).toUpperCase();
+    // Écart du cours à un prix visé : objectif à 260 $ pour un cours de 230 $ -> +13 %
+    const distance = (price, now) => (price && now ? price / now - 1 : null);
+    const reviewDue = (e) => e.review && e.review <= new Date().toISOString().slice(0, 10);
+
+    function renderJournalCard(s) {
+      const el = document.getElementById("stock-journal");
+      if (!el || openedStock !== s) return;
+      const ticker = journalTicker(s);
+      const e = journalOf(ticker);
+      const cur = s.currency || closeCurrencies[ticker] || "";
+      const now = s.price ?? lastCloses[ticker];
+      if (journalEditing === ticker) { el.innerHTML = journalForm(s, e, cur); return; }
+      const cell = (k, v, sub = "", cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      const pct = (x) => (x == null ? "" : `${x >= 0 ? "+" : ""}${num(x * 100)} % du cours`);
+      const why = journalMotives(ticker);
+      if (!e) {
+        el.innerHTML = `<div class="poscard journal-card"><h3>Ton journal</h3>
+            <p class="help" style="margin-top:0">Note pourquoi tu t'intéresses à ce titre, à quel cours tu vendrais et à quel cours tu reconnaîtrais t'être trompé. Relire ses thèses est ce qui fait le plus progresser.</p>
+            ${why}<button class="btn" data-journal-edit>✍️ Écrire ta thèse</button></div>`;
+        return;
+      }
+      const target = distance(e.target, now), stop = distance(e.stop, now);
+      el.innerHTML = `<div class="poscard journal-card"><h3>Ton journal</h3>
+          ${e.thesis ? `<p class="thesis">${escapeHtml(e.thesis)}</p>` : ""}
+          <div class="stat">
+            ${e.target ? cell("Objectif", money(e.target, cur), pct(target), target != null && target <= 0 ? "positive" : "") : ""}
+            ${e.stop ? cell("Stop", money(e.stop, cur), pct(stop), stop != null && stop >= 0 ? "negative" : "") : ""}
+            ${e.horizon ? cell("Horizon", escapeHtml(e.horizon)) : ""}
+            ${e.review ? cell("Revoir le", dayFmt.format(new Date(e.review + "T12:00:00")), reviewDue(e) ? "c'est le moment de relire ta thèse" : "", reviewDue(e) ? "negative" : "") : ""}
+          </div>
+          ${target != null && target <= 0 ? `<p class="help">Objectif atteint : la thèse tient-elle toujours, ou est-ce le moment de vendre comme prévu ?</p>` : ""}
+          ${stop != null && stop >= 0 ? `<p class="help">Cours sous ton stop : qu'est-ce qui a changé depuis ton achat ?</p>` : ""}
+          ${e.outcome ? `<p class="help"><b>Bilan</b> : ${escapeHtml(e.outcome)}</p>` : ""}
+          ${why}
+          <button class="btn" data-journal-edit>Modifier</button>
+          <p class="help" style="margin-bottom:0">Mis à jour le ${e.updated ? dayFmt.format(new Date(e.updated + "T12:00:00")) : "?"}.</p></div>`;
+    }
+    // Motifs saisis à chaque opération (colonnes Pourquoi et Terme), si la liste des transactions est chargée
+    let motivesLoading = false;
+    function journalMotives(ticker) {
+      if (!transactions && !motivesLoading) {  // liste chargée une fois, puis la carte est redessinée
+        motivesLoading = true;
+        api("/transactions").then((r) => { transactions ??= r.transactions; if (openedStock) renderJournalCard(openedStock); }).catch(() => {});
+      }
+      const ops = (transactions || []).filter((t) => t.ticker === ticker && ["Achat", "Vente"].includes(t.type) && (t.why || t.term));
+      if (!ops.length) return "";
+      return `<div class="journal-why">Tes motifs :<ul>${ops.slice(0, 6).map((t) => `<li>${escapeHtml(t.type)} du ${dayFmt.format(new Date(t.date + "T12:00:00"))} : ${escapeHtml([t.why, t.term ? `terme ${t.term.toLowerCase()}` : ""].filter(Boolean).join(", "))}</li>`).join("")}</ul></div>`;
+    }
+    function journalForm(s, e, cur) {
+      const opt = (values, current) => values.map((v) => `<option ${v === current ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+      return `<div class="poscard journal-card" data-journal-form>
+          <h3>Ton journal</h3>
+          <div class="op-grid">
+            <label class="wide">Ta thèse : pourquoi ce titre ?<textarea name="thesis" maxlength="2000" placeholder="Ce que tu crois que le marché n'a pas encore vu, ce qui te ferait changer d'avis…">${escapeHtml(e?.thesis || "")}</textarea></label>
+            <label>Objectif de vente${cur ? ` (${escapeHtml(cur)})` : ""}<input name="target" type="number" step="any" min="0" inputmode="decimal" value="${e?.target ?? ""}" /></label>
+            <label>Stop${cur ? ` (${escapeHtml(cur)})` : ""}<input name="stop" type="number" step="any" min="0" inputmode="decimal" value="${e?.stop ?? ""}" /></label>
+            <label>Horizon<select name="horizon">${opt(["", "Court", "Moyen", "Long"], e?.horizon || "")}</select></label>
+            <label>Revoir le<input name="review" type="date" value="${escapeHtml(e?.review || "")}" /></label>
+            <label class="wide">Bilan (après la vente : qu'est-ce qui s'est passé comme prévu, ou pas ?)<textarea name="outcome" maxlength="2000">${escapeHtml(e?.outcome || "")}</textarea></label>
+            <label class="wide check"><input type="checkbox" name="alerts" checked />Me prévenir quand le cours atteint l'objectif ou le stop (alertes de prix)</label>
+          </div>
+          <button class="btn" data-journal-save>Enregistrer</button>
+          ${e ? `<button class="btn danger" data-journal-delete>Supprimer</button>` : ""}
+          <button class="btn" data-journal-cancel>Annuler</button>
+          <p class="help" data-journal-status></p></div>`;
+    }
+    async function saveJournal(form, s) {
+      const status = form.querySelector("[data-journal-status]");
+      const value = (name) => form.querySelector(`[name=${name}]`).value;
+      const ticker = journalTicker(s);
+      const entry = { ticker, thesis: value("thesis"), target: value("target"), stop: value("stop"), horizon: value("horizon"),
+        review: value("review"), outcome: value("outcome") };
+      status.textContent = "Enregistrement…";
+      try {
+        journal = await postJson("/journal", entry);
+      } catch (err) { status.textContent = err.message; return; }
+      if (form.querySelector("[name=alerts]").checked) await journalAlerts(ticker, journalOf(ticker));
+      journalEditing = null;
+      renderJournalCard(s);
+    }
+    // Alertes de prix sur l'objectif (au-dessus) et le stop (en dessous), sans doublon d'une alerte active identique
+    async function journalAlerts(ticker, e) {
+      const wanted = [["Au-dessus", e?.target, "Journal : objectif"], ["Sous", e?.stop, "Journal : stop"]].filter(([, price]) => price);
+      for (const [direction, price, note] of wanted) {
+        const exists = priceAlerts.some((a) => a.ticker === ticker && a.direction === direction && Math.abs(a.price - price) < 1e-9 && !a.triggered);
+        if (exists) continue;
+        try { priceAlerts = await apiSend("POST", "/price-alerts", { ticker, direction, price, note }); } catch { /* le journal reste enregistré */ }
+      }
+      renderPriceAlerts();
+    }
+    document.getElementById("stock-body").addEventListener("click", async (e) => {
+      const s = openedStock;
+      if (!s) return;
+      if (e.target.closest("[data-journal-edit]")) { journalEditing = journalTicker(s); renderJournalCard(s); return; }
+      if (e.target.closest("[data-journal-cancel]")) { journalEditing = null; renderJournalCard(s); return; }
+      const form = e.target.closest("[data-journal-form]");
+      if (form && e.target.closest("[data-journal-save]")) saveJournal(form, s);
+      if (form && e.target.closest("[data-journal-delete]") && confirm("Supprimer ta thèse sur ce titre ? (les alertes de prix restent, à retirer sous la cloche)")) {
+        try { journal = await apiSend("DELETE", `/journal/${encodeURIComponent(journalTicker(s))}`); } catch (err) { form.querySelector("[data-journal-status]").textContent = err.message; return; }
+        journalEditing = null;
+        renderJournalCard(s);
+      }
+    });
+
+    // Onglet Journal de l'écran Transactions : toutes les thèses, écart du cours à l'objectif et au stop,
+    // et pour un titre vendu, ce que ses ventes ont rapporté (plus-values réalisées)
+    function renderJournalList() {
+      const el = document.getElementById("journal-list");
+      if (!journal) { el.innerHTML = `<p class="help">Chargement…</p>`; loadJournal(); return; }
+      if (!journal.length) { el.innerHTML = `<p class="help">Aucune thèse pour le moment.</p>`; return; }
+      const held = new Map((overview?.holdings || []).map((h) => [String(h.yahoo_ticker || h.ticker).toUpperCase(), h]));
+      const sales = (realized?.years || []).flatMap((y) => y.sales);
+      el.innerHTML = `<div class="mlist">${journal.map((e) => {
+        const stock = market?.stocks?.find((x) => x.ticker === e.ticker);
+        const h = held.get(e.ticker);
+        const now = stock?.price ?? lastCloses[e.ticker];
+        const cur = stock?.currency || closeCurrencies[e.ticker] || "";
+        const parts = [e.horizon ? `terme ${e.horizon.toLowerCase()}` : "",
+          e.target ? `objectif ${money(e.target, cur)}${now ? ` (${pctFmt.format(distance(e.target, now))})` : ""}` : "",
+          e.stop ? `stop ${money(e.stop, cur)}${now ? ` (${pctFmt.format(distance(e.stop, now))})` : ""}` : ""].filter(Boolean);
+        const gain = sales.filter((x) => x.ticker === e.ticker).reduce((a, x) => a + x.gain, 0);
+        const sold = !h && sales.some((x) => x.ticker === e.ticker);
+        const right = h ? `<span class="price">${h.gain_pct != null ? `<span class="${signClass(h.gain)}">${pctFmt.format(h.gain_pct)}</span>` : ""}</span><span class="sub">en portefeuille</span>`
+          : sold ? `<span class="price ${signClass(gain)}">${signedEur(gain)}</span><span class="sub">vendu</span>` : `<span class="sub">idée</span>`;
+        return `<button class="mrow" data-journal-open="${escapeHtml(e.ticker)}" data-envelope="${escapeHtml(h?.envelope || "")}">
+            ${avatar({ ticker: e.ticker, name: stock?.name || h?.name || e.ticker })}
+            <div style="min-width:0"><div class="name">${escapeHtml(stock?.name || h?.name || e.ticker)}${reviewDue(e) ? ` <span class="negative" style="font-size:12px">· à revoir</span>` : ""}</div>
+              <div class="sub">${parts.join(" · ") || "pas d'objectif ni de stop"}</div>
+              <div class="sub">${escapeHtml(e.outcome || e.thesis || "")}</div></div>
+            <div class="right">${right}</div></button>`;
+      }).join("")}</div>`;
+    }
+    document.getElementById("journal-list").addEventListener("click", (e) => {
+      const row = e.target.closest("[data-journal-open]");
+      if (!row) return;
+      const ticker = row.dataset.journalOpen;
+      if (overview?.holdings?.some((h) => h.ticker === ticker && (h.envelope || "") === row.dataset.envelope)) openPosition(ticker, row.dataset.envelope);
+      else openStockByTicker(ticker);
+    });
+    document.getElementById("tx-tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-txtab]");
+      if (!b) return;
+      document.querySelectorAll("#tx-tabs button").forEach((x) => x.classList.toggle("active", x === b));
+      document.getElementById("tx-journal").hidden = b.dataset.txtab !== "journal";
+      document.getElementById("tx-ops").hidden = b.dataset.txtab === "journal";
+      if (b.dataset.txtab === "journal") renderJournalList();
+    });
 
     document.getElementById("view-stock").addEventListener("click", (e) => {
       const b = e.target.closest("#price-periods button[data-period]");
@@ -2884,12 +3224,16 @@
         ${s.minimal ? "" : `<div class="bigprice">${money(s.price, s.currency)}</div>`}
         <div id="compare-open-slot"></div>
         ${priceChartBlock()}
+        <div class="analysis fiche" id="stock-tech"></div>
+        <div id="stock-journal"></div>
         <div id="stock-about"></div>
         <div id="stock-news"></div>
         ${s.minimal ? `<div class="analysis fiche">${extraRows}</div>` : renderStockDetail(s, extraRows, showDates)}`;
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-stock"));
       window.scrollTo(0, 0);
+      techFor = null;
       loadPriceChart(s);
+      renderJournalCard(s);
       loadProfile(s);
       loadNews(s);
       renderCompareButton();
@@ -3884,13 +4228,23 @@
       Intérêts: "rémunération des espèces versée par le courtier (montant brut, et en taxes ce qu'il a déjà prélevé)",
     };
     const TRADE_ONLY_FIELDS = ["op-order", "op-ticker", "op-qty", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
+    // Division, actions gratuites : actions reçues sans rien payer (même liste que workbook.SHARE_TYPES)
+    const SHARE_TYPES = ["Division", "Actions gratuites"];
+    const SHARE_HIDDEN_FIELDS = ["op-order", "op-price", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
 
     function updateOperationForm() {
       const type = opEl("op-type").value;
-      const cashType = CASH_TYPES.includes(type);
+      const cashType = CASH_TYPES.includes(type), shareType = SHARE_TYPES.includes(type);
       // display plutôt que hidden : la grille du formulaire impose display aux libellés
       // Intérêts : les prélèvements déjà faits par le courtier restent saisissables (estimation d'impôt)
-      for (const id of TRADE_ONLY_FIELDS) opEl(id).closest("label").style.display = cashType && !(id === "op-taxes" && type === "Intérêts") ? "none" : "";
+      for (const id of new Set([...TRADE_ONLY_FIELDS, ...SHARE_HIDDEN_FIELDS])) {
+        const hidden = cashType ? TRADE_ONLY_FIELDS.includes(id) && !(id === "op-taxes" && type === "Intérêts")
+          : shareType && SHARE_HIDDEN_FIELDS.includes(id);
+        opEl(id).closest("label").style.display = hidden ? "none" : "";
+      }
+      opEl("op-ratio-label").style.display = shareType ? "" : "none";
+      if (!shareType) opEl("op-qty").classList.remove("auto");
+      if (shareType) { updateShareForm(type); return; }
       if (cashType) {
         opEl("op-price-label").textContent = type === "Intérêts" ? "Montant brut €" : "Montant €";
         if (!opEdited.has("op-taxes")) opEl("op-taxes").value = 0;
@@ -3913,6 +4267,33 @@
           + (type === "Dividende" ? " · indique en taxes la retenue à la source ou le prélèvement" : "")
           + " · les champs en pointillés sont calculés, tu peux les corriger."
         : "";
+    }
+
+    // Actions reçues = quantité détenue x parité (division 4 pour 1 : 10 -> 40, donc 30 reçues ; actions gratuites
+    // 1 pour 10 : 20 -> 2 reçues ; regroupement 1 pour 10 : 100 -> 10, donc -90), d'après la quantité actuelle
+    function updateShareForm(type) {
+      const split = type === "Division";
+      const ticker = opEl("op-ticker").value.trim().toUpperCase();
+      const held = (opSettings.holdings || []).find((h) => h.account === opEl("op-account").value && h.ticker === ticker)?.quantity || 0;
+      opEl("op-qty-label").textContent = "Actions reçues";
+      opEl("op-ratio-title").textContent = split ? "Parité : nouvelles actions pour une ancienne (regroupement : 1 pour 10)" : "Parité : actions gratuites reçues pour tant d'actions détenues";
+      opEl("op-ratio-new").placeholder = split ? "4" : "1";
+      opEl("op-ratio-old").placeholder = split ? "1" : "10";
+      const a = opNum("op-ratio-new"), b = opNum("op-ratio-old");
+      if (!opEdited.has("op-qty") && held && a && b) {
+        opEl("op-qty").value = +((split ? held * a / b - held : held * a / b).toFixed(6));
+        opEl("op-qty").classList.add("auto");
+      }
+      const received = opNum("op-qty");
+      if (!held) {
+        opEl("op-summary").textContent = ticker ? `Aucune action ${ticker} sur ce compte : choisis le titre et le compte concernés.` : "Choisis le titre et le compte concernés.";
+        return;
+      }
+      opEl("op-summary").textContent = `Tu détiens ${num(held, 6)} action${held > 1 ? "s" : ""} sur ce compte`
+        + (received ? `, ${num(held + received, 6)} après l'opération` : "")
+        + ". Le montant investi ne change pas : ton PRU baisse d'autant."
+        + (split ? "" : " Si ton courtier ne gère pas les fractions, arrondis à l'entier inférieur (les rompus sont payés en espèces).")
+        + " Calculé sur ta quantité actuelle : corrige le nombre reçu si tu as acheté ou vendu depuis.";
     }
 
     async function refreshFx() {
@@ -3946,7 +4327,7 @@
         if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
         status.textContent = `Enregistré (ligne ${body.row} de l'onglet Opérations)${body.new_ticker ? ", nouveau titre ajouté à l'onglet Titres" : ""}. Mise à jour du portefeuille…`;
         opSettings = null;  // titres et barèmes relus à la prochaine saisie
-        ["op-qty", "op-price", "op-why", "op-note", "op-ticker"].forEach((id) => (opEl(id).value = ""));
+        ["op-qty", "op-price", "op-why", "op-note", "op-ticker", "op-ratio-new", "op-ratio-old"].forEach((id) => (opEl(id).value = ""));
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
         // Opération passée : la courbe est recalculée depuis cette date (les espèces n'y figurent pas)
@@ -4145,11 +4526,11 @@
         <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
-            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))}${CASH_TYPES.includes(o.type) ? "" : ` · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}`}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))}${CASH_TYPES.includes(o.type) ? "" : SHARE_TYPES.includes(o.type) ? ` · ${hideable(num(o.quantity, 6))} action${o.quantity > 1 ? "s" : ""} reçue${o.quantity > 1 ? "s" : ""}` : ` · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}`}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
               ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${o.account && o.account !== opEl("imp-account").value ? ` · <b>${escapeHtml(o.account)}</b>` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${["no_ticker", "no_account"].includes(o.status) ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
-          <div class="right">${eur.format(o.quantity * o.price)}</div>
+          <div class="right">${SHARE_TYPES.includes(o.type) ? "" : eur.format(o.quantity * o.price)}</div>
         </div>`).join("");
       updateImportButton();
     }
@@ -4218,10 +4599,228 @@
     opEl("op-submit").addEventListener("click", submitOperation);
     opEl("op-currency").addEventListener("change", refreshFx);
     opEl("op-form").addEventListener("input", (e) => {
-      if (["op-fees", "op-taxes", "op-fx"].includes(e.target.id)) { opEdited.add(e.target.id); e.target.classList.remove("auto"); }
+      const edited = ["op-fees", "op-taxes", "op-fx"].includes(e.target.id) || (e.target.id === "op-qty" && SHARE_TYPES.includes(opEl("op-type").value));
+      if (edited) { opEdited.add(e.target.id); e.target.classList.remove("auto"); }
+      if (["op-ratio-new", "op-ratio-old", "op-ticker"].includes(e.target.id)) opEdited.delete("op-qty");
       updateOperationForm();
     });
-    opEl("op-form").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") updateOperationForm(); });
+    opEl("op-form").addEventListener("change", (e) => {
+      if (e.target.tagName !== "SELECT") return;
+      if (e.target.id === "op-type" || e.target.id === "op-account") opEdited.delete("op-qty");
+      updateOperationForm();
+    });
+
+    // --- Transactions : toutes les lignes de l'onglet Opérations, à corriger ou supprimer (transactions.py) ---
+    // Chaque ligne garde son numéro et son empreinte (key) : le serveur refuse d'écrire si le Sheet a bougé
+    let transactions = null, txReturn = null, txOpen = null;
+    const txFilter = { kind: "", account: "", query: "" };
+    const TX_KINDS = [["", "Tout"], ["trade", "Achats et ventes"], ["Dividende", "Dividendes"], ["cash", "Espèces"], ["share", "Divisions"]];
+    const txMonth = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+    const txDay = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+    async function openTransactions() {
+      const current = [...document.querySelectorAll(".view")].find((v) => !v.hidden);
+      txReturn = { view: current?.id, scroll: window.scrollY };
+      history.pushState({ transactions: true }, "", location.hash || location.pathname);
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-transactions"));
+      window.scrollTo(0, 0);
+      txOpen = null;
+      await loadTransactions();
+    }
+    function closeTransactions() {
+      const { view, scroll } = txReturn;
+      txReturn = null;
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
+      window.scrollTo(0, scroll);
+    }
+    // Retour depuis une fiche ouverte dans le journal : on retombe sur l'entrée { transactions }, qui reste ouverte
+    window.addEventListener("popstate", (e) => { if (txReturn && !e.state?.transactions && !stockReturn && !compareReturn) closeTransactions(); });
+
+    async function loadTransactions() {
+      const status = document.getElementById("tx-status");
+      status.textContent = "Chargement de tes opérations…";
+      try {
+        const [list, s] = await Promise.all([api("/transactions"), opSettings ? opSettings : api("/settings")]);
+        transactions = list.transactions;
+        opSettings = s;
+        status.textContent = "";
+      } catch (e) {
+        status.textContent = e.message;
+        return;
+      }
+      const accounts = [...new Set(transactions.map((t) => t.account).filter(Boolean))].sort();
+      if (txFilter.account && !accounts.includes(txFilter.account)) txFilter.account = "";
+      document.getElementById("tx-account").innerHTML = `<option value="">Tous les comptes</option>`
+        + accounts.map((a) => `<option ${a === txFilter.account ? "selected" : ""}>${escapeHtml(a)}</option>`).join("");
+      renderTransactions();
+    }
+
+    function txKind(t) {
+      return CASH_TYPES.includes(t.type) ? "cash" : SHARE_TYPES.includes(t.type) ? "share" : ["Achat", "Vente"].includes(t.type) ? "trade" : t.type;
+    }
+    function txMatches(t) {
+      if (txFilter.kind && txKind(t) !== txFilter.kind) return false;
+      if (txFilter.account && t.account !== txFilter.account) return false;
+      const q = txFilter.query.trim().toLowerCase();
+      return !q || [t.ticker, t.name, t.note, t.why, t.type].some((v) => String(v || "").toLowerCase().includes(q));
+    }
+    // Montant vu du compte : un achat ou un retrait sort (−), une vente, un dividende, un versement entrent (+)
+    function txAmount(t) {
+      if (SHARE_TYPES.includes(t.type)) return `<span class="price muted">${t.quantity > 0 ? "+" : ""}${hideable(num(t.quantity, 6))} act.</span>`;
+      const amount = t.net ?? t.gross ?? (t.quantity || 1) * (t.price || 0);
+      const out = t.type === "Achat" || t.type === "Retrait";
+      return `<span class="price">${out ? "−" : "+"}${eur.format(Math.abs(amount))}</span>`;
+    }
+    function txDetail(t) {
+      if (CASH_TYPES.includes(t.type)) return t.note || t.account;
+      if (SHARE_TYPES.includes(t.type)) return t.note || "actions reçues sans rien payer";
+      const unit = t.currency && t.currency !== "EUR" ? ` ${t.currency}` : " €";
+      return t.type === "Dividende"
+        ? `${hideable(num(t.quantity, 6))} act. × ${num(t.price, 4)}${unit}`
+        : `${hideable(num(t.quantity, 6))} × ${num(t.price, 4)}${unit}${t.fees ? ` · frais ${eur.format(t.fees)}` : ""}`;
+    }
+    function txRow(t) {
+      const label = t.ticker ? (t.name || t.ticker) : t.type;
+      const icon = t.ticker ? avatar({ ticker: t.ticker, name: t.name }) : `<div class="avatar" style="background:var(--card-2);color:var(--muted)">€</div>`;
+      const tags = [t.why, t.term ? `terme ${t.term.toLowerCase()}` : ""].filter(Boolean).join(" · ");
+      return `<button class="mrow" data-tx="${t.row}">
+          ${icon}
+          <div style="min-width:0"><div class="name">${escapeHtml(label)}</div>
+            <div class="sub">${escapeHtml(t.type)} · ${escapeHtml(txDay.format(new Date(t.date + "T12:00:00")))} · ${escapeHtml(t.account)}</div>
+            <div class="sub">${txDetail(t)}${tags ? ` · <span class="tx-tag">${escapeHtml(tags)}</span>` : ""}</div></div>
+          <div class="right">${txAmount(t)}</div>
+        </button>${txOpen === t.row ? txEditForm(t) : ""}`;
+    }
+
+    function renderTransactions() {
+      document.getElementById("tx-kinds").innerHTML = TX_KINDS.map(([k, label]) =>
+        `<button class="chip ${txFilter.kind === k ? "on" : ""}" data-tx-kind="${k}">${label}</button>`).join("");
+      if (!transactions) return;
+      const list = transactions.filter(txMatches);
+      const status = document.getElementById("tx-status");
+      status.textContent = transactions.length ? `${list.length} opération${list.length > 1 ? "s" : ""}${list.length < transactions.length ? ` sur ${transactions.length}` : ""}` : "Aucune opération pour le moment : ajoute-en une ou importe tes relevés.";
+      const months = new Map();
+      for (const t of list) {
+        const key = t.date.slice(0, 7);
+        if (!months.has(key)) months.set(key, []);
+        months.get(key).push(t);
+      }
+      document.getElementById("tx-list").innerHTML = [...months].map(([key, items]) =>
+        `<h2>${escapeHtml(txMonth.format(new Date(key + "-15T12:00:00")))}</h2><div class="mlist">${items.map(txRow).join("")}</div>`).join("");
+    }
+
+    // Formulaire de correction : mêmes champs que la saisie, affichés selon le type (espèces, division, titre)
+    function txEditForm(t) {
+      const opt = (values, current) => values.map((v) => `<option ${v === current ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+      const types = opSettings?.operation_types || [t.type];
+      const accounts = (opSettings?.accounts || []).map((a) => a.name);
+      if (t.account && !accounts.includes(t.account)) accounts.push(t.account);
+      const currencies = ["EUR", "USD", "GBP", "GBp", "CHF", "JPY", "DKK", "SEK", "NOK", "HKD"];
+      if (t.currency && !currencies.includes(t.currency)) currencies.push(t.currency);
+      const field = (f, label, input) => `<label data-f="${f}">${label}${input}</label>`;
+      const numInput = (name, value) => `<input name="${name}" type="number" step="any" inputmode="decimal" value="${value ?? ""}" />`;
+      return `<div class="tx-edit" data-tx-form="${t.row}">
+          <div class="op-grid">
+            ${field("all", "Type", `<select name="type">${opt(types, t.type)}</select>`)}
+            ${field("all", "Date", `<input name="date" type="date" value="${escapeHtml(t.date)}" />`)}
+            ${field("all", "Compte", `<select name="account">${opt(accounts, t.account)}</select>`)}
+            ${field("trade", "Type d'ordre", `<select name="order_type"><option></option>${opt(opSettings?.order_types || [], t.order_type)}</select>`)}
+            ${field("titre", "Titre (ticker Yahoo)", `<input name="ticker" value="${escapeHtml(t.ticker)}" autocomplete="off" />`)}
+            ${field("titre", `<span data-qty-label>Quantité</span>`, numInput("quantity", t.quantity))}
+            ${field("price", `<span data-price-label>Prix unitaire</span>`, numInput("price", t.price))}
+            ${field("trade", "Devise du prix", `<select name="currency">${opt(currencies, t.currency || "EUR")}</select>`)}
+            ${field("trade", "Taux de change", numInput("fx", t.fx ?? 1))}
+            ${field("trade", "Frais €", numInput("fees", t.fees))}
+            ${field("taxes", "Taxes €", numInput("taxes", t.taxes))}
+            ${field("trade", "Pourquoi", `<input name="why" value="${escapeHtml(t.why)}" />`)}
+            ${field("trade", "Terme", `<select name="term">${opt(["", "Court", "Moyen", "Long"], t.term)}</select>`)}
+            <label class="wide" data-f="all">Note<input name="note" value="${escapeHtml(t.note)}" /></label>
+          </div>
+          <button class="btn" data-tx-save>Enregistrer</button>
+          <button class="btn danger" data-tx-delete>Supprimer</button>
+          <button class="btn" data-tx-cancel>Fermer</button>
+          <p class="help" data-tx-status>Ligne ${t.row} de l'onglet Opérations.</p>
+        </div>`;
+    }
+    // Champs visibles selon le type choisi : espèces (montant, et taxes pour les intérêts), division (titre et
+    // actions reçues), achat / vente / dividende (tout)
+    function updateTxForm(form) {
+      const type = form.querySelector("[name=type]").value;
+      const cash = CASH_TYPES.includes(type), share = SHARE_TYPES.includes(type);
+      const shown = { all: true, trade: !cash && !share, titre: !cash, price: !share, taxes: !share && (!cash || type === "Intérêts") };
+      form.querySelectorAll("[data-f]").forEach((l) => (l.style.display = shown[l.dataset.f] ? "" : "none"));
+      form.querySelector("[data-qty-label]").textContent = share ? "Actions reçues" : type === "Dividende" ? "Nombre d'actions" : "Quantité";
+      form.querySelector("[data-price-label]").textContent = cash ? (type === "Intérêts" ? "Montant brut €" : "Montant €") : type === "Dividende" ? "Dividende par action" : "Prix unitaire";
+    }
+
+    async function saveTransaction(form) {
+      const t = transactions.find((x) => x.row === Number(form.dataset.txForm));
+      const value = (name) => form.querySelector(`[name=${name}]`).value;
+      const number = (name) => parseFloat(String(value(name)).replace(",", ".")) || 0;
+      const operation = {
+        type: value("type"), date: value("date"), account: value("account"), order_type: value("order_type") || "Ordre",
+        ticker: value("ticker").trim().toUpperCase(), quantity: number("quantity"), price: number("price"), amount: number("price"),
+        currency: value("currency"), fx: number("fx") || 1, fees: number("fees"), taxes: number("taxes"),
+        why: value("why"), term: value("term"), note: value("note"),
+      };
+      await txWrite(form, "/transactions/update", { row: t.row, key: t.key, operation }, "Correction enregistrée",
+        [t.date, operation.date], !(CASH_TYPES.includes(t.type) && CASH_TYPES.includes(operation.type)));
+    }
+    async function deleteTransaction(form) {
+      const t = transactions.find((x) => x.row === Number(form.dataset.txForm));
+      const what = t.ticker ? `${t.type} ${t.name || t.ticker} du ${txDay.format(new Date(t.date + "T12:00:00"))}` : `${t.type} du ${txDay.format(new Date(t.date + "T12:00:00"))}`;
+      if (!confirm(`Supprimer « ${what} » de l'onglet Opérations ?`)) return;
+      await txWrite(form, "/transactions/delete", { row: t.row, key: t.key }, "Opération supprimée", [t.date], !CASH_TYPES.includes(t.type));
+    }
+    // Après l'écriture : liste et portefeuille relus ; une opération sur titre passée recalcule la courbe
+    // depuis la plus ancienne des deux dates (ancienne et nouvelle)
+    async function txWrite(form, path, payload, done, dates, rebuild) {
+      const status = form.querySelector("[data-tx-status]");
+      form.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      status.textContent = "Enregistrement…";
+      try {
+        await postJson(path, payload);
+      } catch (e) {
+        status.textContent = e.message;
+        form.querySelectorAll("button").forEach((b) => (b.disabled = false));
+        return;
+      }
+      txOpen = null;
+      opSettings = null;  // quantités détenues et titres relus
+      await loadTransactions();
+      document.getElementById("tx-status").textContent = `${done}. Mise à jour du portefeuille…`;
+      loadPortfolio();
+      const since = dates.filter(Boolean).sort()[0];
+      if (rebuild && since && since < new Date().toISOString().slice(0, 10)) rebuildHistory(since);
+    }
+
+    document.getElementById("tx-open").addEventListener("click", openTransactions);
+    document.getElementById("tx-back").addEventListener("click", () => history.back());
+    document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
+    document.getElementById("tx-account").addEventListener("change", (e) => { txFilter.account = e.target.value; renderTransactions(); });
+    document.getElementById("tx-kinds").addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-tx-kind]");
+      if (chip) { txFilter.kind = chip.dataset.txKind; renderTransactions(); }
+    });
+    document.getElementById("tx-list").addEventListener("click", (e) => {
+      const form = e.target.closest("[data-tx-form]");
+      if (form) {
+        if (e.target.closest("[data-tx-save]")) saveTransaction(form);
+        else if (e.target.closest("[data-tx-delete]")) deleteTransaction(form);
+        else if (e.target.closest("[data-tx-cancel]")) { txOpen = null; renderTransactions(); }
+        return;
+      }
+      const row = e.target.closest("[data-tx]");
+      if (!row) return;
+      txOpen = txOpen === Number(row.dataset.tx) ? null : Number(row.dataset.tx);
+      renderTransactions();
+      const opened = document.querySelector(`[data-tx-form="${txOpen}"]`);
+      if (opened) updateTxForm(opened);
+    });
+    document.getElementById("tx-list").addEventListener("change", (e) => {
+      const form = e.target.closest("[data-tx-form]");
+      if (form && e.target.name === "type") updateTxForm(form);
+    });
 
     // --- Plus-values réalisées et dividendes perçus, par année ---
     let realized = null;
@@ -4465,6 +5064,14 @@
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
         "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "RSI (14 jours)": "<p>Indice de force relative : compare l'ampleur des hausses et des baisses des 14 dernières séances, de 0 à 100.</p><p>Au-dessus de 70, on parle de <b>surachat</b> : le cours a beaucoup monté très vite, une pause ou un repli suit souvent. Sous 30, de <b>survente</b>. Entre les deux, rien de particulier.</p><p>Une action solide peut rester « en surachat » des semaines pendant une forte hausse : c'est un thermomètre, pas un signal de vente.</p>",
+        "Moyenne 50 jours": "<p>Moyenne des 50 dernières clôtures (environ 2 mois et demi de bourse) : la tendance récente, plus réactive que la moyenne 200 jours.</p>",
+        "Croisement 50 / 200 jours": "<p>Quand la moyenne 50 jours passe au-dessus de la moyenne 200 jours (croisement haussier, « golden cross »), la tendance récente dépasse la tendance de fond ; en dessous, c'est un croisement baissier (« death cross »).</p><p>Il arrive toujours après le mouvement, et donne souvent de faux signaux quand le cours fait du surplace.</p>",
+        "Plus haut sur 1 an": "<p>Plus haute clôture des 252 dernières séances, et l'écart du cours actuel avec elle : −30 % veut dire que l'action a perdu 30 % depuis son sommet de l'année.</p>",
+        "Plus bas sur 1 an": "<p>Plus basse clôture des 252 dernières séances, et l'écart du cours actuel avec elle.</p>",
+        "Momentum": "<p>Variation du cours sur 1, 3, 6 et 12 mois. Les études montrent qu'une action qui a bien monté sur 6 à 12 mois a tendance à continuer quelques mois (effet momentum), sans que ce soit une règle.</p><p>À croiser avec la valorisation : une forte hausse peut aussi avoir rendu l'action chère.</p>",
+        "Variation du jour": "<p>Ce que ton portefeuille a gagné ou perdu depuis la clôture précédente de chaque titre, en euros, taux de change compris (cours Yahoo, mis à jour toutes les 10 minutes environ).</p><p>Une ligne achetée pendant la séance ne compte que ce qu'elle a gagné depuis ton achat, frais compris : un achat du jour n'est pas une hausse. Le week-end, c'est la variation de la dernière séance.</p><p>Chaque place a ses horaires : le matin, une action américaine affiche encore la variation de la veille.</p>",
+        "Effet du change": "<p>Part de ta plus-value latente qui vient du taux de change, pour les titres cotés dans une autre devise que l'euro.</p><p>Exemple : 10 actions Apple achetées 2 000 € quand 1 $ valait 0,92 € (2 174 $). Elles valent 2 300 $, soit 1 978 € à 0,86 € : au taux d'achat, elles vaudraient 2 116 €. Le change t'a coûté 138 €, l'action t'a rapporté 116 € : au total, −22 €.</p><p>Taux d'achat : celui du jour de chaque achat (Yahoo). Seule la devise de cotation compte : un ETF coté en euros qui détient des actions américaines n'a pas d'effet du change ici, alors qu'il subit bien celui du dollar.</p>",
         "Volatilité": "<p>Amplitude habituelle des variations de ton portefeuille, sur un an (écart-type des variations quotidiennes, × √252 jours de bourse).</p><p>Repères : 15 % environ pour le MSCI World, 20 à 25 % pour un portefeuille de quelques actions, plus de 30 % pour des valeurs de croissance ou des cryptos. Plus elle est haute, plus les baisses peuvent être fortes et rapides.</p>",
         "Pire baisse": "<p>La plus forte chute de ton portefeuille depuis un sommet (max drawdown), apports neutralisés : de ton plus haut à ton plus bas qui a suivi.</p><p>C'est la question « quelle baisse ai-je déjà encaissée ? ». Le MSCI World a perdu environ 34 % en mars 2020 et 17 % en 2022. « Effacée » : tu es depuis repassé au-dessus de ce sommet.</p>",
         "Sous le sommet": "<p>Écart entre la performance actuelle et ton plus haut historique (apports neutralisés). 0 : tu es au sommet.</p>",

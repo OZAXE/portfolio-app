@@ -532,6 +532,27 @@ def get_returns(user: User = Depends(require_access)):
     return _sheet_call(lambda: returns_summary(user.sheet_id))
 
 
+# --- Variation du jour et effet de change (daily.py) : cours Yahoo gardés 10 min, recalculés après une écriture ---
+DAILY_CACHE_SECONDS = 600
+_daily_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+@app.get("/portfolio/daily")
+def get_daily(user: User = Depends(require_access)):
+    from .daily import portfolio_daily
+    from .sheets import cache_generation
+
+    key = (user.sheet_id, cache_generation())
+    cached = _daily_cache.get(key)
+    if cached and time.monotonic() - cached[0] < DAILY_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: portfolio_daily(user.sheet_id))
+    if len(_daily_cache) > 200:
+        _daily_cache.clear()
+    _daily_cache[key] = (time.monotonic(), result)
+    return result
+
+
 # --- Dividendes à venir (historique Yahoo de chaque titre : une requête par titre, gardé 12 h) ---
 DIVIDENDS_CACHE_SECONDS = 12 * 3600
 _dividends_cache: dict[str, tuple[float, dict | None]] = {}
@@ -595,6 +616,36 @@ def post_delete_operations(payload: dict = Body(...), user: User = Depends(requi
     return result
 
 
+# Écran Transactions : liste, modification et suppression d'une ligne de l'onglet Opérations (transactions.py)
+@app.get("/transactions")
+def get_transactions(user: User = Depends(require_access)):
+    from .transactions import list_transactions
+
+    return _operation_call(lambda: list_transactions(user.sheet_id))
+
+
+@app.post("/transactions/update")
+def post_update_transaction(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .transactions import update_transaction
+
+    operation = payload.get("operation") or {}
+    ticker = str(operation.get("ticker") or "").strip().upper()
+    stock = next((s for s in (_screener_data("screener.json") or {}).get("stocks", []) if s["ticker"] == ticker), {})
+    result = _operation_call(lambda: update_transaction(user.sheet_id, int(payload.get("row") or 0), str(payload.get("key") or ""),
+                                                        operation, stock.get("sector", ""), stock.get("country", "")))
+    _forget_operations(user.sheet_id)
+    return result
+
+
+@app.post("/transactions/delete")
+def post_delete_transaction(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .transactions import delete_transaction
+
+    result = _operation_call(lambda: delete_transaction(user.sheet_id, int(payload.get("row") or 0), str(payload.get("key") or "")))
+    _forget_operations(user.sheet_id)
+    return result
+
+
 # Repartir de zéro (avec sauvegarde dans le Sheet) et annulation, voir reset.py
 @app.post("/operations/reset")
 def post_reset_operations(payload: dict = Body(...), user: User = Depends(require_access)):
@@ -624,6 +675,29 @@ def write_operations_import(payload: dict = Body(...), user: User = Depends(requ
                                                   profiles=_screener_profiles()))
     _forget_operations(user.sheet_id)
     return result
+
+
+# --- Journal de trading : thèse, objectif, stop et bilan de chaque titre (onglet Journal, journal.py) ---
+@app.get("/journal")
+def get_journal(user: User = Depends(require_access)):
+    from .journal import list_journal
+
+    return _sheet_call(lambda: list_journal(user.sheet_id))
+
+
+@app.post("/journal")
+def post_journal(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .journal import save_entry
+
+    _checked_ticker(str(payload.get("ticker") or ""))
+    return _operation_call(lambda: save_entry(user.sheet_id, payload))
+
+
+@app.delete("/journal/{ticker}")
+def delete_journal(ticker: str, user: User = Depends(require_access)):
+    from .journal import delete_entry
+
+    return _operation_call(lambda: delete_entry(user.sheet_id, _checked_ticker(ticker)))
 
 
 # --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---

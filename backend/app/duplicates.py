@@ -19,6 +19,7 @@ from datetime import date, timedelta
 
 from .operations import OperationError
 from .sheets import SHEETS_EPOCH, UNFORMATTED, _open_sheet, _worksheet
+from .workbook import SHARE_TYPES
 
 DATE_TOLERANCE_DAYS = 4
 LOOSE_DATE_TOLERANCE_DAYS = 45  # dates approximatives saisies à la main : proposé, jamais coché d'office
@@ -95,7 +96,7 @@ def read_entries(sheet) -> list[Entry]:
     entries = []
     for i, row in enumerate(_worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:], start=2):
         row = (list(row) + [""] * 16)[:16]
-        if not isinstance(row[0], (int, float)) or row[2] not in ("Achat", "Vente", "Dividende") or not isinstance(row[4], (int, float)):
+        if not isinstance(row[0], (int, float)) or row[2] not in ("Achat", "Vente", "Dividende", *SHARE_TYPES) or not isinstance(row[4], (int, float)):
             continue
         amount = row[8] if isinstance(row[8], (int, float)) else row[4] * (row[5] or 0) * (row[7] or 1)
         account = str(row[1]).strip()

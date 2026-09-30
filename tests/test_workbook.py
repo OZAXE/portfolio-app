@@ -54,8 +54,9 @@ def test_positions_une_ligne_par_titre_et_par_compte():
 
 
 class FakePositions:
-    def __init__(self, formula, pru=None):
-        self.title, self.formulas, self.updates = "Positions", {"A2": formula, "F2": pru or wb.POSITION_FORMULAS["F2"]}, []
+    def __init__(self, formula, pru=None, quantity=None):
+        self.title, self.updates = "Positions", []
+        self.formulas = {"A2": formula, "E2": quantity or wb.POSITION_FORMULAS["E2"], "F2": pru or wb.POSITION_FORMULAS["F2"]}
 
     def acell(self, label, value_render_option=None):
         return type("Cell", (), {"value": self.formulas[label]})()
@@ -100,3 +101,21 @@ def test_ancien_sheet_mis_a_niveau_une_seule_fois(monkeypatch):
         wb.ensure_position_formulas("recent")
     assert len(old.updates) == 1 and {u["range"] for u in old.updates[0]} == set(wb.POSITION_FORMULAS)
     assert current.updates == []
+
+
+def test_quantite_sans_divisions_mise_a_niveau(monkeypatch):
+    # Sheet d'avant octobre 2026 : quantité = achats - ventes, sans les divisions ni les actions gratuites
+    old_quantity = ('=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!C2:C; "Achat")'
+                    ' - SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!C2:C; "Vente"))))')
+    ws = FakePositions(wb.POSITION_FORMULAS["A2"], quantity=old_quantity)
+    client = type("Client", (), {"open_by_key": lambda self, key: key})()
+    monkeypatch.setattr(wb, "sheets_client", lambda write=False: client)
+    monkeypatch.setattr(wb, "_find_worksheet", lambda sheet, name: ws)
+    monkeypatch.setattr(wb, "_positions_checked", set())
+    wb.ensure_position_formulas("sheet")
+    assert len(ws.updates) == 1
+    # Formules à jour : rien n'est réécrit
+    ws = FakePositions(wb.POSITION_FORMULAS["A2"])
+    monkeypatch.setattr(wb, "_positions_checked", set())
+    wb.ensure_position_formulas("sheet")
+    assert ws.updates == []
