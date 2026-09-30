@@ -131,6 +131,9 @@ def returns_summary(sheet_id: str) -> dict | None:
     if not is_v2(sheet):
         return None
     operations, envelopes, _ = read_operations(sheet_id)
+    from .prices import fill_missing_values
+
     positions = parse_positions_v2(_worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED))
+    fill_missing_values(positions)
     prices = {h.ticker.upper(): (h.value / quantity if h.value is not None else None) for h, quantity in positions}
     return compute_returns(operations, envelopes, prices, date.today())

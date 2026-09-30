@@ -281,6 +281,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (`loadNews`). Google et Yahoo étant bloqués depuis le conteneur de dev, lecteurs testés sur des extraits au
   format des flux : vérifier sur l'appli en ligne après une mise en ligne.
 
+- **Cours de secours (octobre 2026).** GOOGLEFINANCE ne connaît pas tous les ETF européens (Amundi MSCI
+  World IT, LU0533033667, offert par Trade Republic) : la ligne restait à « N/A », hors du total, et le relevé de
+  nuit (`snapshot_totals`) refusait tout le relevé, donc la courbe n'avançait plus. `fill_missing_values`
+  (`prices.py`) valorise une ligne sans cours sur la dernière clôture Yahoo en euros (`yahoo_price_eur`, gardée
+  1 h) dans l'aperçu, le rendement et le relevé ; `quote_source = "Yahoo"` affiché « cours Yahoo » sur la
+  ligne. Sans cours Yahoo non plus, pas de relevé (jour manquant plutôt que total faux). Quantités sous 1e-9
+  ignorées (`QUANTITY_EPSILON` : Bitcoin vendu en totalité à « -0,00 € »).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste

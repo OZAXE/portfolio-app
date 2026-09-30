@@ -29,10 +29,16 @@ class SnapshotError(ValueError):
     """Relevé impossible (cours en erreur dans le Sheet) : mieux vaut aucun relevé qu'un relevé faux."""
 
 
-def snapshot_totals(positions_rows: list[list]) -> dict[str, dict[str, float]]:
-    """Valeur et montant investi par enveloppe, à partir des lignes de l'onglet Positions."""
+def snapshot_totals(positions_rows: list[list], price_eur=None) -> dict[str, dict[str, float]]:
+    """Valeur et montant investi par enveloppe, à partir des lignes de l'onglet Positions. Une ligne sans
+    cours GOOGLEFINANCE est valorisée sur le cours de secours Yahoo (price_eur) ; sans lui non plus, pas de
+    relevé : mieux vaut un jour manquant qu'un total faux."""
+    from .prices import fill_missing_values, yahoo_price_eur
+
+    lines = parse_positions_v2(positions_rows)
+    fill_missing_values(lines, price_eur or yahoo_price_eur)
     totals = {e: {"value": 0.0, "invested": 0.0} for e in ENVELOPES}
-    for line, _ in parse_positions_v2(positions_rows):
+    for line, _ in lines:
         envelope = str(line.envelope or "").strip().upper()
         if envelope not in totals:
             continue

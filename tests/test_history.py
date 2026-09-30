@@ -28,8 +28,17 @@ def test_totals_by_envelope():
 
 
 def test_price_error_cancels_snapshot():
+    # Ni GOOGLEFINANCE ni Yahoo : pas de relevé plutôt qu'un total faux
     with pytest.raises(SnapshotError, match="NVDA"):
-        snapshot_totals([HEADER, position("NVDA", "CTO", 2, 300, "#N/A")])
+        snapshot_totals([HEADER, position("NVDA", "CTO", 2, 300, "#N/A")], price_eur=lambda ticker: None)
+
+
+def test_cours_de_secours_yahoo_pour_le_releve():
+    # Amundi MSCI World IT inconnu de GOOGLEFINANCE : 0,0357 part x 550 € (Yahoo) = 19,64 € dans le relevé
+    rows = [HEADER, position("AI.PA", "PEA", 3, 500, 560), position("MWO.PA", "CTO", 0.0357, 18, "#N/A")]
+    totals = snapshot_totals(rows, price_eur=lambda ticker: 550.0 if ticker == "MWO.PA" else None)
+    assert totals["CTO"] == {"value": 19.64, "invested": 18}
+    assert totals["PEA"] == {"value": 560, "invested": 500}
 
 
 def test_history_row_uses_date_serial_and_formulas():

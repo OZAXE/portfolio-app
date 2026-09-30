@@ -1466,7 +1466,7 @@
         return `<button class="mrow" data-position="${escapeHtml(h.ticker)}" data-envelope="${escapeHtml(h.envelope || "")}">
             ${avatar({ ticker: h.ticker, name, sector: rec?.sector || h.sector })}
             <div style="min-width:0"><div class="name">${escapeHtml(name)}</div>
-              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")} · ${escapeHtml(h.sector || h.kind || "")}</div></div>
+              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
             <div class="right"><span class="price">${h.value != null ? eur.format(h.value) : "N/A"}</span>
               <span class="pill-gain ${signClass(h.gain)}">${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</span></div>
           </button>`;
