@@ -170,9 +170,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     l'API `/prices/{ticker}` (`prices.py`, API chart de Yahoo, qui répond sur Render ; gardées 6 h). Cours non
     ajustés des dividendes (comme un courtier), divisions corrigées, pence de Londres ramenés en livres
     (`MINOR_CURRENCIES`). Périodes 1M à 10A mémorisées (`settings.pricePeriod`), variation colorée sur la
-    période, moyenne 200 jours dès 1A et phrase de tendance (±2 % autour de la moyenne = « sans tendance
+    période, moyenne 200 jours et phrase de tendance (±2 % autour de la moyenne = « sans tendance
     nette »), prix juste actuel en pointillés seulement s'il reste entre 0,8 × le plus bas et 1,25 × le plus
-    haut de la période (sinon il écraserait la courbe : cité dans la légende). Aussi sur la fiche réduite
+    haut de la période (sinon il écraserait la courbe : cité dans la légende).
+  - Puces sous les graphiques de la fiche (`lineChip`, choix d'Enzo) pour afficher / masquer chaque courbe :
+    moyenne 200 j (allumable sur toutes les périodes) et prix juste sur la courbe de cours ; cours, prix juste
+    et valeur intrinsèque sur l'historique du screener (remplacent la légende Chart.js). Une courbe éteinte
+    le reste sur toutes les fiches (`settings.hiddenLines`). Puce grisée quand la courbe ne peut pas être
+    tracée (prix juste trop loin de la courbe, pas encore relevé dans l'historique). Aussi sur la fiche réduite
     (ETF, crypto) avec le ticker Yahoo.
   - Présentation (`loadProfile`) : `longBusinessSummary` de Yahoo, en anglais, avec site et effectif, lien
     « Traduire en français » (Google Traduction). Seulement via quoteSummary, donc archivée par le screener
