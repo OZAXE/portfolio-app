@@ -415,6 +415,13 @@ def post_allocation(payload: dict = Body(...), user: User = Depends(require_acce
     return _operation_call(lambda: save_allocation(user.sheet_id, list(payload.get("targets") or []), dict(payload.get("pockets") or {})))
 
 
+@app.post("/savings")
+def post_savings(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .setup_edit import save_savings
+
+    return _operation_call(lambda: save_savings(user.sheet_id, list(payload.get("lines") or [])))
+
+
 @app.post("/operations")
 def post_operation(payload: dict = Body(...), user: User = Depends(require_access)):
     ticker = str(payload.get("ticker") or "").strip().upper()

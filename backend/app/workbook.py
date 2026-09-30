@@ -8,7 +8,7 @@ Onglets :
 - Positions   : calculé par formules à partir des opérations (quantité, PRU frais inclus, valeur...) ;
 - Historique  : un relevé par ligne (valeur et montant investi par enveloppe) ;
 - Comptes / Frais : comptes (enveloppe, courtier) et barèmes de frais par courtier et type d'ordre ;
-- Livret, Watchlist.
+- Épargne (livrets, assurance-vie, PER, valeurs saisies à la main ; ancien onglet Livret), Watchlist.
 
 build_template() construit ces onglets dans un Google Sheet vide partagé en Éditeur avec
 le compte de service ; migrate_from_v1() y recopie les données de l'ancien Sheet.
@@ -34,6 +34,9 @@ OPERATION_TYPES = [*TRADE_TYPES, *CASH_TYPES]
 ORDER_TYPES = ["Ordre", "Plan d'investissement"]
 TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche", "Frais courants %"]
 ALLOCATION_HEADERS = ["Poche", "Cible %"]
+# Épargne saisie à la main (ancien onglet « Livret » : nom et montant seulement, toujours lu)
+SAVINGS_HEADERS = ["Nom", "Montant", "Type", "Versé €", "Mis à jour"]
+SAVINGS_TYPES = ["Livret", "Assurance-vie", "PER", "Autre"]
 COMPTES_HEADERS = ["Compte", "Enveloppe", "Courtier"]
 FRAIS_HEADERS = ["Courtier", "Type d'ordre", "Fixe €", "Pourcentage", "Minimum €", "Frais de change", "Note"]
 HISTORY_HEADERS = ["Date", "Valeur PEA", "Investi PEA", "Valeur CTO", "Investi CTO", "Valeur totale", "Investi total", "Performance"]
@@ -112,7 +115,7 @@ NUMBER_FORMATS = {
     "Positions": [("E", "0.######"), ("F:G", EUR), ("H", "#,##0.00##"), ("J", "0.0000"), ("K:L", EUR), ("M", "0.00%")],
     "Historique": [("A", "dd/mm/yyyy"), ("B:G", EUR), ("H", "0.00%")],
     "Frais": [("C", EUR), ("D", "0.00%"), ("E", EUR), ("F", "0.00%")],
-    "Livret": [("B", EUR)],
+    "Épargne": [("B", EUR), ("D", EUR), ("E", "dd/mm/yyyy")],
     "Allocation": [("B", "0.0%")],
     "Titres": [("I", "0.00")],  # frais courants d'un ETF en % : 0,15 pour 0,15 %
 }
@@ -133,7 +136,7 @@ TABS = [
     TabSpec("Titres", TITRES_HEADERS, rows=300),
     TabSpec("Comptes", COMPTES_HEADERS, rows=20),
     TabSpec("Frais", FRAIS_HEADERS, rows=30),
-    TabSpec("Livret", ["Nom", "Montant"], rows=30),
+    TabSpec("Épargne", SAVINGS_HEADERS, rows=30),
     TabSpec("Watchlist", ["TICKER", "AJOUTÉ LE"], rows=300),
     TabSpec("Allocation", ALLOCATION_HEADERS, rows=50),
 ]
@@ -389,7 +392,7 @@ def migrate_from_v1(old: gspread.Spreadsheet, new: gspread.Spreadsheet, describe
         for row in livret.get_values(value_render_option=unformatted):
             if len(row) > 1 and row[0] and isinstance(row[1], (int, float)):
                 savings.append([str(row[0]).strip(), row[1]])
-        new.worksheet("Livret").update(range_name="A2", values=savings)
+        new.worksheet("Épargne").update(range_name="A2", values=[[name, amount, "Livret"] for name, amount in savings])
 
     watch = _find_worksheet(old, "Watchlist")
     watch_rows = [r[:2] for r in watch.get_values()[1:] if r and r[0]] if watch else []

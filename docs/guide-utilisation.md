@@ -159,10 +159,33 @@ et les dividendes touchés. Pour le CTO, l'appli estime l'impôt (flat tax de 30
 2026). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent. C'est une estimation : ta
 déclaration fait foi.
 
+### Performance et risque (sous-onglet Perf.)
+
+Ta performance sur 1 mois, depuis le 1er janvier, 1, 3 et 5 ans et depuis le début, comparée à l'indice de ton
+choix. Elle est « pondérée par le temps » : tes apports ne la faussent pas. En dessous : la volatilité, la pire
+baisse que ton portefeuille a encaissée, le ratio de Sharpe, le bêta, puis le gain de chaque ligne sur la période
+choisie (ce qui a fait ta performance). Chaque indicateur s'explique en touchant son nom.
+
+### Espèces
+
+Pour savoir combien d'argent attend sur chaque compte, saisis ses versements (bouton **Opération**, type
+**Versement**, **Retrait** ou **Intérêts**) depuis l'ouverture du compte, ou importe l'export CSV de Trade Republic,
+qui les contient déjà (paiements par carte compris, regroupés par jour). Si l'appli voit que tu as acheté avec plus
+d'argent que tu n'en avais versé, elle te signale le montant qui manque. Les versements sur le PEA servent aussi
+au plafond de 150 000 €.
+
 ### Épargne et patrimoine
 
-Si tu as rempli l'onglet **Livret** du Sheet (livret A, LDDS…), la section **Épargne et patrimoine**
-additionne tes livrets et tes placements.
+Dans **Répartition**, le bouton **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes livrets,
+ton assurance-vie et ton PER : la valeur de ton dernier relevé et, si tu veux, le total versé pour voir ta
+plus-value. L'appli te rappelle de mettre à jour une valeur de plus de 3 mois. Le patrimoine financier additionne
+titres, espèces et épargne. (L'ancien onglet **Livret** du Sheet est repris et devient l'onglet **Épargne**.)
+
+### Projection
+
+Juste en dessous : ce que pourrait devenir ton patrimoine avec un versement chaque mois, selon un rendement
+prudent (3 %), équilibré (5 %), dynamique (7 %) ou le tien, en euros d'aujourd'hui (inflation retirée). La
+fourchette refait le calcul à 2 points de moins et de plus. Un ordre de grandeur, pas une prévision.
 
 ---
 

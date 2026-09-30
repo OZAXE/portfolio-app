@@ -153,6 +153,14 @@
     .saving { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; }
     .saving:first-child { margin-top: 0; }
     .saving.total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; font-weight: 600; }
+    .saving .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .saving-type { font-size: 12px; color: var(--muted); margin: 14px 0 0; text-transform: uppercase; letter-spacing: 0.4px; }
+    .saving-type:first-child { margin-top: 0; }
+    .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .proj-grid label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    .proj-grid input, .proj-grid select { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; font-size: 15px; padding: 8px; width: 100%; min-width: 0; }
+    .proj-result { font-size: 28px; font-weight: 700; margin-top: 14px; }
+    .proj-box { position: relative; height: 200px; margin-top: 10px; }
 
     /* Marché */
     .market-meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
@@ -712,10 +720,11 @@
         <h2><span data-term="Espèces">Espèces</span></h2>
         <div class="card" id="cash-card"><div class="help">Chargement…</div></div>
 
-        <div id="savings-block" hidden>
-          <h2>Épargne et patrimoine</h2>
-          <div class="card" id="savings"></div>
-        </div>
+        <h2>Épargne et patrimoine</h2>
+        <div class="card" id="savings"></div>
+
+        <h2><span data-term="Projection">Projection</span></h2>
+        <div class="card" id="projection"></div>
         </div>
 
         <div class="ptab" data-pane="revenus" hidden>
@@ -1191,7 +1200,7 @@
       settings.privacy = !settings.privacy;
       saveSettings();
       applyPrivacy();
-      if (overview) renderChart();
+      if (overview) { renderChart(); renderProjection(); }
     });
     applyPrivacy();
 
@@ -1513,7 +1522,7 @@
       if (tab === "performance" && overview) loadStats();
     }
     // Les graphiques dessinés dans un volet caché n'ont pas de taille : on les redessine à l'affichage
-    function renderChartsAfterShow() { renderSectors(); renderExposure(); }
+    function renderChartsAfterShow() { renderSectors(); renderExposure(); renderProjection(); }
     document.getElementById("portfolio-tabs").addEventListener("click", (e) => {
       const b = e.target.closest("[data-ptab]");
       if (b) showPortfolioTab(b.dataset.ptab);
@@ -1837,15 +1846,201 @@
       renderSectors();
     });
 
+    // --- Épargne saisie à la main (onglet Épargne) et patrimoine financier : titres + espèces + épargne ---
+    const SAVINGS_TYPES = ["Livret", "Assurance-vie", "PER", "Autre"];
+    const SAVINGS_LABELS = { Livret: "Livrets", "Assurance-vie": "Assurance-vie", PER: "Plan épargne retraite", Autre: "Autres" };
+    const STALE_DAYS = 90;
+    let savingsDraft = null;
+    const patrimony = () => ({
+      securities: overview?.total?.value || 0,
+      cash: cashData?.total || 0,
+      savings: (overview?.savings || []).reduce((sum, s) => sum + s.amount, 0),
+    });
+
     function renderSavings() {
-      if (!overview.savings.length) return;
-      const savingsTotal = overview.savings.reduce((sum, s) => sum + s.amount, 0);
-      document.getElementById("savings").innerHTML = `
-        ${overview.savings.map((s) => `<div class="saving"><span>${escapeHtml(s.name)}</span><span>${eur.format(s.amount)}</span></div>`).join("")}
-        <div class="saving"><span>Placements (PEA + CTO)</span><span>${eur.format(overview.total.value)}</span></div>
-        <div class="saving total"><span>Patrimoine financier</span><span>${eur.format(savingsTotal + overview.total.value)}</span></div>`;
-      document.getElementById("savings-block").hidden = false;
+      if (savingsDraft) return;  // édition en cours : ne pas écraser la saisie
+      const el = document.getElementById("savings");
+      const list = overview.savings || [];
+      const p = patrimony();
+      const groups = SAVINGS_TYPES.map((t) => [t, list.filter((s) => s.type === t)]).filter(([, l]) => l.length);
+      const line = (s) => {
+        const gain = s.invested != null ? s.amount - s.invested : null;
+        const age = s.updated ? Math.round((Date.now() - new Date(s.updated + "T12:00:00")) / 86400000) : null;
+        const sub = [gain != null ? `<span class="${signClass(gain)}">${signedEur(gain)}</span> sur ${eur.format(s.invested)} versés` : "",
+          age != null ? `<span class="${age > STALE_DAYS ? "negative" : ""}">valeur du ${new Date(s.updated + "T12:00:00").toLocaleDateString("fr-FR")}${age > STALE_DAYS ? ", à mettre à jour" : ""}</span>` : ""].filter(Boolean).join(" · ");
+        return `<div class="saving"><div>${escapeHtml(s.name)}${sub ? `<div class="who">${sub}</div>` : ""}</div><span>${eur.format(s.amount)}</span></div>`;
+      };
+      el.innerHTML = (groups.length
+        ? groups.map(([t, l]) => `<div class="saving-type">${SAVINGS_LABELS[t]}</div>${l.map(line).join("")}`).join("")
+        : `<p class="help" style="margin:0 0 8px">Ajoute tes livrets, ton assurance-vie ou ton PER pour voir tout ton patrimoine financier : tu mets à jour leur valeur de temps en temps (relevé de ta banque ou de ton assureur).</p>`)
+        + `<div class="saving-type">Total</div>
+        <div class="saving"><span>Placements (PEA + CTO)</span><span>${eur.format(p.securities)}</span></div>
+        ${p.cash ? `<div class="saving"><span>Espèces</span><span>${eur.format(p.cash)}</span></div>` : ""}
+        ${p.savings ? `<div class="saving"><span>Épargne</span><span>${eur.format(p.savings)}</span></div>` : ""}
+        <div class="saving total"><span>Patrimoine financier</span><span>${eur.format(p.securities + p.cash + p.savings)}</span></div>
+        <button class="btn" id="savings-edit" style="margin-top:12px">${list.length ? "Mettre à jour mon épargne" : "Ajouter mon épargne"}</button>`;
+      renderProjection();
     }
+
+    function startSavingsEdit() {
+      savingsDraft = { lines: (overview.savings || []).map((s) => ({ ...s, original: s.amount })), status: "" };
+      if (!savingsDraft.lines.length) savingsDraft.lines.push({ name: "", type: "Livret", amount: "", invested: null, updated: null });
+      renderSavingsEditor();
+    }
+
+    function renderSavingsEditor() {
+      const d = savingsDraft;
+      document.getElementById("savings").innerHTML = d.lines.map((l, i) => `<div class="fee-block" style="${i ? "" : "border-top:0;margin-top:0;padding-top:0"}">
+          <div class="fee-head"><input data-sv="name" data-i="${i}" value="${escapeHtml(l.name)}" placeholder="ex : Livret A, AV Linxea" maxlength="60" />
+            <select data-sv="type" data-i="${i}">${SAVINGS_TYPES.map((t) => `<option ${t === l.type ? "selected" : ""}>${t}</option>`).join("")}</select>
+            <button class="icon-btn" data-sv-del="${i}" aria-label="Supprimer">✕</button></div>
+          <div class="op-grid" style="grid-template-columns:1fr 1fr">
+            <label>Valeur actuelle €<input data-sv="amount" data-i="${i}" type="number" min="0" step="0.01" inputmode="decimal" value="${l.amount ?? ""}" /></label>
+            <label>Total versé €<input data-sv="invested" data-i="${i}" placeholder="facultatif" type="number" min="0" step="0.01" inputmode="decimal" value="${l.invested ?? ""}" /></label>
+          </div></div>`).join("")
+        + `<button class="btn" id="savings-add" style="margin-top:10px">+ Ajouter une ligne</button>
+        <p class="help">Valeur actuelle : celle de ton dernier relevé (pour une assurance-vie ou un PER, fonds en euros et unités de compte compris). Total versé : ce que tu y as mis, pour voir ta plus-value. La date de la valeur est mise à jour quand tu la modifies.</p>
+        <div class="edit-actions"><button class="btn" id="savings-save">Enregistrer</button> <button class="btn" id="savings-cancel">Annuler</button></div>
+        <p class="help" id="savings-status" style="margin-top:8px">${escapeHtml(d.status)}</p>`;
+    }
+
+    document.getElementById("savings").addEventListener("input", (e) => {
+      const t = e.target;
+      if (!savingsDraft || t.dataset.sv == null) return;
+      const line = savingsDraft.lines[+t.dataset.i];
+      line[t.dataset.sv] = ["amount", "invested"].includes(t.dataset.sv) ? (t.value === "" ? null : +t.value) : t.value;
+    });
+    document.getElementById("savings").addEventListener("click", async (e) => {
+      const t = e.target;
+      if (t.id === "savings-edit") { startSavingsEdit(); return; }
+      if (!savingsDraft) return;
+      if (t.id === "savings-add") { savingsDraft.lines.push({ name: "", type: "Assurance-vie", amount: null, invested: null, updated: null }); renderSavingsEditor(); }
+      if (t.dataset.svDel != null) { savingsDraft.lines.splice(+t.dataset.svDel, 1); renderSavingsEditor(); }
+      if (t.id === "savings-cancel") { savingsDraft = null; renderSavings(); }
+      if (t.id === "savings-save") {
+        const today = new Date().toISOString().slice(0, 10);
+        const lines = savingsDraft.lines.filter((l) => String(l.name || "").trim() || l.amount != null).map((l) => ({
+          name: l.name, type: l.type, amount: l.amount, invested: l.invested,
+          // Nouvelle valeur : datée d'aujourd'hui ; inchangée : on garde la date du relevé précédent
+          updated: l.original === l.amount && l.updated ? l.updated : today,
+        }));
+        document.getElementById("savings-status").textContent = "Enregistrement…";
+        try {
+          await apiSend("POST", "/savings", { lines });
+          savingsDraft = null;
+          overview.savings = lines.map((l) => ({ ...l, name: String(l.name).trim(), amount: +l.amount, invested: l.invested ?? null }));
+          renderSavings();
+        } catch (err) {
+          savingsDraft.status = err.message;
+          document.getElementById("savings-status").textContent = err.message;
+        }
+      }
+    });
+
+    // --- Projection : capital de départ + versements mensuels, rendement annuel constant, capitalisation mensuelle ---
+    // Trois scénarios à ±2 points : des ordres de grandeur, pas une prévision ni une probabilité
+    const PROJECTION_PRESETS = { prudent: 0.03, equilibre: 0.05, dynamique: 0.07 };
+    const PROJECTION_SPREAD = 0.02, INFLATION = 0.02, SAFE_WITHDRAWAL = 0.04;
+    let projectionChart = null;
+
+    function projectionSettings() {
+      const p = patrimony();
+      return { base: "all", monthly: 200, preset: "equilibre", rate: null, years: 20, real: true, target: null,
+        ...(settings.projection || {}), start: p.securities + p.cash + p.savings, startSecurities: p.securities + p.cash };
+    }
+
+    // Valeur mois par mois. Taux annuel -> mensuel équivalent ; en euros d'aujourd'hui, le taux est diminué de
+    // l'inflation ((1 + r) / (1 + i) - 1) et les versements restent constants. Ex. 10 000 € + 200 €/mois à 5 %
+    // pendant 20 ans : environ 107 700 € (26 530 € du capital + 81 160 € des versements)
+    function projectValues(start, monthly, rate, years, real) {
+      const annual = real ? (1 + rate) / (1 + INFLATION) - 1 : rate;
+      const r = (1 + annual) ** (1 / 12) - 1;
+      const values = [start];
+      let v = start;
+      for (let m = 1; m <= years * 12; m++) { v = v * (1 + r) + monthly; if (m % 12 === 0) values.push(v); }
+      return values;
+    }
+
+    // Projection : à l'euro près (des centimes sur 20 ans donneraient une fausse impression de précision)
+    const eurRoundFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+    const eurRound = (v) => hideable(eurRoundFmt.format(v), "•••• €");
+
+    function renderProjection() {
+      const el = document.getElementById("projection");
+      if (!el || !overview) return;
+      const ps = projectionSettings();
+      const start = ps.base === "all" ? ps.start : ps.startSecurities;
+      const rate = ps.preset === "custom" && ps.rate != null ? ps.rate : PROJECTION_PRESETS[ps.preset] ?? 0.05;
+      const years = Math.min(Math.max(Math.round(ps.years) || 20, 1), 50);
+      const central = projectValues(start, ps.monthly, rate, years, ps.real);
+      const low = projectValues(start, ps.monthly, rate - PROJECTION_SPREAD, years, ps.real);
+      const high = projectValues(start, ps.monthly, rate + PROJECTION_SPREAD, years, ps.real);
+      const final = central[years], paid = start + ps.monthly * 12 * years;
+      const reach = ps.target ? central.findIndex((v) => v >= ps.target) : -1;
+      const unit = ps.real ? " (en euros d'aujourd'hui)" : "";
+      el.innerHTML = `<div class="proj-grid">
+          <label>Point de départ<select data-pj="base"><option value="all" ${ps.base === "all" ? "selected" : ""}>Tout (${settings.privacy ? "••••" : eurRoundFmt.format(ps.start)})</option><option value="securities" ${ps.base === "securities" ? "selected" : ""}>Titres + espèces (${settings.privacy ? "••••" : eurRoundFmt.format(ps.startSecurities)})</option></select></label>
+          <label>Versement par mois €<input data-pj="monthly" type="number" min="0" step="10" inputmode="decimal" value="${ps.monthly}" /></label>
+          <label>Rendement par an<select data-pj="preset">
+            <option value="prudent" ${ps.preset === "prudent" ? "selected" : ""}>Prudent 3 %</option>
+            <option value="equilibre" ${ps.preset === "equilibre" ? "selected" : ""}>Équilibré 5 %</option>
+            <option value="dynamique" ${ps.preset === "dynamique" ? "selected" : ""}>Dynamique 7 %</option>
+            <option value="custom" ${ps.preset === "custom" ? "selected" : ""}>Autre…</option></select></label>
+          ${ps.preset === "custom" ? `<label>Taux choisi %<input data-pj="rate" type="number" step="0.1" min="-5" max="15" inputmode="decimal" value="${ps.rate != null ? +(ps.rate * 100).toFixed(2) : 5}" /></label>` : ""}
+          <label>Durée (ans)<input data-pj="years" type="number" min="1" max="50" step="1" inputmode="numeric" value="${years}" /></label>
+          <label>Objectif €<input data-pj="target" placeholder="facultatif" type="number" min="0" step="1000" inputmode="decimal" value="${ps.target ?? ""}" /></label>
+          <label style="flex-direction:row;align-items:center;gap:8px;grid-column:1/-1"><input data-pj="real" type="checkbox" ${ps.real ? "checked" : ""} style="width:auto" /> En euros d'aujourd'hui (inflation de 2 % retirée)</label>
+        </div>
+        <div class="proj-result">${eurRound(final)}</div>
+        <div class="help" style="margin-top:2px">dans ${years} an${years > 1 ? "s" : ""}${unit}, à ${pctPlain(rate)} par an${ps.real ? ` (soit ${pctPlain((1 + rate) / (1 + INFLATION) - 1)} après inflation)` : ""} · fourchette ${eurRound(low[years])} (${pctPlain(rate - PROJECTION_SPREAD)}) à ${eurRound(high[years])} (${pctPlain(rate + PROJECTION_SPREAD)})</div>
+        <div class="stat" style="margin-top:12px">
+          <div><div class="k">Versé (départ + mensualités)</div><div class="v">${eurRound(paid)}</div></div>
+          <div><div class="k">Gains</div><div class="v ${signClass(final - paid)}">${final >= paid ? "+" : ""}${eurRound(final - paid)}</div></div>
+          <div><div class="k"><span data-term="Règle des 4 %">Revenu possible ensuite</span></div><div class="v">${eurRound(final * SAFE_WITHDRAWAL / 12)} /mois</div></div>
+          ${ps.target ? `<div><div class="k">Objectif de ${eurFmt.format(ps.target)}</div><div class="v ${reach >= 0 ? "positive" : "negative"}">${reach === 0 ? "déjà atteint" : reach > 0 ? `dans ${reach} an${reach > 1 ? "s" : ""}` : `pas en ${years} ans`}</div></div>` : ""}
+        </div>
+        <div class="proj-box"><canvas id="projection-chart"></canvas></div>
+        <p class="help" style="margin-top:8px">Calcul simple à rendement constant : les marchés, eux, montent et baissent (une année à −20 % arrive). Repères de long terme, avant impôts et frais : actions mondiales environ 7 % par an, fonds en euros 2 à 3 %, livret A 1,5 à 3 %. Indicatif, ce n'est pas un conseil en investissement.</p>`;
+      drawProjectionChart(central, low, high, start, ps.monthly, years);
+    }
+
+    function drawProjectionChart(central, low, high, start, monthly, years) {
+      if (projectionChart) { projectionChart.destroy(); projectionChart = null; }
+      const canvas = document.getElementById("projection-chart");
+      if (!canvas || typeof Chart === "undefined" || !canvas.offsetParent) return;  // volet caché : dessiné à l'affichage
+      const labels = central.map((_, y) => (y === 0 ? "auj." : `${y} an${y > 1 ? "s" : ""}`));
+      const paid = central.map((_, y) => start + monthly * 12 * y);
+      projectionChart = new Chart(canvas, {
+        type: "line",
+        data: { labels, datasets: [
+          { label: "Optimiste", data: high, borderColor: cssVar("--muted"), borderDash: [4, 4], borderWidth: 1, pointRadius: 0, fill: false },
+          { label: "Central", data: central, borderColor: cssVar("--accent"), borderWidth: 2.5, pointRadius: 0, fill: false },
+          { label: "Pessimiste", data: low, borderColor: cssVar("--muted"), borderDash: [4, 4], borderWidth: 1, pointRadius: 0, fill: false },
+          { label: "Versé", data: paid, borderColor: cssVar("--line"), backgroundColor: cssVar("--card-2"), borderWidth: 1, pointRadius: 0, fill: "origin" },
+        ] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { labels: { color: cssVar("--muted"), boxWidth: 12, font: { size: 11 } } },
+            tooltip: { callbacks: { label: (c) => `${c.dataset.label} : ${settings.privacy ? "•••• €" : eurRoundFmt.format(c.parsed.y)}` } } },
+          scales: { x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 6 }, grid: { display: false } },
+            y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => (settings.privacy ? "" : compact.format(v) + " €") }, grid: { color: cssVar("--line") } } },
+        },
+      });
+    }
+
+    document.getElementById("projection").addEventListener("change", (e) => {
+      const key = e.target.dataset.pj;
+      if (!key) return;
+      const current = { ...(settings.projection || {}) };
+      const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+      if (key === "rate") current.rate = value === "" ? null : +value / 100;
+      else if (["monthly", "years"].includes(key)) current[key] = Math.max(+value || 0, 0);
+      else if (key === "target") current.target = value === "" || +value <= 0 ? null : +value;
+      else current[key] = value;
+      settings.projection = current;
+      saveSettings();
+      renderProjection();
+    });
 
     // --- Dernier portefeuille connu, gardé sur l'appareil : affiché tout de suite pendant que le serveur
     // gratuit se réveille (30 s à 1 min), puis remplacé par les valeurs fraîches ---
@@ -3207,6 +3402,7 @@
     }
 
     function renderCash() {
+      if (overview) renderSavings();  // le patrimoine financier compte les espèces
       const line = document.getElementById("cash-line");
       const card = document.getElementById("cash-card");
       const accounts = cashData?.accounts || [];
@@ -4185,6 +4381,8 @@
         "Rachats d'actions": "<p>Évolution moyenne, par an, du nombre d'actions de l'entreprise sur ses 5 derniers exercices au plus (divisions d'actions neutralisées).</p><p>Quand l'entreprise rachète ses actions et les annule, chaque action restante détient une plus grande part du bénéfice : c'est une autre façon de rendre de l'argent aux actionnaires, sans impôt immédiat pour eux. Apple rachète environ 3 % de ses actions par an. À l'inverse, une entreprise qui émet des actions (augmentations de capital, rémunération des salariés en actions) dilue ses actionnaires.</p>",
         "Rendement pour l'actionnaire": "<p>Rendement du dividende + part des actions rachetées chaque année : ce que l'entreprise rend au total à ses actionnaires, en % du cours (approximation, les rachats passés ne garantissent pas les futurs).</p>",
         "Espèces": "<p>L'argent qui attend sur chaque compte, déduit de tes opérations : versements − retraits + intérêts − achats + ventes + dividendes.</p><p>Pour l'activer sur un compte, saisis ses versements depuis son ouverture (bouton Opération, type Versement) ou importe l'export CSV de Trade Republic, qui les contient. Chez Trade Republic, le compte titres est aussi un compte courant : les paiements par carte sont des retraits, et le solde affiché doit correspondre à celui de leur appli.</p><p>Si un achat a eu lieu avec plus d'argent que tu n'en avais versé, l'appli le voit et signale le montant qui manque au minimum.</p><p>Les versements sur le PEA servent aussi au plafond de 150 000 € (sinon estimé d'après tes achats).</p>",
+        "Projection": "<p>Ce que pourrait devenir ton patrimoine avec un versement chaque mois et un rendement annuel constant, intérêts composés : chaque mois, la valeur grandit du rendement mensuel équivalent, puis ton versement s'ajoute.</p><p>En euros d'aujourd'hui (coché par défaut), 2 % d'inflation sont retirés du rendement : 100 000 € dans 20 ans « valent » alors ce que 100 000 € achètent aujourd'hui. La fourchette montre le même calcul à 2 points de moins et de plus : un ordre de grandeur, pas une probabilité.</p><p>Limites : les marchés ne montent pas en ligne droite (l'ordre des bonnes et mauvaises années compte quand on verse ou retire), et le calcul ignore impôts et frais. Ce n'est pas un conseil en investissement.</p>",
+        "Règle des 4 %": "<p>Repère tiré d'études américaines (Trinity, 1998) : retirer chaque année 4 % du capital de départ, puis augmenter ce montant avec l'inflation, a tenu au moins 30 ans dans la grande majorité des périodes historiques pour un portefeuille actions et obligations.</p><p>Ce n'est pas une garantie : sur un horizon plus long, avec des rendements futurs plus faibles, ou après un krach en début de retraite, 3 à 3,5 % est plus prudent.</p>",
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",
