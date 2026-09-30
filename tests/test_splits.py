@@ -66,14 +66,28 @@ def test_regroupement_divise_les_quantites():
     assert adjusted[0].quantity == pytest.approx(10)
 
 
-def test_historique_reconstitue_avec_cours_corriges():
-    # Cours Yahoo corrigés : 50 € avant la division (200 € ce jour-là), 52 € après. Avec 40 actions sur la
-    # base d'aujourd'hui, la valeur est 2 000 € avant et 2 080 € après, pas 500 € puis 2 080 €
-    ops = apply_splits([op(date(2020, 8, 27), "Achat", 10, 2000), op(date(2020, 8, 31), "Division", 30)])
-    prices = pd.DataFrame({"AAPL": [50.0, 52.0]}, index=pd.to_datetime(["2020-08-27", "2020-08-31"]))
-    rows = history.reconstruct(ops, {"CTO TR": "CTO"}, prices, date(2020, 8, 27), date(2020, 8, 31))
+def test_historique_reconstitue_avec_cours_reels():
+    # eur_closes donne les cours réels (non corrigés des divisions) : 200 € la veille de la division 4 pour 1,
+    # 52 € le jour même. Quantités telles que saisies, division comprise : 10 x 200 = 2 000 € puis
+    # 40 x 52 = 2 080 € (et pas 10 x 52 = 520 € si la division était ignorée)
+    ops = [op(date(2020, 8, 28), "Achat", 10, 2000), op(date(2020, 8, 31), "Division", 30)]
+    prices = pd.DataFrame({"AAPL": [200.0, 52.0]}, index=pd.to_datetime(["2020-08-28", "2020-08-31"]))
+    rows = history.reconstruct(ops, {"CTO TR": "CTO"}, prices, date(2020, 8, 28), date(2020, 8, 31))
     values = {day: totals["CTO"]["value"] for day, totals in rows}
-    assert values[date(2020, 8, 27)] == 2000 and values[date(2020, 8, 31)] == 2080
+    assert values[date(2020, 8, 28)] == 2000 and values[date(2020, 8, 31)] == 2080
+    assert rows[-1][1]["CTO"]["invested"] == 2000  # le coût ne change pas
+
+
+def test_contribution_quantite_de_depart_avec_division():
+    # Départ de la période le 1er juillet 2020 : 10 actions à 360 € (cours réel) = 3 600 € ; division le
+    # 31 août, 40 actions valent 4 000 € aujourd'hui -> gain de 400 €, sans flux sur la période
+    from app.stats import _Lookup, compute_attribution
+
+    ops = [op(date(2020, 1, 2), "Achat", 10, 3000), op(date(2020, 8, 31), "Division", 30)]
+    closes = {"AAPL": _Lookup([(date(2020, 7, 1), 360.0)])}
+    result = compute_attribution(ops, {"CTO TR": "CTO"}, {("CTO", "AAPL"): 4000.0}, closes,
+                                 date(2020, 7, 1), date(2020, 12, 31), {})
+    assert [(r["start"], r["gain"]) for r in result["lines"]] == [(3600.0, 400.0)]
 
 
 def test_ledger_garde_les_quantites_saisies(monkeypatch):

@@ -110,10 +110,12 @@ def _num(value) -> float:
 
 def apply_splits(operations: list[Operation]) -> list[Operation]:
     """Opérations sans divisions ni actions gratuites, les quantités d'avant chaque division ramenées sur la
-    base d'aujourd'hui. Les cours Yahoo sont corrigés des divisions : 10 Apple achetées en 2019 à 200 $,
-    division 4 pour 1 en août 2020, deviennent 40 actions à 50 $, ce qui colle au cours Yahoo de 2019 (50 $)
-    au lieu de compter 10 actions à 50 $ dans l'historique. Le coût et les montants ne changent pas, donc le
-    PRU, les plus-values et le rendement sont les mêmes qu'en rejouant les opérations d'origine.
+    base d'aujourd'hui. Le coût et les montants ne changent pas, donc le PRU, les plus-values et le rendement
+    sont les mêmes qu'en rejouant les opérations d'origine, sans que chaque calcul ait à gérer les divisions.
+    Les cours Yahoo corrigés des divisions (comparaison à un indice, graphique des achats) collent aussi :
+    10 Apple achetées en 2019 à 200 $, division 4 pour 1 en août 2020, deviennent 40 actions à 50 $, le cours
+    corrigé de 2019. L'historique reconstitué et les contributions lisent au contraire Ledger.raw : eur_closes
+    leur donne les cours réels de chaque jour.
 
     Rapport d'une division = (quantité détenue + actions reçues) / quantité détenue, dans le compte concerné :
     Air Liquide 1 pour 10, 20 actions + 2 reçues -> x 1,1. Une division sans actions détenues est ignorée."""
@@ -151,8 +153,13 @@ class Ledger:
     # Versements, retraits et intérêts, à part : les calculs de rendement ne voient que les titres
     cash: list[CashMovement] = field(default_factory=list)
     # Opérations telles que saisies (quantités d'origine, divisions comprises) : operations les ramène sur
-    # la base d'aujourd'hui (apply_splits). Seul le repérage des doublons à l'import compare aux originales
+    # la base d'aujourd'hui (apply_splits). Lues par les calculs sur cours réels (historique, contributions)
+    # et par le repérage des doublons à l'import, qui compare aux relevés du courtier
     raw: list[Operation] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not self.raw:  # construit sans divisions (tests, anciens appels) : les deux listes sont les mêmes
+            self.raw = list(self.operations)
 
 
 # Rendement, plus-values, frais, dividendes et comparaison à un indice lisent tous les opérations :
