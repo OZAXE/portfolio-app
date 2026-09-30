@@ -93,9 +93,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
      bénéfice net par action. Nombre d'actions ramené à la base actuelle (`adjusted_shares` : produit des
      divisions le plus proche du nombre d'actions actuel du screener), car les vieux 10-K ne sont pas retraités
      (Apple 2015-2017 à 5,8 milliards d'actions, 2018 et après à 20). BPA actuel = bénéfice du dernier exercice ÷
-     nombre d'actions actuel (Yahoo donne 579 M d'actions pour Air Liquide en 2025 au lieu d'environ 699). Pas de
+     nombre d'actions actuel du screener (l'exercice 2025 d'Air Liquide est sur l'ancienne base, 579 M d'actions,
+     alors que les cours sont corrigés de l'attribution gratuite de juin 2025 : 638 M aujourd'hui) ; une division
+     pendant l'exercice compte aussi dans `adjusted_shares`. Pas de
      PER historique si comptes et cotation sont dans deux devises (Shell), comme le DCF. Vérifié sur les vrais
-     comptes : Apple médiane 25, Air Liquide 32.
+     comptes : Apple médiane 25 ; Air Liquide autour de 29-31 selon les cours moyens retenus.
+     Rachats d'actions (`shares_trend`, même base) : évolution annuelle du nombre d'actions sur 5 exercices,
+     `shares_cagr` dans la fiche (Apple −3,1 %/an).
   Verdict : cours < 85 % du prix juste → sous-évaluée, > 115 % → surévaluée, sinon correcte.
   « Divergent » quand la méthode la plus haute dépasse le double de la plus basse (affiché en italique).
   Choix validés par Enzo : mix de méthodes, seuil ±15 %, affichage fiche + liste + positions.
@@ -222,6 +226,18 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Contribution par ligne (enveloppe, titre) : gain = valeur actuelle − quantité au départ × clôture Yahoo en euros
     − flux ; en points = gain / capital moyen de Dietz modifié du portefeuille (la somme des lignes = total). Cours de
     départ manquant : ligne signalée (`missing`), comptée comme achetée pendant la période.
+
+- **Analyse d'actions (septembre 2026, demande d'Enzo).**
+  - Consensus des analystes et date des résultats (`_fill_consensus` dans `data.py`, quoteSummary seulement, donc
+    surtout via le screener) : objectif moyen / bas / haut ramenés en unité principale (pence -> livres), ignorés
+    hors de 0,2 à 5 fois le cours ou sous 3 analystes ; recommandation moyenne 1 à 5. Champs du screener
+    `target_price`, `target_low`, `target_high`, `recommendation`, `analyst_count`, `earnings_date`. Potentiel vs
+    cours recalculé dans le front (le cours change chaque nuit). Lignes de la Valorisation (`consensusRows`) et
+    carte « Résultats à venir » (onglet Revenus : positions + watchlist, 45 jours devant, 7 derrière).
+  - Comparaison côte à côte (`renderCompare`, vue `view-compare`) : bouton « ⇄ Comparer » en haut de la fiche,
+    4 actions au plus (`settings.compare`, la plus ancienne sort), meilleure valeur de chaque ligne en couleur
+    d'accent (pas en vert : « −21 % » n'est pas une bonne nouvelle parce que c'est le moins pire), noms courts
+    (`shortName` retire les formes juridiques). Raccourci « Comparer (n) » dans le Marché.
 
 ## Pistes non faites
 

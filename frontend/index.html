@@ -244,6 +244,16 @@
     /* Fiche action plein écran (ouverte depuis le Marché, les positions ou la watchlist) */
     .stock-top { display: flex; align-items: center; gap: 8px; padding: 16px 0 4px; }
     .stock-top .tick { color: var(--muted); font-size: 14px; }
+    .stock-top .cmp-btn { margin-left: auto; background: var(--card-2); color: var(--text); border: 0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+    .stock-top .cmp-btn.on { background: var(--accent); color: #fff; }
+    .cmp-open { display: block; width: 100%; margin-top: 10px; }
+    .cmp-wrap { overflow-x: auto; margin: 12px -16px 0; padding: 0 16px; }
+    .cmp-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+    .cmp-table th, .cmp-table td { padding: 8px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; vertical-align: top; }
+    .cmp-table th:first-child, .cmp-table td:first-child { text-align: left; color: var(--muted); position: sticky; left: 0; background: var(--bg); padding-left: 0; white-space: normal; min-width: 92px; }
+    .cmp-table thead th { border-top: 0; font-weight: 600; color: var(--text); max-width: 110px; white-space: normal; }
+    .cmp-table thead th button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 0 0; }
+    .cmp-table td.best { color: var(--accent); font-weight: 700; }
     .stock-head { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
     .stock-head h1 { font-size: 22px; margin: 0; line-height: 1.2; }
     .stock-head .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -710,6 +720,9 @@
           <div id="dividends-body" class="help">Chargement…</div>
         </div>
 
+        <h2><span data-term="Résultats">Résultats à venir</span></h2>
+        <div class="card" id="earnings-card"><div class="help">Chargement du screener…</div></div>
+
         </div>
 
         <div class="ptab" data-pane="fiscalite" hidden>
@@ -759,6 +772,7 @@
       </div>
       <div id="screener-pane">
       <div class="market-meta" id="market-meta">Chargement du screener…</div>
+      <button class="btn cmp-open" id="compare-chip" data-compare-open hidden></button>
       <div class="searchrow">
         <input class="search" id="market-search" type="search" placeholder="Rechercher (nom ou ticker)" autocomplete="off" />
         <button class="filterbtn" id="market-filters-open">Filtres<span class="count" id="market-filters-count" hidden></span></button>
@@ -776,8 +790,15 @@
 
     <!-- Fiche action plein écran -->
     <section class="view" id="view-stock" hidden>
-      <div class="stock-top"><button class="back" id="stock-back" aria-label="Retour">‹</button><span class="tick" id="stock-tick"></span></div>
+      <div class="stock-top"><button class="back" id="stock-back" aria-label="Retour">‹</button><span class="tick" id="stock-tick"></span>
+        <button class="cmp-btn" id="stock-compare" hidden></button></div>
       <div id="stock-body"></div>
+    </section>
+
+    <!-- Comparaison d'actions -->
+    <section class="view" id="view-compare" hidden>
+      <div class="stock-top"><button class="back" id="compare-back" aria-label="Retour">‹</button><strong>Comparaison</strong></div>
+      <div id="compare-body"></div>
     </section>
 
     <!-- Briefs -->
@@ -1125,6 +1146,9 @@
         base_fcf: v.base_fcf, net_debt: v.net_debt, shares: v.shares_used,
         fair_value_pe: v.fair_value_pe, fair_value_pb: v.fair_value_pb, fair_pe_used: v.fair_pe_used, justified_pb_used: v.justified_pb_used,
         fair_value_hist_pe: v.fair_value_hist_pe, hist_pe_median: v.hist_pe_median, hist_pe_years: v.hist_pe_years,
+        shares_cagr: v.shares_cagr, shares_years: v.shares_years,
+        target_price: f.target_mean_price, target_low: f.target_low_price, target_high: f.target_high_price,
+        recommendation: f.recommendation_mean, analyst_count: f.analyst_count, earnings_date: f.earnings_date,
         dividend_yield: f.dividend_yield, dividend_ttm: f.dividend_ttm, payout_ratio: f.payout_ratio,
         dividend_growth_5y: f.dividend_growth_5y, dividend_growth_10y: f.dividend_growth_10y,
         dividend_streak: f.dividend_streak, dividend_cut: f.dividend_cut, dividend_history: f.dividend_history,
@@ -1955,6 +1979,28 @@
       meta.textContent = `${market.stocks.length} actions analysées · mises à jour le ${updated.toLocaleDateString("fr-FR")} à ${updated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
       renderMarket();
       renderWatchlist();
+      renderEarnings();
+      renderCompareChip();
+    }
+
+    // Prochaines publications de résultats de tes actions et de ta watchlist (45 jours, et la semaine passée)
+    const EARNINGS_AHEAD_DAYS = 45, EARNINGS_BEHIND_DAYS = 7;
+    function renderEarnings() {
+      const el = document.getElementById("earnings-card");
+      if (!market || !el) return;
+      const held = new Set((overview?.holdings || []).map((h) => (h.yahoo_ticker || "").toUpperCase()));
+      const rows = market.stocks
+        .filter((st) => held.has(st.ticker) || watchlist.has(st.ticker))
+        .map((st) => ({ st, e: earningsText(st.earnings_date) }))
+        .filter(({ e }) => e && e.days <= EARNINGS_AHEAD_DAYS && e.days >= -EARNINGS_BEHIND_DAYS)
+        .sort((a, b) => a.e.days - b.e.days);
+      el.innerHTML = rows.length
+        ? rows.map(({ st, e }) => `<div class="rank-row" data-open-stock="${escapeHtml(st.ticker)}" style="cursor:pointer">
+              <div>${escapeHtml(shortName(st.name) || st.ticker)}<div class="who">${held.has(st.ticker) ? "En portefeuille" : "Watchlist"}</div></div>
+              <div class="right ${e.upcoming ? "" : "muted"}">${e.upcoming ? (e.days === 0 ? "aujourd'hui" : new Date(st.earnings_date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })) : "publiés"}<div class="who">${e.upcoming ? (e.days ? `dans ${e.days} j` : "") : e.text.replace("publiés ", "")}</div></div>
+            </div>`).join("")
+          + `<p class="help" style="margin-top:10px">Dates annoncées par les entreprises ou estimées par Yahoo, relevées à chaque analyse (tous les 3-4 jours).</p>`
+        : `<p class="help" style="margin:0">Aucune publication prévue dans les ${EARNINGS_AHEAD_DAYS} prochains jours pour tes actions et ta watchlist (ou dates pas encore relevées : elles arrivent au fil des analyses de nuit).</p>`;
     }
 
     // --- Présentation commune des lignes d'action : logo (ou initiales), verdict en mots, qualité en mots ---
@@ -2182,6 +2228,30 @@
     const PILLAR_COLOR = { good: "var(--positive)", warn: "var(--warn)", bad: "var(--accent-neg)", na: "var(--muted)" };
     const BALANCE_SHEET = /bank|insurance|asset management|capital markets|credit services|banque|assurance/i;
     // Ligne d'une rubrique : le libellé ouvre le lexique ; en mode Simple, une phrase d'explication en dessous
+    // Consensus des analystes et date des résultats (champs absents des fiches analysées avant leur arrivée)
+    const RECOMMENDATIONS = [[1.5, "Achat fort"], [2.5, "Achat"], [3.5, "Conserver"], [4.5, "Vente"], [5, "Vente forte"]];
+    const recommendationWord = (x) => RECOMMENDATIONS.find(([max]) => x <= max)?.[1];
+    function earningsText(iso) {
+      if (!iso) return null;
+      const days = Math.round((new Date(iso + "T12:00:00") - new Date()) / 86400000);
+      const when = new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: days > 300 ? "numeric" : undefined });
+      if (days >= 0) return { upcoming: true, days, text: days === 0 ? "aujourd'hui" : `le ${when} (dans ${days} j)` };
+      return days >= -100 ? { upcoming: false, days, text: `publiés le ${when}` } : null;
+    }
+    function consensusRows(s, cur) {
+      let rows = "";
+      if (s.target_price != null && s.price) {
+        const upside = (s.target_price / s.price - 1) * 100;
+        const range = s.target_low != null && s.target_high != null ? ` <span class="muted">(${money(s.target_low, cur)} à ${money(s.target_high, cur)})</span>` : "";
+        rows += fRow("Objectif des analystes", `${money(s.target_price, cur)} · <span class="${signClass(upside)}">${upside > 0 ? "+" : ""}${num(upside, 0)} %</span>${range}`,
+          `Cours moyen visé à 12 mois par ${s.analyst_count} analystes : un avis, souvent optimiste, pas une certitude.`);
+      }
+      if (s.recommendation != null) rows += fRow("Avis des analystes", `${recommendationWord(s.recommendation)} <span class="muted">(${num(s.recommendation, 1)} / 5, ${s.analyst_count} avis)</span>`, "Moyenne des recommandations : 1 = achat fort, 3 = conserver, 5 = vente.");
+      const e = earningsText(s.earnings_date);
+      if (e) rows += fRow("Résultats", e.text, e.upcoming ? "Date de la prochaine publication : le cours bouge souvent fort ce jour-là." : "");
+      return rows;
+    }
+
     function fRow(label, value, why = "", cls = "") {
       return `<div class="row"><span>${label}</span><span${cls ? ` class="${cls}"` : ""}>${value}</span></div>`
         + (why && !marketDetailed() ? `<div class="why">${why}</div>` : "");
@@ -2239,6 +2309,7 @@
         + (s.hist_pe_median != null ? fRow("PER historique", `${num(s.hist_pe_median)} <span class="muted">(médiane ${s.hist_pe_years} ans)</span>`, "Le PER habituel de cette action sur ses dernières années : au-dessus, elle est plus chère que d'habitude.") : "")
         + fRow("Cours / valeur comptable", num(s.pb), "Prix payé pour 1 de fonds propres de l'entreprise.")
         + fRow("VE / EBITDA", num(s.ev_ebitda), "Comme le PER, mais en tenant compte de la dette : autour de 10, prix moyen.")
+        + consensusRows(s, cur)
         + fRow("Capitalisation", s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A")
         + dcf + hypotheses);
 
@@ -2262,9 +2333,9 @@
 
       const y = s.dividend_yield;
       const noDividend = !y && !(s.dividend_history || []).length;
-      const dividend = pillar("Dividende", noDividend || !y ? "na" : s.dividend_cut ? "bad" : (s.dividend_streak ?? 0) >= 10 ? "good" : "warn",
+      const dividend = pillar(s.shares_cagr != null ? "Dividende et rachats" : "Dividende", noDividend || !y ? "na" : s.dividend_cut ? "bad" : (s.dividend_streak ?? 0) >= 10 ? "good" : "warn",
         noDividend || !y ? "Pas de dividende" : s.dividend_cut ? `${pctPlain(y)} · réduit récemment` : `${pctPlain(y)} par an · ${s.dividend_streak ?? 0} an${(s.dividend_streak ?? 0) > 1 ? "s" : ""} de hausse`,
-        noDividend ? `<div class="hypotheses" style="margin-top:0">L'entreprise garde ses bénéfices pour se développer ou racheter ses actions.</div>` : dividendBlock(s));
+        (noDividend ? `<div class="hypotheses" style="margin-top:0">L'entreprise garde ses bénéfices pour se développer ou racheter ses actions.</div>` : dividendBlock(s)) + buybackRows(s));
 
       const analysed = s.fundamentals_updated ? new Date(s.fundamentals_updated).toLocaleDateString("fr-FR") : "?";
       return `
@@ -2538,6 +2609,7 @@
         <div class="stock-head">${avatar(s)}<div style="min-width:0"><h1>${escapeHtml(s.name || s.ticker)}</h1>
           <div class="sub">${[s.country, s.sector, (s.indices || [])[0]].filter(Boolean).map(escapeHtml).join(" · ")}</div></div></div>
         ${s.minimal ? "" : `<div class="bigprice">${money(s.price, s.currency)}</div>`}
+        <div id="compare-open-slot"></div>
         ${priceChartBlock()}
         <div id="stock-about"></div>
         ${s.minimal ? `<div class="analysis fiche">${extraRows}</div>` : renderStockDetail(s, extraRows, showDates)}`;
@@ -2545,6 +2617,7 @@
       window.scrollTo(0, 0);
       loadPriceChart(s);
       loadProfile(s);
+      renderCompareButton();
     }
     function closeStock() {
       if (!stockReturn) return;
@@ -2553,8 +2626,8 @@
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
       window.scrollTo(0, scroll);
     }
-    // Retour du téléphone (geste ou bouton) : ferme la fiche au lieu de quitter l'appli
-    window.addEventListener("popstate", () => { if (stockReturn) closeStock(); });
+    // Retour du téléphone (geste ou bouton) : ferme la comparaison ou la fiche au lieu de quitter l'appli
+    window.addEventListener("popstate", () => { if (compareReturn) closeCompare(); else if (stockReturn) closeStock(); });
     document.getElementById("stock-back").addEventListener("click", () => (stockReturn ? history.back() : null));
     function openStockByTicker(ticker) {
       const s = market?.stocks.find((x) => x.ticker === ticker);
@@ -2565,6 +2638,127 @@
       const row = e.target.closest("[data-open-stock]");
       if (row) openStockByTicker(row.dataset.openStock);
     });
+
+
+    // --- Comparaison de 2 à 4 actions côte à côte (liste mémorisée sur l'appareil) ---
+    const COMPARE_MAX = 4;
+    const compareRecords = new Map();  // fiches analysées en direct, absentes du screener
+    let compareReturn = null;
+    const compareList = () => (Array.isArray(settings.compare) ? settings.compare : []);
+    const compareRecord = (t) => market?.stocks.find((x) => x.ticker === t) || compareRecords.get(t) || null;
+
+    function renderCompareButton() {
+      const btn = document.getElementById("stock-compare");
+      const s = openedStock;
+      btn.hidden = !s || s.minimal;
+      if (btn.hidden) return;
+      const inList = compareList().includes(s.ticker);
+      btn.classList.toggle("on", inList);
+      btn.textContent = inList ? `✓ Comparée (${compareList().length})` : `⇄ Comparer${compareList().length ? ` (${compareList().length})` : ""}`;
+      const slot = document.getElementById("compare-open-slot");
+      if (slot) slot.innerHTML = compareList().length >= 2 && inList ? `<button class="btn cmp-open" data-compare-open>Voir la comparaison (${compareList().length} actions)</button>` : "";
+    }
+    document.getElementById("stock-compare").addEventListener("click", () => {
+      const s = openedStock;
+      if (!s) return;
+      let list = compareList();
+      if (list.includes(s.ticker)) list = list.filter((t) => t !== s.ticker);
+      else {
+        if (list.length >= COMPARE_MAX) list = list.slice(1);  // la plus ancienne laisse sa place
+        list = [...list, s.ticker];
+        if (!market?.stocks.some((x) => x.ticker === s.ticker)) compareRecords.set(s.ticker, s);
+      }
+      settings.compare = list;
+      saveSettings();
+      renderCompareButton();
+      renderCompareChip();
+    });
+
+    function renderCompareChip() {
+      const el = document.getElementById("compare-chip");
+      if (!el) return;
+      const n = compareList().filter(compareRecord).length;
+      el.hidden = n < 2;
+      el.textContent = `⇄ Comparer (${n})`;
+    }
+
+    function openCompare() {
+      const current = [...document.querySelectorAll(".view")].find((v) => !v.hidden);
+      compareReturn = { view: current?.id, scroll: window.scrollY };
+      history.pushState({ compare: true }, "", location.hash || location.pathname);
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-compare"));
+      window.scrollTo(0, 0);
+      renderCompare();
+    }
+    function closeCompare() {
+      const { view, scroll } = compareReturn;
+      compareReturn = null;
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
+      window.scrollTo(0, scroll);
+      if (view === "view-stock") renderCompareButton();
+    }
+    document.getElementById("compare-back").addEventListener("click", () => history.back());
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-compare-open]")) { openCompare(); return; }
+      const remove = e.target.closest("[data-compare-remove]");
+      if (remove) {
+        settings.compare = compareList().filter((t) => t !== remove.dataset.compareRemove);
+        saveSettings();
+        renderCompareChip();
+        renderCompare();
+      }
+    });
+
+    // Lignes du tableau : valeur affichée, valeur numérique pour désigner la meilleure (better : "low" ou "high")
+    const COMPARE_ROWS = [
+      { label: "Cours", show: (s) => money(s.price, s.currency) },
+      { label: "Verdict", show: (s) => verdictPill(s) },
+      { label: "Prix juste", term: "Prix juste", show: (s) => { const f = fairValueOf(s); return f ? money(f.value, s.currency) : "N/A"; } },
+      { label: "Potentiel", value: (s) => fairValueOf(s)?.upside ?? null, show: (s, v) => (v == null ? "N/A" : `${v > 0 ? "+" : ""}${num(v, 0)} %`), better: "high" },
+      { label: "Score qualité", term: "Score qualité", value: (s) => s.quality_score, show: (s, v) => (v == null ? "N/A" : `${num(v)}/20`), better: "high" },
+      { label: "PER", term: "PER", value: (s) => (s.pe > 0 ? s.pe : null), show: (s, v) => num(v), better: "low" },
+      { label: "PER prévisionnel", term: "PER prévisionnel", value: (s) => (s.forward_pe > 0 ? s.forward_pe : null), show: (s, v) => num(v), better: "low" },
+      { label: "PER / son historique", term: "PER historique", value: (s) => (s.pe > 0 && s.hist_pe_median ? s.pe / s.hist_pe_median - 1 : null),
+        show: (s, v) => (v == null ? "N/A" : `${v > 0 ? "+" : ""}${num(v * 100, 0)} %`), better: "low" },
+      { label: "VE / EBITDA", term: "VE / EBITDA", value: (s) => (s.ev_ebitda > 0 ? s.ev_ebitda : null), show: (s, v) => num(v), better: "low" },
+      { label: "ROE", term: "ROE", value: (s) => s.roe, show: (s, v) => pctPlain(v), better: "high" },
+      { label: "Marge opérationnelle", term: "Marge opérationnelle", value: (s) => s.operating_margin, show: (s, v) => pctPlain(v), better: "high" },
+      { label: "Dette / fonds propres", term: "Dette / fonds propres", value: (s) => (s.debt_to_equity != null && s.debt_to_equity >= 0 ? s.debt_to_equity : null), show: (s, v) => (v == null ? "N/A" : `${num(v, 0)} %`), better: "low" },
+      { label: "Rendement du dividende", term: "Rendement", value: (s) => s.dividend_yield ?? null, show: (s, v) => pctPlain(v), better: "high" },
+      { label: "Croissance du dividende (5 ans)", term: "Croissance 5 ans", value: (s) => s.dividend_growth_5y ?? null, show: (s, v) => (v == null ? "N/A" : `${pctPlain(v)} /an`), better: "high" },
+      { label: "Nombre d'actions (rachats si baisse)", term: "Rachats d'actions", value: (s) => s.shares_cagr ?? null, show: (s, v) => (v == null ? "N/A" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${pctPlain(Math.abs(v))} /an`), better: "low" },
+      { label: "Objectif des analystes", term: "Objectif des analystes", value: (s) => (s.target_price && s.price ? (s.target_price / s.price - 1) * 100 : null), show: (s, v) => (v == null ? "N/A" : `${v > 0 ? "+" : ""}${num(v, 0)} %`), better: "high" },
+      { label: "Capitalisation", value: (s) => s.market_cap_eur ?? null, show: (s, v) => (v == null ? (s.market_cap ? `${compact.format(s.market_cap)} ${s.currency || ""}` : "N/A") : `${compact.format(v)} €`) },
+      { label: "Secteur", show: (s) => escapeHtml(s.sector || "N/A") },
+    ];
+
+    // « Hermès International Société en commandite par actions » -> « Hermès International »
+    const LEGAL_FORMS = /\s*(,|\()?\s*(Société en commandite par actions|S\.?C\.?A\.?|S\.?A\.?|SE|N\.?V\.?|AG|plc|PLC|Inc\.?|Corporation|Corp\.?|Ltd\.?|Limited|Holdings?|Group|S\.p\.A\.?)\)?\.?$/;
+    function shortName(name) {
+      let n = String(name || "");
+      for (let i = 0; i < 3; i++) n = n.replace(LEGAL_FORMS, "").trim();
+      return n.length > 22 ? n.slice(0, 21).trimEnd() + "…" : n;
+    }
+
+    function renderCompare() {
+      const body = document.getElementById("compare-body");
+      const stocks = compareList().map(compareRecord).filter(Boolean);
+      if (stocks.length < 2) {
+        body.innerHTML = `<p class="help">Ajoute au moins deux actions avec le bouton « ⇄ Comparer » en haut de leur fiche (${COMPARE_MAX} au plus).</p>`
+          + (stocks.length ? `<p class="help">Déjà choisie : ${escapeHtml(stocks[0].name || stocks[0].ticker)}.</p>` : "");
+        return;
+      }
+      const head = `<tr><th></th>${stocks.map((s) => `<th><span data-open-stock="${escapeHtml(s.ticker)}" title="${escapeHtml(s.name || s.ticker)}" style="cursor:pointer">${escapeHtml(shortName(s.name) || s.ticker)}</span><br><button data-compare-remove="${escapeHtml(s.ticker)}">Retirer ✕</button></th>`).join("")}</tr>`;
+      const rows = COMPARE_ROWS.map((row) => {
+        const values = stocks.map((s) => (row.value ? row.value(s) : null));
+        const known = values.filter((v) => v != null && Number.isFinite(v));
+        const best = row.better && known.length >= 2 ? (row.better === "low" ? Math.min(...known) : Math.max(...known)) : null;
+        const label = row.term ? `<span data-term="${row.term}">${row.label}</span>` : row.label;
+        return `<tr><td>${label}</td>${stocks.map((s, i) => `<td class="${best != null && values[i] === best ? "best" : ""}">${row.show(s, values[i])}</td>`).join("")}</tr>`;
+      }).join("");
+      body.innerHTML = `<div class="cmp-wrap"><table class="cmp-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+        <p class="help" style="margin-top:12px">En couleur, la meilleure des valeurs comparées de chaque ligne quand « mieux » a un sens clair (PER plus bas, ROE plus haut…). Les seuils varient d'un secteur à l'autre : une banque et une entreprise tech ne se comparent pas ratio par ratio. Indicatif, ce n'est pas un conseil en investissement.</p>`;
+    }
 
     async function analyzeLive(ticker) {
       const out = document.getElementById("market-live-result");
@@ -2668,6 +2862,19 @@
         }).join("");
     }
 
+    // Rachats d'actions : évolution du nombre d'actions sur 5 exercices (screener/financials.py, base actuelle)
+    function buybackRows(s) {
+      if (s.shares_cagr == null) return "";
+      const rate = -s.shares_cagr;  // positif : l'entreprise rachète
+      const label = Math.abs(rate) < 0.005 ? "nombre d'actions stable" : rate > 0 ? `${pctPlain(rate)} d'actions rachetées par an` : `${pctPlain(-rate)} d'actions en plus par an (dilution)`;
+      const total = rate > 0 && s.dividend_yield != null ? s.dividend_yield + rate : null;
+      return `<div class="metrics" style="margin-top:12px">
+          <div class="row"><span>Rachats d'actions</span><span class="${Math.abs(rate) < 0.005 ? "muted" : rate > 0 ? "positive" : "negative"}">${label}</span></div>
+          ${total != null ? `<div class="row"><span>Rendement pour l'actionnaire</span><span>${pctPlain(total)}</span></div>` : ""}
+        </div>
+        <div class="hypotheses">Évolution moyenne du nombre d'actions sur ${s.shares_years} exercices, divisions d'actions neutralisées.</div>`;
+    }
+
     // Section dividende d'une fiche (rendement, croissance, régularité, versements annuels)
     function dividendBlock(s) {
       if (s.dividend_yield == null && !(s.dividend_history || []).length) return "";
@@ -2723,6 +2930,7 @@
         watchlist = new Set();  // code d'accès absent ou compte de service en lecture seule
       }
       renderWatchlist();
+      renderEarnings();
     }
 
     async function toggleWatch(ticker, button) {
@@ -3910,6 +4118,11 @@
         "Bêta": "<p>Sensibilité de ton portefeuille aux mouvements de l'indice choisi, sur 12 mois. 1 : il bouge comme l'indice ; 1,3 : quand l'indice perd 10 %, il perd en moyenne 13 % ; 0,7 : 7 %.</p><p>Un portefeuille en actions européennes aura un bêta plus faible face au S&amp;P 500 simplement parce que les deux marchés ne bougent pas pareil.</p>",
         "Contribution": "<p>Part d'une ligne dans la performance du portefeuille, en points de pourcentage : son gain en euros divisé par le capital moyen investi sur la période (méthode de Dietz modifiée : un achat en cours de période compte au prorata du temps investi).</p><p>La somme des lignes donne la performance totale : +2 pt sur une ligne veut dire qu'elle a apporté 2 % des 5 % du portefeuille, par exemple.</p>",
         "PER historique": "<p>Le PER habituel de l'action : pour chacune de ses 10 dernières années au plus, cours moyen de l'année ÷ bénéfice par action de l'année, puis la médiane (la valeur du milieu, pour qu'une année exceptionnelle ne fausse pas tout).</p><p>L'actuel au-dessus de l'historique : le marché paie l'action plus cher que d'habitude. En dessous : moins cher. Il sert aussi au prix juste (bénéfice du dernier exercice × PER historique), ce qui juge Air Liquide ou Hermès face à leur propre passé plutôt que face à la moyenne de leur secteur.</p><p>Europe et Asie : l'historique s'allonge d'année en année (4 exercices au départ). Années à perte ou PER au-delà de 100 écartées.</p>",
+        "Objectif des analystes": "<p>Moyenne des cours visés à 12 mois par les analystes qui suivent l'action (source Yahoo), avec le plus bas et le plus haut entre parenthèses. Affiché à partir de 3 analystes.</p><p>À prendre avec recul : les analystes sont en moyenne optimistes, suivent souvent le cours plus qu'ils ne l'anticipent, et un objectif ne dit rien du risque. Un écart très large entre le plus bas et le plus haut signale une action difficile à évaluer. Ce n'est pas un conseil en investissement.</p>",
+        "Avis des analystes": "<p>Moyenne des recommandations des analystes, de 1 (achat fort) à 5 (vente forte) : jusqu'à 1,5 achat fort, 2,5 achat, 3,5 conserver, 4,5 vente.</p><p>Les avis « vente » sont rares (les banques ménagent les entreprises qu'elles conseillent) : un 3 est déjà un signal de prudence.</p>",
+        "Résultats": "<p>Date de publication des prochains résultats (trimestriels ou annuels), telle qu'annoncée par l'entreprise ou estimée par Yahoo. Le cours bouge souvent fortement ce jour-là, dans un sens ou dans l'autre.</p><p>Après la publication, les bénéfices et ratios de la fiche sont mis à jour à la prochaine analyse de l'action (tous les 3-4 jours).</p>",
+        "Rachats d'actions": "<p>Évolution moyenne, par an, du nombre d'actions de l'entreprise sur ses 5 derniers exercices au plus (divisions d'actions neutralisées).</p><p>Quand l'entreprise rachète ses actions et les annule, chaque action restante détient une plus grande part du bénéfice : c'est une autre façon de rendre de l'argent aux actionnaires, sans impôt immédiat pour eux. Apple rachète environ 3 % de ses actions par an. À l'inverse, une entreprise qui émet des actions (augmentations de capital, rémunération des salariés en actions) dilue ses actionnaires.</p>",
+        "Rendement pour l'actionnaire": "<p>Rendement du dividende + part des actions rachetées chaque année : ce que l'entreprise rend au total à ses actionnaires, en % du cours (approximation, les rachats passés ne garantissent pas les futurs).</p>",
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",

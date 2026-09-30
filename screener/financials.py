@@ -180,8 +180,9 @@ def historical_pe(years: list[dict], closes: dict[int, list[float]], splits: lis
     ramené à la base actuelle), leur médiane et le bénéfice par action du dernier exercice. Le cours et le
     bénéfice viennent chacun d'une seule source : un prix juste = médiane x BPA reste dans l'unité du cours.
     closes : clôtures mensuelles corrigées des divisions, par année civile. shares_now : nombre d'actions
-    actuel (screener) ; le BPA actuel en dépend plutôt que du dernier rapport, parfois faux chez Yahoo
-    (Air Liquide 2025 : 579 millions d'actions au lieu d'environ 699 après l'attribution gratuite de juin)."""
+    actuel (screener), sur la même base que les cours ; le BPA actuel en dépend plutôt que du dernier rapport,
+    qui peut être sur l'ancienne base (Air Liquide 2025 : 579 millions d'actions en moyenne sur l'exercice,
+    ~637 millions aujourd'hui après l'attribution gratuite de juin 2025, 1 pour 10, dont Yahoo corrige les cours)."""
     usable = [y for y in years if y.get("net_income") is not None and y.get("shares")]
     if not usable:
         return None
@@ -199,7 +200,25 @@ def historical_pe(years: list[dict], closes: dict[int, list[float]], splits: lis
     points.sort(key=lambda p: p["year"])
     eps_now = latest["net_income"] / reference
     return {"years": points, "median": round(median(p["pe"] for p in points), 1) if len(points) >= PE_MIN_YEARS else None,
-            "eps": round(eps_now, 4) if eps_now > 0 else None, "eps_year": latest["year"]}
+            "eps": round(eps_now, 4) if eps_now > 0 else None, "eps_year": latest["year"],
+            **shares_trend(usable, splits, reference)}
+
+
+SHARES_TREND_YEARS = 5
+
+
+def shares_trend(years: list[dict], splits: list[tuple[date, float]], reference: float) -> dict:
+    """Évolution annuelle moyenne du nombre d'actions sur 5 exercices au plus (au moins 2), sur la base
+    actuelle : négative quand l'entreprise rachète ses actions (chaque action restante détient une plus grande
+    part du bénéfice), positive quand elle en émet (dilution). Ex. Apple 2020 -> 2025 : 17,5 -> 15,0 milliards
+    d'actions, (15,0 / 17,5)^(1/5) - 1 = -3,0 % par an."""
+    by_year = {y["year"]: adjusted_shares(y["shares"], y["year"], splits, reference) for y in years}
+    latest = max(by_year)
+    start = next((latest - k for k in range(SHARES_TREND_YEARS, 1, -1) if latest - k in by_year), None)
+    if start is None:
+        return {"shares_cagr": None, "shares_years": None}
+    span = latest - start
+    return {"shares_cagr": round((by_year[latest] / by_year[start]) ** (1 / span) - 1, 4), "shares_years": span}
 
 
 def fetch_pe_history(ticker: str, years: list[dict], reporting_currency: str | None,
