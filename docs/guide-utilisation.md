@@ -215,10 +215,20 @@ titre sur 5 ans).
   américaines).
 - **Exposition par entreprise** : tes plus grosses entreprises, en direct et via tes ETF (utile pour
   repérer si tu es trop exposé à Apple ou Nvidia sans le savoir).
+- **Concentration** : le poids de chacune de tes lignes (PEA et CTO additionnés), la part de tes 5 plus
+  grosses lignes et le **nombre effectif de lignes** (combien de lignes de même poids auraient la même
+  diversification). Une action au-dessus de ton **plafond** (15 % par défaut, réglable : 10 à 25 %) est en rouge,
+  avec ce qu'il faudrait alléger ou investir ailleurs pour y revenir ; un secteur au-dessus de 40 % (réglable)
+  et une entreprise trop lourde une fois ses parts dans tes ETF ajoutées sont signalés. Les ETF ne comptent pas
+  comme une ligne concentrée. Les dépassements apparaissent aussi sous la **cloche**.
 - **Allocation cible** : **Définir mes cibles** crée des **poches** (ex : « ETF Monde » 60 %, « Actions
   France » 20 %, « Actions US » 20 %, total 100 %) et range chaque ligne dans une poche. Le tableau compare
-  ta répartition à tes cibles ; tape le montant que tu vas investir dans « Je vais investir … € » : l'appli
-  te dit combien mettre dans chaque poche, sans rien vendre.
+  ta répartition à tes cibles, puis deux modes :
+  - **Sans vendre** : tape le montant que tu vas investir, l'appli te dit combien mettre dans chaque poche ;
+  - **Rééquilibrer** : ce qu'il faut acheter et vendre pour revenir exactement à tes cibles (avec un versement
+    facultatif). Les ventes commencent par le PEA (pas d'impôt tant que tu ne retires rien), puis les lignes du
+    CTO en moins-value, puis les moins en plus-value, et l'impôt du CTO est estimé. L'appli te prévient quand
+    l'argent devrait passer d'une enveloppe à l'autre (impossible : une vente sur le PEA se réinvestit sur le PEA).
 - **Espèces** : le solde de chaque compte suivi (versé, retiré, intérêts), et l'alerte si des versements
   manquent.
 - **Épargne et patrimoine** : **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes
