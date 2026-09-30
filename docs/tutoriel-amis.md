@@ -1,7 +1,7 @@
 # Utiliser Portfolio Insights : guide pour les amis
 
 Portfolio Insights suit ton portefeuille d'actions (PEA, CTO) à partir d'un Google Sheet qui t'appartient,
-et l'analyse : valeur intrinsèque, score qualité, dividendes, comparaison à un indice, alertes.
+et l'analyse : prix juste, score qualité, dividendes, performance face à un indice, espèces, épargne, alertes.
 L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur. C'est gratuit.
 
 ## Ce qu'il faut savoir avant de commencer
@@ -24,14 +24,14 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 1. Sur ton téléphone, ouvre https://portfolio-front-8t6m.onrender.com
    (la première ouverture peut prendre jusqu'à une minute : le serveur gratuit se réveille),
-   onglet **Réglages > Pas encore de compte ?** : l'adresse du robot de l'appli y est affichée
+   onglet **Réglages > Créer un compte** : l'adresse du robot de l'appli y est affichée
    (elle se termine par `.iam.gserviceaccount.com`).
 2. Dans ta copie, bouton **Partager** en haut à droite : ajoute cette adresse, rôle **Éditeur**,
    décoche « Envoyer une notification » (le robot ne lit pas ses mails), puis **Partager**.
 
 ## Étape 3 : créer ton compte (2 min)
 
-1. Dans l'appli, **Réglages > Pas encore de compte ?** : colle le lien de ta copie, **Vérifier mon Sheet**.
+1. Dans l'appli, **Réglages > Créer un compte** : colle le lien de ta copie, **Vérifier mon Sheet**.
 2. L'appli affiche un code (`PI-…`) : dans ton Sheet, onglet **Réglages**, colle-le dans la case à droite
    de `code_inscription`. C'est la preuve que ce Sheet est bien à toi.
 3. Indique ton prénom ou un pseudo, puis **Créer mon compte**. Ton **code d'accès personnel** s'affiche
@@ -43,7 +43,7 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 ## Étape 4 : tes comptes et tes banques (3 min)
 
-Dans l'appli, **Réglages > Mes comptes et courtiers** :
+Dans l'appli, **Réglages > Comptes et courtiers** :
 
 1. **Comptes** : un compte par enveloppe et par banque, par exemple « PEA Boursorama »,
    « CTO Trade Republic », « PEA Fortuneo ». L'enveloppe est `PEA` ou `CTO`. Remplace les deux comptes
@@ -56,27 +56,34 @@ Dans l'appli, **Réglages > Mes comptes et courtiers** :
 
 ## Étape 5 : saisir tes positions
 
-Le plus rapide : onglet **Portefeuille**, bouton **Importer un relevé**. Choisis le compte, puis :
-- **Trade Republic** : le **relevé de compte PDF** (dans l'appli Trade Republic : Profil > Documents,
-  sur toute la période depuis l'ouverture). Il contient ton CTO et ton PEA : chaque opération va dans le
-  bon compte, à condition d'avoir créé les deux à l'étape 4, crypto comprise. L'export CSV des
-  transactions marche aussi ;
+Le plus rapide : onglet **Portefeuille**, bouton **Importer**. Choisis le compte, puis :
+- **Trade Republic** : de préférence l'**export CSV des transactions** (dans l'appli Trade Republic, sur
+  toute la période depuis l'ouverture), sinon le relevé de compte PDF (Profil > Documents). Les deux
+  contiennent ton CTO et ton PEA : chaque opération va dans le bon compte, à condition d'avoir créé les deux
+  à l'étape 4, crypto comprise. Le CSV apporte en plus tes versements, retraits, paiements par carte et
+  intérêts : l'appli suit alors l'argent qui attend sur tes comptes et estime l'impôt sur tes intérêts ;
 - **Boursorama** : les avis d'opéré PDF (Espace client > Documents), tous d'un coup.
 
 L'appli affiche les opérations trouvées avant d'écrire quoi que ce soit : décoche ce que tu ne veux pas,
 complète un ticker s'il manque, puis valide. Les opérations déjà présentes dans le Sheet sont repérées
 et décochées.
 
-Pour une autre banque, bouton **+ Nouvelle opération**, une ligne par achat déjà fait :
+Pour une autre banque, bouton **Opération**, une ligne par achat déjà fait :
 compte, date, ticker au format Yahoo (`MC.PA` pour LVMH, `AAPL` pour Apple, `SAP.DE` pour SAP…),
-quantité, prix, frais.
+quantité, prix, frais. Pour suivre tes espèces, ajoute aussi tes versements (type **Versement**) depuis
+l'ouverture du compte.
 
 L'onglet **Positions** du Sheet se calcule tout seul (quantité, PRU frais inclus, valeur, plus-value),
 et la courbe d'évolution est reconstituée depuis ton premier achat.
 
-## Étape 6 (facultatif) : ton allocation cible
+## Étape 6 (facultatif) : ton épargne et ton allocation cible
 
-Onglet **Portefeuille**, section **Allocation cible** : **Définir mes cibles**. Crée tes poches
+Onglet **Portefeuille**, sous-onglet **Répartition** :
+
+- **Ajouter mon épargne** : tes livrets, ton assurance-vie et ton PER, avec la valeur de ton dernier relevé
+  (et le total versé si tu veux voir ta plus-value). L'appli affiche alors tout ton patrimoine financier et
+  te propose une projection à 10, 20 ou 30 ans.
+- **Allocation cible** : **Définir mes cibles**. Crée tes poches
 (ex : « ETF Monde » 60 %, « Actions » 40 %, total 100 %), choisis la poche de chaque ligne, puis
 **Enregistrer**. L'appli compare ta répartition réelle à ces cibles et te dit où placer tes prochains
 versements.
@@ -96,15 +103,17 @@ Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de p
 
 ## Et ensuite ?
 
-Pour découvrir tout ce que fait l'appli (allocation, dividendes, screener, alertes…), lis le
-[guide d'utilisation](guide-utilisation.md), aussi accessible depuis **Réglages > Aide**.
+Pour découvrir tout ce que fait l'appli (performance et risque, fiche d'une action, comparaison, dividendes,
+fiscalité, alertes…), lis le [guide d'utilisation](guide-utilisation.md), aussi accessible depuis
+**Réglages > Guide d'utilisation**.
 
 ## Bon à savoir
 
 - **L'historique se remplit tout seul** : chaque nuit après un jour de bourse, une ligne est ajoutée à
   l'onglet **Historique** de ton Sheet, et la courbe d'évolution avance.
-- **Mode discret** : touche l'œil à côté de « Valeur des placements » pour flouter les montants
+- **Mode discret** : touche l'œil en haut du Portefeuille pour remplacer les montants par des points
   (les pourcentages restent visibles), pratique pour montrer l'appli.
+- **Après une mise à jour de l'appli**, ferme-la complètement puis rouvre-la pour voir la nouvelle version.
 - **Hors ligne** : l'appli s'ouvre sans réseau et affiche tes dernières valeurs connues.
 
 ## En cas de souci
@@ -115,6 +124,7 @@ Pour découvrir tout ce que fait l'appli (allocation, dividendes, screener, aler
 | « L'appli n'a pas accès à ce Sheet » | Refais l'étape 2 : partage en Éditeur avec l'adresse du robot. |
 | « Code de vérification absent ou incorrect » | Colle le code `PI-…` dans l'onglet Réglages de ton Sheet, à droite de `code_inscription`, sans espace. |
 | « Le compte de service doit être Éditeur du Google Sheet » | Refais l'étape 2 avec le rôle Éditeur. |
-| « Compte inconnu » à la saisie | Ajoute le compte dans Réglages > Mes comptes et courtiers. |
+| « Compte inconnu » à la saisie | Ajoute le compte dans Réglages > Comptes et courtiers. |
+| « Versements incomplets » dans Espèces | Il manque des versements depuis l'ouverture du compte : saisis-les (type Versement) ou importe l'export CSV Trade Republic complet. |
 | Une position sans cours dans le Sheet | Vérifie son ticker Google dans l'onglet Titres (ex. `EPA:MC`, `NASDAQ:AAPL`). |
 | Ligne en double chaque samedi dans Historique | Supprime l'ancien script : Sheet > Extensions > Apps Script > Déclencheurs, supprime `releveHebdo`. |
