@@ -205,6 +205,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     dans `profiles/<ticker>.json` (un fichier par action : dans screener.json elle triplerait sa taille) ; un
     fichier n'est remplacé que par une présentation non vide. Une analyse en direct l'apporte directement.
     Les fiches se remplissent au fil des réanalyses (3-4 jours pour tout l'univers).
+    En français (octobre 2026, demande d'Enzo) : `screener/translate_profiles.py`, étape du workflow de nuit (800
+    par nuit, 20 min), traduit par l'API publique de Google Traduction (`translate_a/single`, client gtx, gratuite
+    et sans clé, morceaux de 1 500 caractères coupés entre deux phrases) et range `summary_fr` + `summary_fr_of`
+    (empreinte du texte anglais traduit) dans le même fichier. `save_profile` garde la traduction tant que le texte
+    anglais ne change pas (`keep_translation`), sinon chaque réanalyse l'effacerait. La fiche lit d'abord le
+    fichier archivé (seul à avoir le français), original anglais repliable ; sans traduction, anglais + lien.
+    Service injoignable depuis le conteneur de dev : vérifier le premier passage de nuit.
 
 - **Prix juste dans l'historique hebdomadaire (septembre 2026).** 6e valeur des relevés de `history.json`
   (`update_history`), calculée avec les hypothèses standard ; les relevés plus anciens restent à 5 valeurs et

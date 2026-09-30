@@ -58,6 +58,10 @@ jobs:
       - name: Lance le screener
         run: python screener/run.py --data-dir data --max-fundamentals "${{ inputs.max_fundamentals || '2000' }}" --time-budget-min 200
 
+      - name: Traduction en français des présentations d'entreprise
+        continue-on-error: true
+        run: python screener/translate_profiles.py --data-dir data --max 800 --time-budget-min 20
+
       - name: Contenu des ETF (composition des grands indices)
         continue-on-error: true
         run: python screener/etf_lookthrough.py --data-dir data

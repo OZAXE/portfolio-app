@@ -234,8 +234,8 @@ Touche une action pour l'ouvrir en plein écran (le bouton retour du téléphone
 
 - **La courbe du cours** sur 1 mois à 10 ans, avec la moyenne 200 jours et le prix juste en pointillés
   (puces sous le graphique pour les afficher ou les masquer), et une phrase sur la tendance.
-- **À propos de l'entreprise** : sa présentation (en anglais, avec un lien pour la traduire), son site et
-  son effectif.
+- **À propos de l'entreprise** : sa présentation en français (traduite automatiquement, l'original anglais
+  est à un toucher), son site et son effectif.
 - **Actualités** : les titres des 30 derniers jours qui citent l'entreprise (Google Actualités, en
   français), avec leur source et un lien vers l'article.
 - **Le verdict en une phrase** et sa jauge : l'action paraît sous-évaluée, à son juste prix ou chère.

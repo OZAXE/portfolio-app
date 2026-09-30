@@ -285,6 +285,9 @@
     .price-card .trend.up { color: var(--positive); } .price-card .trend.down { color: var(--accent-neg); }
     /* .pillar.about : les règles .pillar (plus bas) l'emporteraient sinon à spécificité égale */
     .about { margin-top: 12px; }
+    .about-original { margin-top: 10px; font-size: 13px; }
+    .about-original summary { color: var(--accent); cursor: pointer; }
+    .about-original .about-text { color: var(--muted); }
     .news-item { display: block; padding: 9px 0; border-top: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.35; }
     .news-item:first-child { border-top: 0; padding-top: 2px; }
     .news-item .who { font-size: 12px; color: var(--muted); margin-top: 3px; }
@@ -2766,14 +2769,17 @@
 
     async function loadProfile(s) {
       const el = document.getElementById("stock-about");
-      let p = s.summary ? { summary: s.summary, website: s.website, employees: s.employees } : null;
-      if (!p && !s.minimal) {
+      // Fichier archivé par le screener d'abord : lui seul a la traduction française (translate_profiles.py) ;
+      // une analyse en direct (action hors screener) n'apporte que l'anglais
+      let p = null;
+      if (!s.minimal) {
         const ticker = s.yahoo_ticker || s.ticker;
         profileRequests[ticker] ??= fetch(PROFILE_URL + encodeURIComponent(ticker) + ".json", { cache: "no-cache" })
           .then((res) => (res.ok ? res.json() : null)).catch(() => null);
         p = await profileRequests[ticker];
         if (!p) delete profileRequests[ticker];  // pas encore archivée : retentée à la prochaine ouverture
       }
+      if (!p?.summary && s.summary) p = { summary: s.summary, website: s.website, employees: s.employees };
       if (openedStock !== s || !el) return;
       if (!p?.summary) {
         // Action du screener pas encore réanalysée depuis l'arrivée des présentations (une fiche tous les 3-4 jours)
@@ -2783,17 +2789,21 @@
       }
       const website = /^https?:\/\//i.test(p.website || "") ? `<a href="${escapeHtml(p.website)}" target="_blank" rel="noopener">${escapeHtml(p.website.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, ""))}</a>` : "";
       const translate = `https://translate.google.com/?sl=en&tl=fr&op=translate&text=${encodeURIComponent(p.summary.slice(0, TRANSLATE_MAX))}`;
+      const french = p.summary_fr || null;
       el.innerHTML = `<details class="pillar about">
           <summary><span class="dot" style="background:var(--series-pea)"></span>
-            <span style="min-width:0"><span class="ptitle">À propos de l'entreprise</span><span class="psum">${escapeHtml(p.summary.slice(0, 300))}</span></span><span class="chev" aria-hidden="true">›</span></summary>
+            <span style="min-width:0"><span class="ptitle">À propos de l'entreprise</span><span class="psum">${escapeHtml((french || p.summary).slice(0, 300))}</span></span><span class="chev" aria-hidden="true">›</span></summary>
           <div class="pbody">
-            <p class="about-text" lang="en">${escapeHtml(p.summary)}</p>
+            <p class="about-text" lang="${french ? "fr" : "en"}">${escapeHtml(french || p.summary)}</p>
             <div class="about-meta">
               ${p.employees ? `<span>${new Intl.NumberFormat("fr-FR").format(p.employees)} salariés</span>` : ""}
               ${website}
-              <a href="${translate}" target="_blank" rel="noopener">Traduire en français</a>
+              ${french ? "" : `<a href="${translate}" target="_blank" rel="noopener">Traduire en français</a>`}
             </div>
-            <div class="about-note">Présentation fournie par Yahoo Finance, en anglais.</div>
+            ${french
+              ? `<details class="about-original"><summary>Voir l'original en anglais</summary><p class="about-text" lang="en">${escapeHtml(p.summary)}</p></details>
+                 <div class="about-note">Présentation fournie par Yahoo Finance, traduite automatiquement.</div>`
+              : `<div class="about-note">Présentation fournie par Yahoo Finance, en anglais (la traduction française arrive avec les calculs de nuit).</div>`}
           </div></details>`;
     }
 
