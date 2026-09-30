@@ -247,6 +247,12 @@ titre sur 5 ans).
 - **Dividendes à venir** : les dividendes attendus sur 12 mois, mois par mois (touche une barre pour le
   détail), et le revenu annuel estimé. L'estimation suppose que chaque entreprise versera comme l'an
   dernier. Les ETF capitalisants ne versent rien : c'est normal.
+- **Rendement de tes lignes** : le **rendement sur ton prix de revient** (dividende annuel divisé par ce que tu
+  as payé, le « yield on cost ») et le rendement au cours actuel, pour le portefeuille et pour chaque ligne, avec
+  sa part du revenu total. Plus une estimation du revenu dans 5 ans si chaque dividende progresse comme sur ses
+  5 dernières années (une tendance, pas une promesse).
+- **Revenu annuel** : les dividendes et intérêts réellement touchés chaque année, d'après tes opérations, puis
+  la projection des 12 prochains mois, avec la progression d'une année sur l'autre.
 - **Résultats à venir** : les dates de publication des résultats de tes actions et de ta watchlist sur les
   45 prochains jours. Le cours bouge souvent fort ce jour-là.
 
