@@ -165,6 +165,21 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Pour tester le front : servir `frontend/`, intercepter l'API (réponses générées avec les fonctions du backend)
   et le screener avec Playwright, comme décrit dans « Commandes ».
 
+- **Courbe de cours et présentation de la fiche (septembre 2026, demande d'Enzo).**
+  - Courbe en tête de fiche (`priceChartBlock`, `drawPriceChart`) : 10 ans de clôtures quotidiennes via
+    l'API `/prices/{ticker}` (`prices.py`, API chart de Yahoo, qui répond sur Render ; gardées 6 h). Cours non
+    ajustés des dividendes (comme un courtier), divisions corrigées, pence de Londres ramenés en livres
+    (`MINOR_CURRENCIES`). Périodes 1M à 10A mémorisées (`settings.pricePeriod`), variation colorée sur la
+    période, moyenne 200 jours dès 1A et phrase de tendance (±2 % autour de la moyenne = « sans tendance
+    nette »), prix juste actuel en pointillés seulement s'il reste entre 0,8 × le plus bas et 1,25 × le plus
+    haut de la période (sinon il écraserait la courbe : cité dans la légende). Aussi sur la fiche réduite
+    (ETF, crypto) avec le ticker Yahoo.
+  - Présentation (`loadProfile`) : `longBusinessSummary` de Yahoo, en anglais, avec site et effectif, lien
+    « Traduire en français » (Google Traduction). Seulement via quoteSummary, donc archivée par le screener
+    dans `profiles/<ticker>.json` (un fichier par action : dans screener.json elle triplerait sa taille) ; un
+    fichier n'est remplacé que par une présentation non vide. Une analyse en direct l'apporte directement.
+    Les fiches se remplissent au fil des réanalyses (3-4 jours pour tout l'univers).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste

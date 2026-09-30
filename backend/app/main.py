@@ -17,6 +17,7 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
 - POST /settings/accounts, /settings/fees, /allocation -> comptes, frais et allocation cible
 - GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
+- GET /prices/{ticker}      -> courbe de cours sur 10 ans affichée en tête de la fiche action
 - POST /history/snapshot    -> relevé quotidien de l'onglet Historique (job nocturne, admin)
 - GET /signup/info, POST /signup/start, /signup/finish -> inscription libre (signup.py)
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
@@ -804,3 +805,27 @@ def get_position_chart(ticker: str, user: User = Depends(require_access)):
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
     return _sheet_call(build)
+
+
+# Courbe de cours de la fiche : une clôture de plus par jour, inutile de réinterroger Yahoo à chaque
+# ouverture de la fiche. Gardée 6 h ; les échecs (ticker inconnu, Yahoo muet) ne sont pas gardés
+PRICES_CACHE_SECONDS = 6 * 3600
+_prices_cache: dict[str, tuple[float, dict]] = {}
+
+
+@app.get("/prices/{ticker}", dependencies=[Depends(require_access)])
+def get_prices(ticker: str):
+    from .prices import fetch_price_history
+
+    ticker = _checked_ticker(ticker)
+    cached = _prices_cache.get(ticker)
+    if cached and time.monotonic() - cached[0] < PRICES_CACHE_SECONDS:
+        return cached[1]
+    try:
+        result = fetch_price_history(ticker)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:  # Yahoo injoignable ou réponse inattendue : la fiche reste utilisable sans courbe
+        raise HTTPException(status_code=502, detail=f"Cours indisponibles : {e}")
+    _prices_cache[ticker] = (time.monotonic(), result)
+    return result
