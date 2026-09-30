@@ -124,9 +124,11 @@ Ces outils rares sont dans **Réglages > Opérations avancées** :
   d'un import. Vérifie : deux ordres identiques le même jour peuvent être réels, décoche-les alors. Elle
   propose aussi, **décochées**, les lignes de même titre et même quantité à quelques semaines d'écart, et
   repère les achats **« Date à préciser »** repris de l'ancien Sheet quand tes relevés contiennent les vrais.
-- **Repartir de zéro** : efface les opérations d'un compte ou de tous (case « Seulement les lignes
-  importées » pour garder tes saisies à la main), après une copie dans un onglet « Sauvegarde … » de ton
-  Sheet. **Annuler : remettre mes opérations** remet tout comme avant.
+- **Repartir de zéro** (aussi accessible par le lien « Tout effacer et réimporter » du panneau
+  **Importer**) : efface les opérations d'un compte ou de tous, après une copie dans un onglet
+  « Sauvegarde … » de ton Sheet. La case **Seulement les lignes importées** est cochée par défaut : elle
+  garde tes saisies à la main et les lignes reprises de l'ancien Sheet. **Décoche-la pour tout effacer.**
+  **Annuler : remettre mes opérations** remet tout comme avant.
 - **Reconstituer l'historique depuis mes opérations** : recalcule toute la courbe depuis ton premier achat.
 
 ### Ajouter une banque ou corriger des frais
