@@ -341,7 +341,7 @@
     .iconbtn { position: relative; width: 40px; height: 40px; border-radius: 12px; background: var(--card); border: 0; color: var(--text); display: grid; place-items: center; cursor: pointer; }
     .iconbtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
     .bell-dot { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-neg); }
-    .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
     .quick button { background: var(--card); border: 0; border-radius: 14px; padding: 10px 6px; display: grid; justify-items: center; gap: 4px;
       color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
     .quick svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -405,6 +405,11 @@
     .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
     .op-grid .wide { grid-column: 1 / -1; }
+    /* Transactions : lignes de l'onglet Opérations, formulaire de correction sous la ligne touchée */
+    .tx-edit { padding: 12px 14px 14px; border-top: 1px solid var(--line); background: var(--card-2); }
+    .tx-edit .op-grid input, .tx-edit .op-grid select { background: var(--card); }
+    .tx-edit .danger { color: var(--accent-neg); }
+    .tx-tag { font-size: 11px; color: var(--muted); }
     .op-ratio { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; color: var(--text); }
     .op-grid input, .op-grid select {
       background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
@@ -602,6 +607,7 @@
         <div class="quick">
           <button id="op-open"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Opération</button>
           <button id="imp-open"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>Importer</button>
+          <button id="tx-open"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Transactions</button>
           <button id="goals-open"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Objectifs</button>
         </div>
         <div class="card" id="imp-panel" hidden>
@@ -822,6 +828,16 @@
     <section class="view" id="view-compare" hidden>
       <div class="stock-top"><button class="back" id="compare-back" aria-label="Retour">‹</button><strong>Comparaison</strong></div>
       <div id="compare-body"></div>
+    </section>
+
+    <section class="view" id="view-transactions" hidden>
+      <div class="stock-top"><button class="back" id="tx-back" aria-label="Retour">‹</button><strong>Transactions</strong></div>
+      <input class="search" id="tx-search" type="search" placeholder="Rechercher (titre, ticker, note)" autocomplete="off" />
+      <div class="filters" id="tx-kinds"></div>
+      <div class="filters"><select id="tx-account" aria-label="Compte"></select></div>
+      <div class="status" id="tx-status"></div>
+      <div id="tx-list"></div>
+      <p class="help">Touche une ligne pour la corriger ou la supprimer : l'onglet Opérations du Sheet est modifié, puis ton portefeuille et ta courbe sont recalculés.</p>
     </section>
 
     <!-- Briefs -->
@@ -4267,6 +4283,217 @@
       if (e.target.tagName !== "SELECT") return;
       if (e.target.id === "op-type" || e.target.id === "op-account") opEdited.delete("op-qty");
       updateOperationForm();
+    });
+
+    // --- Transactions : toutes les lignes de l'onglet Opérations, à corriger ou supprimer (transactions.py) ---
+    // Chaque ligne garde son numéro et son empreinte (key) : le serveur refuse d'écrire si le Sheet a bougé
+    let transactions = null, txReturn = null, txOpen = null;
+    const txFilter = { kind: "", account: "", query: "" };
+    const TX_KINDS = [["", "Tout"], ["trade", "Achats et ventes"], ["Dividende", "Dividendes"], ["cash", "Espèces"], ["share", "Divisions"]];
+    const txMonth = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+    const txDay = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+    async function openTransactions() {
+      const current = [...document.querySelectorAll(".view")].find((v) => !v.hidden);
+      txReturn = { view: current?.id, scroll: window.scrollY };
+      history.pushState({ transactions: true }, "", location.hash || location.pathname);
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-transactions"));
+      window.scrollTo(0, 0);
+      txOpen = null;
+      await loadTransactions();
+    }
+    function closeTransactions() {
+      const { view, scroll } = txReturn;
+      txReturn = null;
+      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
+      window.scrollTo(0, scroll);
+    }
+    window.addEventListener("popstate", () => { if (txReturn && !stockReturn && !compareReturn) closeTransactions(); });
+
+    async function loadTransactions() {
+      const status = document.getElementById("tx-status");
+      status.textContent = "Chargement de tes opérations…";
+      try {
+        const [list, s] = await Promise.all([api("/transactions"), opSettings ? opSettings : api("/settings")]);
+        transactions = list.transactions;
+        opSettings = s;
+        status.textContent = "";
+      } catch (e) {
+        status.textContent = e.message;
+        return;
+      }
+      const accounts = [...new Set(transactions.map((t) => t.account).filter(Boolean))].sort();
+      if (txFilter.account && !accounts.includes(txFilter.account)) txFilter.account = "";
+      document.getElementById("tx-account").innerHTML = `<option value="">Tous les comptes</option>`
+        + accounts.map((a) => `<option ${a === txFilter.account ? "selected" : ""}>${escapeHtml(a)}</option>`).join("");
+      renderTransactions();
+    }
+
+    function txKind(t) {
+      return CASH_TYPES.includes(t.type) ? "cash" : SHARE_TYPES.includes(t.type) ? "share" : ["Achat", "Vente"].includes(t.type) ? "trade" : t.type;
+    }
+    function txMatches(t) {
+      if (txFilter.kind && txKind(t) !== txFilter.kind) return false;
+      if (txFilter.account && t.account !== txFilter.account) return false;
+      const q = txFilter.query.trim().toLowerCase();
+      return !q || [t.ticker, t.name, t.note, t.why, t.type].some((v) => String(v || "").toLowerCase().includes(q));
+    }
+    // Montant vu du compte : un achat ou un retrait sort (−), une vente, un dividende, un versement entrent (+)
+    function txAmount(t) {
+      if (SHARE_TYPES.includes(t.type)) return `<span class="price muted">${t.quantity > 0 ? "+" : ""}${hideable(num(t.quantity, 6))} act.</span>`;
+      const amount = t.net ?? t.gross ?? (t.quantity || 1) * (t.price || 0);
+      const out = t.type === "Achat" || t.type === "Retrait";
+      return `<span class="price">${out ? "−" : "+"}${eur.format(Math.abs(amount))}</span>`;
+    }
+    function txDetail(t) {
+      if (CASH_TYPES.includes(t.type)) return t.note || t.account;
+      if (SHARE_TYPES.includes(t.type)) return t.note || "actions reçues sans rien payer";
+      const unit = t.currency && t.currency !== "EUR" ? ` ${t.currency}` : " €";
+      return t.type === "Dividende"
+        ? `${hideable(num(t.quantity, 6))} act. × ${num(t.price, 4)}${unit}`
+        : `${hideable(num(t.quantity, 6))} × ${num(t.price, 4)}${unit}${t.fees ? ` · frais ${eur.format(t.fees)}` : ""}`;
+    }
+    function txRow(t) {
+      const label = t.ticker ? (t.name || t.ticker) : t.type;
+      const icon = t.ticker ? avatar({ ticker: t.ticker, name: t.name }) : `<div class="avatar" style="background:var(--card-2);color:var(--muted)">€</div>`;
+      const tags = [t.why, t.term ? `terme ${t.term.toLowerCase()}` : ""].filter(Boolean).join(" · ");
+      return `<button class="mrow" data-tx="${t.row}">
+          ${icon}
+          <div style="min-width:0"><div class="name">${escapeHtml(label)}</div>
+            <div class="sub">${escapeHtml(t.type)} · ${escapeHtml(txDay.format(new Date(t.date + "T12:00:00")))} · ${escapeHtml(t.account)}</div>
+            <div class="sub">${txDetail(t)}${tags ? ` · <span class="tx-tag">${escapeHtml(tags)}</span>` : ""}</div></div>
+          <div class="right">${txAmount(t)}</div>
+        </button>${txOpen === t.row ? txEditForm(t) : ""}`;
+    }
+
+    function renderTransactions() {
+      document.getElementById("tx-kinds").innerHTML = TX_KINDS.map(([k, label]) =>
+        `<button class="chip ${txFilter.kind === k ? "on" : ""}" data-tx-kind="${k}">${label}</button>`).join("");
+      if (!transactions) return;
+      const list = transactions.filter(txMatches);
+      const status = document.getElementById("tx-status");
+      status.textContent = transactions.length ? `${list.length} opération${list.length > 1 ? "s" : ""}${list.length < transactions.length ? ` sur ${transactions.length}` : ""}` : "Aucune opération pour le moment : ajoute-en une ou importe tes relevés.";
+      const months = new Map();
+      for (const t of list) {
+        const key = t.date.slice(0, 7);
+        if (!months.has(key)) months.set(key, []);
+        months.get(key).push(t);
+      }
+      document.getElementById("tx-list").innerHTML = [...months].map(([key, items]) =>
+        `<h2>${escapeHtml(txMonth.format(new Date(key + "-15T12:00:00")))}</h2><div class="mlist">${items.map(txRow).join("")}</div>`).join("");
+    }
+
+    // Formulaire de correction : mêmes champs que la saisie, affichés selon le type (espèces, division, titre)
+    function txEditForm(t) {
+      const opt = (values, current) => values.map((v) => `<option ${v === current ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+      const types = opSettings?.operation_types || [t.type];
+      const accounts = (opSettings?.accounts || []).map((a) => a.name);
+      if (t.account && !accounts.includes(t.account)) accounts.push(t.account);
+      const currencies = ["EUR", "USD", "GBP", "GBp", "CHF", "JPY", "DKK", "SEK", "NOK", "HKD"];
+      if (t.currency && !currencies.includes(t.currency)) currencies.push(t.currency);
+      const field = (f, label, input) => `<label data-f="${f}">${label}${input}</label>`;
+      const numInput = (name, value) => `<input name="${name}" type="number" step="any" inputmode="decimal" value="${value ?? ""}" />`;
+      return `<div class="tx-edit" data-tx-form="${t.row}">
+          <div class="op-grid">
+            ${field("all", "Type", `<select name="type">${opt(types, t.type)}</select>`)}
+            ${field("all", "Date", `<input name="date" type="date" value="${escapeHtml(t.date)}" />`)}
+            ${field("all", "Compte", `<select name="account">${opt(accounts, t.account)}</select>`)}
+            ${field("trade", "Type d'ordre", `<select name="order_type"><option></option>${opt(opSettings?.order_types || [], t.order_type)}</select>`)}
+            ${field("titre", "Titre (ticker Yahoo)", `<input name="ticker" value="${escapeHtml(t.ticker)}" autocomplete="off" />`)}
+            ${field("titre", `<span data-qty-label>Quantité</span>`, numInput("quantity", t.quantity))}
+            ${field("price", `<span data-price-label>Prix unitaire</span>`, numInput("price", t.price))}
+            ${field("trade", "Devise du prix", `<select name="currency">${opt(currencies, t.currency || "EUR")}</select>`)}
+            ${field("trade", "Taux de change", numInput("fx", t.fx ?? 1))}
+            ${field("trade", "Frais €", numInput("fees", t.fees))}
+            ${field("taxes", "Taxes €", numInput("taxes", t.taxes))}
+            ${field("trade", "Pourquoi", `<input name="why" value="${escapeHtml(t.why)}" />`)}
+            ${field("trade", "Terme", `<select name="term">${opt(["", "Court", "Moyen", "Long"], t.term)}</select>`)}
+            <label class="wide" data-f="all">Note<input name="note" value="${escapeHtml(t.note)}" /></label>
+          </div>
+          <button class="btn" data-tx-save>Enregistrer</button>
+          <button class="btn danger" data-tx-delete>Supprimer</button>
+          <button class="btn" data-tx-cancel>Fermer</button>
+          <p class="help" data-tx-status>Ligne ${t.row} de l'onglet Opérations.</p>
+        </div>`;
+    }
+    // Champs visibles selon le type choisi : espèces (montant, et taxes pour les intérêts), division (titre et
+    // actions reçues), achat / vente / dividende (tout)
+    function updateTxForm(form) {
+      const type = form.querySelector("[name=type]").value;
+      const cash = CASH_TYPES.includes(type), share = SHARE_TYPES.includes(type);
+      const shown = { all: true, trade: !cash && !share, titre: !cash, price: !share, taxes: !share && (!cash || type === "Intérêts") };
+      form.querySelectorAll("[data-f]").forEach((l) => (l.style.display = shown[l.dataset.f] ? "" : "none"));
+      form.querySelector("[data-qty-label]").textContent = share ? "Actions reçues" : type === "Dividende" ? "Nombre d'actions" : "Quantité";
+      form.querySelector("[data-price-label]").textContent = cash ? (type === "Intérêts" ? "Montant brut €" : "Montant €") : type === "Dividende" ? "Dividende par action" : "Prix unitaire";
+    }
+
+    async function saveTransaction(form) {
+      const t = transactions.find((x) => x.row === Number(form.dataset.txForm));
+      const value = (name) => form.querySelector(`[name=${name}]`).value;
+      const number = (name) => parseFloat(String(value(name)).replace(",", ".")) || 0;
+      const operation = {
+        type: value("type"), date: value("date"), account: value("account"), order_type: value("order_type") || "Ordre",
+        ticker: value("ticker").trim().toUpperCase(), quantity: number("quantity"), price: number("price"), amount: number("price"),
+        currency: value("currency"), fx: number("fx") || 1, fees: number("fees"), taxes: number("taxes"),
+        why: value("why"), term: value("term"), note: value("note"),
+      };
+      await txWrite(form, "/transactions/update", { row: t.row, key: t.key, operation }, "Correction enregistrée",
+        [t.date, operation.date], !(CASH_TYPES.includes(t.type) && CASH_TYPES.includes(operation.type)));
+    }
+    async function deleteTransaction(form) {
+      const t = transactions.find((x) => x.row === Number(form.dataset.txForm));
+      const what = t.ticker ? `${t.type} ${t.name || t.ticker} du ${txDay.format(new Date(t.date + "T12:00:00"))}` : `${t.type} du ${txDay.format(new Date(t.date + "T12:00:00"))}`;
+      if (!confirm(`Supprimer « ${what} » de l'onglet Opérations ?`)) return;
+      await txWrite(form, "/transactions/delete", { row: t.row, key: t.key }, "Opération supprimée", [t.date], !CASH_TYPES.includes(t.type));
+    }
+    // Après l'écriture : liste et portefeuille relus ; une opération sur titre passée recalcule la courbe
+    // depuis la plus ancienne des deux dates (ancienne et nouvelle)
+    async function txWrite(form, path, payload, done, dates, rebuild) {
+      const status = form.querySelector("[data-tx-status]");
+      form.querySelectorAll("button").forEach((b) => (b.disabled = true));
+      status.textContent = "Enregistrement…";
+      try {
+        await postJson(path, payload);
+      } catch (e) {
+        status.textContent = e.message;
+        form.querySelectorAll("button").forEach((b) => (b.disabled = false));
+        return;
+      }
+      txOpen = null;
+      opSettings = null;  // quantités détenues et titres relus
+      await loadTransactions();
+      document.getElementById("tx-status").textContent = `${done}. Mise à jour du portefeuille…`;
+      loadPortfolio();
+      const since = dates.filter(Boolean).sort()[0];
+      if (rebuild && since && since < new Date().toISOString().slice(0, 10)) rebuildHistory(since);
+    }
+
+    document.getElementById("tx-open").addEventListener("click", openTransactions);
+    document.getElementById("tx-back").addEventListener("click", () => history.back());
+    document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
+    document.getElementById("tx-account").addEventListener("change", (e) => { txFilter.account = e.target.value; renderTransactions(); });
+    document.getElementById("tx-kinds").addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-tx-kind]");
+      if (chip) { txFilter.kind = chip.dataset.txKind; renderTransactions(); }
+    });
+    document.getElementById("tx-list").addEventListener("click", (e) => {
+      const form = e.target.closest("[data-tx-form]");
+      if (form) {
+        if (e.target.closest("[data-tx-save]")) saveTransaction(form);
+        else if (e.target.closest("[data-tx-delete]")) deleteTransaction(form);
+        else if (e.target.closest("[data-tx-cancel]")) { txOpen = null; renderTransactions(); }
+        return;
+      }
+      const row = e.target.closest("[data-tx]");
+      if (!row) return;
+      txOpen = txOpen === Number(row.dataset.tx) ? null : Number(row.dataset.tx);
+      renderTransactions();
+      const opened = document.querySelector(`[data-tx-form="${txOpen}"]`);
+      if (opened) updateTxForm(opened);
+    });
+    document.getElementById("tx-list").addEventListener("change", (e) => {
+      const form = e.target.closest("[data-tx-form]");
+      if (form && e.target.name === "type") updateTxForm(form);
     });
 
     // --- Plus-values réalisées et dividendes perçus, par année ---

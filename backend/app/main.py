@@ -595,6 +595,36 @@ def post_delete_operations(payload: dict = Body(...), user: User = Depends(requi
     return result
 
 
+# Écran Transactions : liste, modification et suppression d'une ligne de l'onglet Opérations (transactions.py)
+@app.get("/transactions")
+def get_transactions(user: User = Depends(require_access)):
+    from .transactions import list_transactions
+
+    return _operation_call(lambda: list_transactions(user.sheet_id))
+
+
+@app.post("/transactions/update")
+def post_update_transaction(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .transactions import update_transaction
+
+    operation = payload.get("operation") or {}
+    ticker = str(operation.get("ticker") or "").strip().upper()
+    stock = next((s for s in (_screener_data("screener.json") or {}).get("stocks", []) if s["ticker"] == ticker), {})
+    result = _operation_call(lambda: update_transaction(user.sheet_id, int(payload.get("row") or 0), str(payload.get("key") or ""),
+                                                        operation, stock.get("sector", ""), stock.get("country", "")))
+    _forget_operations(user.sheet_id)
+    return result
+
+
+@app.post("/transactions/delete")
+def post_delete_transaction(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .transactions import delete_transaction
+
+    result = _operation_call(lambda: delete_transaction(user.sheet_id, int(payload.get("row") or 0), str(payload.get("key") or "")))
+    _forget_operations(user.sheet_id)
+    return result
+
+
 # Repartir de zéro (avec sauvegarde dans le Sheet) et annulation, voir reset.py
 @app.post("/operations/reset")
 def post_reset_operations(payload: dict = Body(...), user: User = Depends(require_access)):

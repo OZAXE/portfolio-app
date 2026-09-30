@@ -59,7 +59,7 @@ def read_settings(sheet_id: str) -> dict:
         for t, g, n, s, z, c, k in _records(_worksheet(sheet, "Titres"), 7)
     ]
     # Quantités détenues par compte : le formulaire en déduit les actions reçues lors d'une division
-    held = held_quantities(_records(_worksheet(sheet, "Opérations"), 5))
+    held = held_quantities(_operation_records(sheet))
     holdings = [{"account": a, "ticker": t, "quantity": round(q, 6)} for (a, t), q in sorted(held.items()) if q > 1e-9]
     return {"accounts": accounts, "fees": fees, "titres": titres, "holdings": holdings,
             "operation_types": OPERATION_TYPES, "order_types": ORDER_TYPES}
@@ -112,8 +112,21 @@ def _non_negative(value, label: str) -> float:
     return number
 
 
-def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = "") -> dict:
-    """Valide et enregistre une opération. Renvoie la ligne écrite (numéro et montant brut)."""
+def _operation_records(sheet, exclude_row: int | None = None) -> list[list]:
+    """Lignes de l'onglet Opérations (5 premières colonnes), sans la ligne en cours de modification : une vente
+    corrigée ne doit pas se compter elle-même dans la quantité disponible."""
+    rows = _worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:]
+    return [(row + [""] * 5)[:5] for i, row in enumerate(rows, start=2) if row and row[0] != "" and i != exclude_row]
+
+
+def _target_row(sheet, row: int | None) -> int:
+    """Ligne à écrire : celle modifiée, sinon la première ligne libre."""
+    return row or len(_worksheet(sheet, "Opérations").col_values(1)) + 1
+
+
+def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = "", row: int | None = None) -> dict:
+    """Valide et enregistre une opération. Renvoie la ligne écrite (numéro et montant brut).
+    row : ligne existante à remplacer (modification depuis l'écran Transactions)."""
     sheet = _open_sheet(sheet_id, write=True)
     settings = read_settings(sheet_id)
     accounts = {a["name"] for a in settings["accounts"]}
@@ -125,9 +138,9 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     if account not in accounts:
         raise OperationError("Compte inconnu : ajoute-le d'abord dans l'onglet Comptes du Sheet")
     if kind in CASH_TYPES:
-        return _add_cash(sheet, payload, kind, account)
+        return _add_cash(sheet, payload, kind, account, row)
     if kind in SHARE_TYPES:
-        return _add_shares(sheet, payload, kind, account)
+        return _add_shares(sheet, payload, kind, account, row)
     order_type = payload.get("order_type") or "Ordre"
     if order_type not in ORDER_TYPES:
         raise OperationError("Type d'ordre invalide")
@@ -144,7 +157,7 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     currency = str(payload.get("currency") or "EUR").strip()
 
     if kind == "Vente":
-        held = sum(q for (_, t), q in held_quantities(_records(_worksheet(sheet, "Opérations"), 5)).items() if t == ticker)
+        held = sum(q for (_, t), q in held_quantities(_operation_records(sheet, row)).items() if t == ticker)
         if quantity > held + 1e-9:
             raise OperationError(f"Vente impossible : seulement {held:g} {ticker} en portefeuille")
 
@@ -159,7 +172,7 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
         titres.update(range_name=f"A{next_row}", values=[[ticker, info.google, info.name, sector, zone, info.currency, info.kind]])
 
     ops = _worksheet(sheet, "Opérations")
-    row = len(ops.col_values(1)) + 1
+    row = _target_row(sheet, row)
     op = {
         "date": when, "account": account, "type": kind, "ticker": ticker, "quantity": quantity,
         "price": price, "currency": currency, "fx": fx, "fees": fees, "taxes": taxes,
@@ -180,7 +193,7 @@ def _operation_date(payload: dict) -> date:
     return when
 
 
-def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
+def _add_cash(sheet, payload: dict, kind: str, account: str, row: int | None = None) -> dict:
     """Versement, retrait ou intérêts : seulement une date, un compte et un montant en euros."""
     when = _operation_date(payload)
     amount = _positive(payload.get("amount") or payload.get("price"), "Montant")
@@ -189,13 +202,13 @@ def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
         raise OperationError("Les impôts prélevés dépassent le montant brut des intérêts")
     ensure_operation_types(sheet)
     ops = _worksheet(sheet, "Opérations")
-    row = len(ops.col_values(1)) + 1
+    row = _target_row(sheet, row)
     ops.update(range_name=f"A{row}", values=[cash_row(when, account, kind, amount, payload.get("note") or "", row, taxes)],
                value_input_option="USER_ENTERED")
     return {"row": row, "gross_eur": round(amount, 2), "new_ticker": False}
 
 
-def _add_shares(sheet, payload: dict, kind: str, account: str) -> dict:
+def _add_shares(sheet, payload: dict, kind: str, account: str, row: int | None = None) -> dict:
     """Division ou actions gratuites : actions reçues sans rien payer (négatif pour un regroupement), sur un
     titre détenu dans ce compte à cette date. Prix, frais et taxes à 0 : le coût total ne change pas."""
     ticker = str(payload.get("ticker") or "").strip().upper()
@@ -206,7 +219,7 @@ def _add_shares(sheet, payload: dict, kind: str, account: str) -> dict:
         quantity = float(payload.get("quantity"))
     except (TypeError, ValueError):
         raise OperationError("Nombre d'actions reçues invalide")
-    held = held_quantities(_records(_worksheet(sheet, "Opérations"), 5), until=when).get((account, ticker), 0.0)
+    held = held_quantities(_operation_records(sheet, row), until=when).get((account, ticker), 0.0)
     if held <= 1e-9:
         raise OperationError(f"Aucune action {ticker} sur le compte {account} le {when.strftime('%d/%m/%Y')}")
     if not quantity or (kind == "Actions gratuites" and quantity < 0):
@@ -215,7 +228,7 @@ def _add_shares(sheet, payload: dict, kind: str, account: str) -> dict:
         raise OperationError(f"Regroupement impossible : il ne resterait aucune action (tu en as {held:g})")
     ensure_operation_types(sheet)
     ops = _worksheet(sheet, "Opérations")
-    row = len(ops.col_values(1)) + 1
+    row = _target_row(sheet, row)
     op = {"date": when, "account": account, "type": kind, "ticker": ticker, "quantity": quantity, "price": 0,
           "currency": "EUR", "fx": 1, "order_type": "", "why": "", "term": "",
           "note": payload.get("note") or f"{held:g} -> {held + quantity:g} actions"}
