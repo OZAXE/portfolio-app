@@ -265,8 +265,9 @@ screener.
 - **Rechercher** une action par nom ou ticker. Une action absente ? Tape son ticker Yahoo puis
   **Analyser « … » en direct**.
 - **Filtres** : estimation (sous-évaluée, prix correct, chère, DCF fiable), qualité minimum, région,
-  secteur, tes listes (positions, watchlist, super investisseurs), dividende en hausse depuis 5 ans, et le
-  tri (qualité, potentiel estimé, marge de sécurité, rendement, taille, PER). Chaque filtre actif apparaît en
+  secteur, tes listes (positions, watchlist, super investisseurs), dividende en hausse depuis 5 ans, ROIC
+  minimum, rendement du cash-flow libre minimum, croissance minimum, peu endettée, et le tri (qualité, potentiel
+  estimé, marge de sécurité, rendement, taille, PER, ROIC, cash-flow libre, croissance). Chaque filtre actif apparaît en
   puce, que tu peux retirer d'un toucher.
 - En haut à droite, **Simple** ou **Détaillé** : Détaillé ajoute les chiffres aux lignes et ouvre toutes les
   rubriques des fiches ; Simple ajoute une phrase d'explication sous chaque ratio.
@@ -288,15 +289,18 @@ Touche une action pour l'ouvrir en plein écran (le bouton retour du téléphone
 - **Actualités** : les titres des 30 derniers jours qui citent l'entreprise (Google Actualités, en
   français), avec leur source et un lien vers l'article.
 - **Le verdict en une phrase** et sa jauge : l'action paraît sous-évaluée, à son juste prix ou chère.
-- **Cinq rubriques colorées** (vert, orange, rouge) :
+- **Six rubriques colorées** (vert, orange, rouge) :
   - **Valorisation** : le **prix juste** et le potentiel, le **PER**, le PER prévisionnel, le **PER
     historique** (le PER habituel de l'action sur ses dernières années), le cours / valeur comptable, le
     VE / EBITDA, l'**objectif des analystes** et leur **avis**, la date des **résultats**, puis la valeur
     intrinsèque (DCF) ;
   - **Qualité** : le **score qualité sur 20** (rentabilité, marges, dette, prix, comparés au secteur ;
     au-dessus de 14, l'entreprise est solide) ;
-  - **Rentabilité** : ROE et marge opérationnelle ;
-  - **Santé financière** : dette ;
+  - **Rentabilité** : le **ROIC** (ce que rapporte chaque euro investi par les actionnaires et les prêteurs ;
+    au-dessus de 15 %, l'entreprise crée beaucoup de valeur), le ROE et la marge opérationnelle ;
+  - **Croissance** : hausse annuelle moyenne du **chiffre d'affaires** et du **bénéfice par action** sur 5 ans ;
+  - **Santé financière** : la **dette nette / EBITDA** (en années de résultat ; sous 1,5, peu endettée), la
+    **couverture des intérêts** et la dette / fonds propres ;
   - **Dividende et rachats** : rendement, régularité, croissance, historique sur 12 ans, et les **rachats
     d'actions** (l'entreprise rachète-t-elle ses actions, ou en émet-elle ?) avec le rendement total pour
     l'actionnaire.
@@ -304,7 +308,9 @@ Touche une action pour l'ouvrir en plein écran (le bouton retour du téléphone
   intrinsèque chaque semaine) et les **comptes annuels** sur plusieurs années.
 
 **Le prix juste** est la moyenne de plusieurs estimations : le DCF, le bénéfice × le PER normal du secteur,
-le bénéfice × le PER historique de l'action, et la valeur comptable pour les banques. Cours plus de 15 % en
+le bénéfice × le PER historique de l'action, et la valeur comptable pour les banques. Dans la Valorisation,
+le **rendement du cash-flow libre** dit ce que l'action rapporterait si toute la trésorerie produite était
+distribuée (au-dessus de 5 %, peu chère au regard de ce qu'elle produit). Cours plus de 15 % en
 dessous : **sous-évaluée** ; plus de 15 % au-dessus : **chère** ; entre les deux : **prix correct**. En
 italique, les méthodes divergent beaucoup. C'est une estimation automatique, avec ses limites signalées dans
 la fiche quand elles concernent l'action (entreprise de qualité durablement chère, secteur cyclique, action

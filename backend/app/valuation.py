@@ -50,6 +50,19 @@ class ValuationResult:
     hist_pe_years: int | None = None
     shares_cagr: float | None = None  # évolution annuelle du nombre d'actions (négatif : rachats)
     shares_years: int | None = None
+    # Ratios complémentaires (metrics.py). Le rendement du cash-flow libre dépend du cours : on garde le cash-flow
+    # libre par action, recalculé chaque nuit avec le cours du jour
+    fcf_per_share: float | None = None
+    fcf_yield: float | None = None
+    net_debt_ebitda: float | None = None
+    roic: float | None = None  # dernier exercice
+    roic_median: float | None = None  # médiane des 5 derniers exercices au plus
+    roic_years: int | None = None
+    interest_coverage: float | None = None
+    revenue_cagr: float | None = None  # croissance annuelle moyenne du chiffre d'affaires
+    revenue_years: int | None = None
+    eps_cagr: float | None = None  # du bénéfice par action (base d'actions actuelle)
+    eps_years: int | None = None
 
 
 # Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
@@ -348,12 +361,40 @@ def _add_fair_value(result: ValuationResult, cf: CompanyFinancials, pe_history: 
         )
 
 
-def evaluate_company(cf: CompanyFinancials, pe_history: dict | None = None) -> ValuationResult:
-    """pe_history : PER historique de l'action archivé par screener/financials.py (facultatif)."""
+def evaluate_company(cf: CompanyFinancials, pe_history: dict | None = None,
+                     years: list[dict] | None = None) -> ValuationResult:
+    """pe_history et years : PER historique et comptes annuels archivés par screener/financials.py (facultatifs,
+    absents tant que l'action n'y est pas passée)."""
     result = _evaluate_dcf(cf)
     if cf.quote_type != "ETF":
         _add_fair_value(result, cf, pe_history)
+        _add_metrics(result, cf, pe_history, years)
     return result
+
+
+def _add_metrics(result: ValuationResult, cf: CompanyFinancials, pe_history: dict | None, years: list[dict] | None) -> None:
+    """ROIC, croissance, couverture des intérêts (comptes archivés) ; cash-flow libre et dette nette / EBITDA
+    (Yahoo du jour). Rien pour une banque ou un assureur, sauf la croissance du chiffre d'affaires et du BPA."""
+    from .metrics import archive_metrics, fcf_yield, net_debt_to_ebitda
+
+    archived = archive_metrics(years)
+    result.revenue_cagr, result.revenue_years = archived["revenue_cagr"], archived["revenue_years"]
+    if pe_history and pe_history.get("eps_cagr") is not None:
+        result.eps_cagr, result.eps_years = pe_history["eps_cagr"], pe_history.get("eps_years")
+    if is_balance_sheet_business(cf.industry):
+        return
+    result.roic, result.roic_median, result.roic_years = archived["roic"], archived["roic_median"], archived["roic_years"]
+    result.interest_coverage = archived["interest_coverage"]
+    ratio = net_debt_to_ebitda(cf.total_debt, cf.total_cash, cf.ebitda)
+    result.net_debt_ebitda = round(ratio, 2) if ratio is not None else None
+    # Cash-flow libre dans la devise de cotation seulement (converti par data.py quand un taux existe) ; nombre
+    # d'actions = capitalisation / cours, comme le DCF (Alphabet : plusieurs classes d'actions)
+    same_currency = not cf.financial_currency or not cf.currency or cf.financial_currency == cf.currency
+    if same_currency and cf.free_cash_flow is not None and cf.market_cap and cf.current_price:
+        per_share = cf.free_cash_flow / (cf.market_cap / cf.current_price)
+        if fcf_yield(per_share, cf.current_price) is not None:
+            result.fcf_per_share = round(per_share, 4)
+            result.fcf_yield = round(per_share / cf.current_price, 4)
 
 
 def _evaluate_dcf(cf: CompanyFinancials) -> ValuationResult:

@@ -336,6 +336,23 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   un an, plus haut / bas sur 252 séances, momentum 1 / 3 / 6 / 12 mois), rubrique `pillar` sous la courbe, puce
   « Moyenne 50 j ». Ton prudent : jamais un signal d'achat ou de vente.
 
+- **Ratios complémentaires du screener (octobre 2026, demande d'Enzo).** `metrics.py` (fonctions pures, bornées :
+  hors bornes -> None). Depuis les comptes archivés par `financials.py` (`archive_metrics(years)`) : **ROIC** = résultat
+  opérationnel x (1 - impôt effectif, 25 % par défaut, borné 0-50 %) / (fonds propres + dettes long et court terme -
+  trésorerie), dette absente = 0, pas de ROIC si capital investi <= 0 ; médiane sur 5 exercices (au moins 3) ;
+  **couverture des intérêts** ; **croissance du chiffre d'affaires** (`cagr` : 5 ans, sinon 3 au moins, départ et fin
+  positifs). **Croissance du BPA** dans `historical_pe` (`eps_cagr`, BPA de chaque exercice sur la base d'actions
+  actuelle via `adjusted_shares`). Depuis Yahoo du jour : **dette nette / EBITDA** (`CompanyFinancials.ebitda`, converti
+  avec la dette) et **rendement du cash-flow libre** : on garde `fcf_per_share` (cash-flow libre / (capitalisation /
+  cours), devise de cotation seulement) et le rendement est recalculé avec le cours (`refresh_with_price`,
+  `fcfYieldOf` dans le front). Banques / assurances : seulement la croissance. Nouvelles lignes archivées
+  (`short_term_debt`, `cash`, `pretax_income`, `income_tax`, `interest_expense`) : le ROIC et la couverture n'existent
+  qu'après le prochain passage hebdomadaire de l'action dans `financials.py` puis sa réanalyse. `evaluate_company(cf,
+  pe_history, years)` ; l'API lit l'archive entière (`_archive`). Front : rubrique **Croissance**, ROIC prioritaire sur
+  le ROE pour la couleur de Rentabilité, dette nette / EBITDA prioritaire sur dette / fonds propres pour la Santé
+  financière (seuils 1,5 / 3 : `NET_DEBT_LOW/HIGH`), filtres et tris du screener, lignes de la comparaison, lexique.
+  Le score qualité sur 20 n'a pas changé (recalibrer ses paliers serait un autre chantier).
+
 ## Tester le front (banc Playwright)
 
 Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
@@ -350,7 +367,7 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
-  du CTO, ROIC / FCF yield / dette nette sur EBITDA / croissance sur 5 ans dans le screener, alerte de concentration
+  du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, alerte de concentration
   et suggestions de rééquilibrage, rendement sur PRU et revenu annuel attendu, export CSV / récap fiscal, momentum
   comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste

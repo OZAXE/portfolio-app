@@ -1213,6 +1213,9 @@
         fair_value_pe: v.fair_value_pe, fair_value_pb: v.fair_value_pb, fair_pe_used: v.fair_pe_used, justified_pb_used: v.justified_pb_used,
         fair_value_hist_pe: v.fair_value_hist_pe, hist_pe_median: v.hist_pe_median, hist_pe_years: v.hist_pe_years,
         shares_cagr: v.shares_cagr, shares_years: v.shares_years,
+        fcf_per_share: v.fcf_per_share, fcf_yield: v.fcf_yield, net_debt_ebitda: v.net_debt_ebitda,
+        roic: v.roic, roic_median: v.roic_median, roic_years: v.roic_years, interest_coverage: v.interest_coverage,
+        revenue_cagr: v.revenue_cagr, revenue_years: v.revenue_years, eps_cagr: v.eps_cagr, eps_years: v.eps_years,
         target_price: f.target_mean_price, target_low: f.target_low_price, target_high: f.target_high_price,
         recommendation: f.recommendation_mean, analyst_count: f.analyst_count, earnings_date: f.earnings_date,
         dividend_yield: f.dividend_yield, dividend_ttm: f.dividend_ttm, payout_ratio: f.payout_ratio,
@@ -2288,7 +2291,8 @@
     let marketLoading = false;
     let marketShown = PAGE_SIZE;
     // Filtres du panneau ; preset : section ouverte avec « Tout voir » (Tes actions, Dividendes réguliers...)
-    const NO_FILTERS = { region: "", sector: "", verdict: "", qualityMin: 0, reliable: false, owned: false, investors: false, watch: false, dividend: false };
+    const NO_FILTERS = { region: "", sector: "", verdict: "", qualityMin: 0, reliable: false, owned: false, investors: false, watch: false, dividend: false,
+      roicMin: 0, fcfMin: 0, growthMin: 0, lowDebt: false };
     const marketFilters = { query: "", preset: "", sort: "score", ...NO_FILTERS };
     let sheetDraft = null;  // filtres en cours de réglage dans le panneau, appliqués au bouton « Voir »
 
@@ -2441,6 +2445,7 @@
     };
     const MARKET_SORTS = {
       score: "Qualité", fair: "Potentiel estimé", margin: "Marge de sécurité (DCF)", yield: "Rendement du dividende", cap: "Taille de l'entreprise", pe: "PER le plus bas",
+      roic: "ROIC", fcf: "Rendement du cash-flow libre", growth: "Croissance du chiffre d'affaires",
     };
     const activeFilterCount = (f = marketFilters) => Object.keys(NO_FILTERS).filter((k) => f[k]).length;
     const marketBrowsing = () => !!(marketFilters.query.trim() || marketFilters.preset || activeFilterCount());
@@ -2460,7 +2465,11 @@
         (!f.owned || owned.has(s.ticker)) &&
         (!f.investors || !!investors?.by_ticker?.[s.ticker]) &&
         (!f.watch || watchlist.has(s.ticker)) &&
-        (!f.dividend || (s.dividend_streak ?? 0) >= 5)
+        (!f.dividend || (s.dividend_streak ?? 0) >= 5) &&
+        (!f.roicMin || (s.roic ?? -Infinity) >= f.roicMin) &&
+        (!f.fcfMin || (fcfYieldOf(s) ?? -Infinity) >= f.fcfMin) &&
+        (!f.growthMin || (s.revenue_cagr ?? -Infinity) >= f.growthMin) &&
+        (!f.lowDebt || (s.net_debt_ebitda != null && s.net_debt_ebitda < NET_DEBT_LOW))
       );
       // Les actions sans valeur pour le critère de tri passent en fin de liste
       const key = {
@@ -2470,6 +2479,9 @@
         pe: (s) => (s.pe > 0 ? -s.pe : null),
         cap: (s) => s.market_cap_eur ?? null,
         yield: (s) => (s.dividend_yield > 0 ? s.dividend_yield : null),
+        roic: (s) => s.roic ?? null,
+        fcf: (s) => fcfYieldOf(s),
+        growth: (s) => s.revenue_cagr ?? null,
       }[f.sort];
       return list.sort((a, b) => (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
     }
@@ -2502,6 +2514,10 @@
       if (f.watch) chips.push(["watch", "Ma watchlist"]);
       if (f.investors) chips.push(["investors", "Super investisseurs"]);
       if (f.dividend) chips.push(["dividend", "Dividende en hausse 5 ans"]);
+      if (f.roicMin) chips.push(["roicMin", `ROIC ${pctPlain(f.roicMin)} et +`]);
+      if (f.fcfMin) chips.push(["fcfMin", `Cash-flow libre ${pctPlain(f.fcfMin)} et +`]);
+      if (f.growthMin) chips.push(["growthMin", `Croissance ${pctPlain(f.growthMin)}/an et +`]);
+      if (f.lowDebt) chips.push(["lowDebt", "Peu endettée"]);
       document.getElementById("market-chips").innerHTML = chips.map(([k, label]) => `<button class="chip on removable" data-clear="${k}">${escapeHtml(label)}</button>`).join("");
       const count = activeFilterCount();
       const badge = document.getElementById("market-filters-count");
@@ -2549,6 +2565,7 @@
           <h3>Secteur</h3><div class="filters">${sectors.map((x) => chip("sector", x, x)).join("")}</div>
           <h3>Mes listes</h3><div class="filters">${toggle("owned", "Mes positions")}${toggle("watch", "Ma watchlist")}${toggle("investors", "Super investisseurs")}</div>
           <h3>Dividende</h3><div class="filters">${toggle("dividend", "En hausse depuis 5 ans")}</div>
+          <h3>Rentabilité et croissance</h3><div class="filters">${chip("roicMin", 0.1, "ROIC 10 % et +")}${chip("roicMin", 0.15, "ROIC 15 % et +")}${chip("fcfMin", 0.03, "Cash-flow libre 3 % et +")}${chip("fcfMin", 0.05, "Cash-flow libre 5 % et +")}${chip("growthMin", 0.05, "Croissance 5 %/an et +")}${chip("growthMin", 0.1, "Croissance 10 %/an et +")}${toggle("lowDebt", "Peu endettée")}</div>
           <h3>Trier par</h3><div class="filters">${Object.entries(MARKET_SORTS).map(([k, label]) => `<button class="chip ${f.sort === k ? "on" : ""}" data-sort="${k}">${label}</button>`).join("")}</div>
           <button class="apply" data-sheet-apply>Voir ${filteredStocks(f).length} actions</button>
           <button class="reset" data-sheet-reset>Tout effacer</button>
@@ -2584,6 +2601,20 @@
       if (e) rows += fRow("Résultats", e.text, e.upcoming ? "Date de la prochaine publication : le cours bouge souvent fort ce jour-là." : "");
       return rows;
     }
+
+    // --- Ratios complémentaires (metrics.py) : absents des fiches analysées avant leur arrivée, et du ROIC / de la
+    // croissance tant que les comptes de l'action n'ont pas été archivés (financials.py, une fois par semaine) ---
+    const NET_DEBT_LOW = 1.5, NET_DEBT_HIGH = 3;  // années d'EBITDA : peu endettée / très endettée
+    // Rendement du cash-flow libre recalculé sur le cours affiché (cash-flow libre par action gardé par le screener)
+    function fcfYieldOf(s) {
+      if (s.fcf_per_share != null && s.price > 0) {
+        const y = s.fcf_per_share / s.price;
+        return Math.abs(y) <= 0.5 ? y : null;
+      }
+      return s.fcf_yield ?? null;
+    }
+    const perYear = (x) => (x == null ? "N/A" : `${x > 0 ? "+" : ""}${pctPlain(x).replace(/^-/, "−")} par an`);
+    const netDebtText = (x) => (x == null ? "N/A" : x < 0 ? `trésorerie nette (${num(-x, 1)} an${-x >= 2 ? "s" : ""} d'EBITDA)` : `${num(x, 1)} an${x >= 2 ? "s" : ""} d'EBITDA`);
 
     function fRow(label, value, why = "", cls = "") {
       return `<div class="row"><span>${label}</span><span${cls ? ` class="${cls}"` : ""}>${value}</span></div>`
@@ -2642,6 +2673,7 @@
         + (s.hist_pe_median != null ? fRow("PER historique", `${num(s.hist_pe_median)} <span class="muted">(médiane ${s.hist_pe_years} ans)</span>`, "Le PER habituel de cette action sur ses dernières années : au-dessus, elle est plus chère que d'habitude.") : "")
         + fRow("Cours / valeur comptable", num(s.pb), "Prix payé pour 1 de fonds propres de l'entreprise.")
         + fRow("VE / EBITDA", num(s.ev_ebitda), "Comme le PER, mais en tenant compte de la dette : autour de 10, prix moyen.")
+        + (fcfYieldOf(s) != null ? fRow("Rendement du cash-flow libre", `<span class="${signClass(fcfYieldOf(s))}">${pctPlain(fcfYieldOf(s))}</span>`, "Cash-flow libre par action rapporté au cours : au-dessus de 5 %, l'action est peu chère au regard de l'argent qu'elle produit.") : "")
         + consensusRows(s, cur)
         + fRow("Capitalisation", s.market_cap != null ? compact.format(s.market_cap) + " " + cur : "N/A")
         + dcf + hypotheses);
@@ -2652,17 +2684,34 @@
         fRow("Score qualité", q != null ? num(q) + " / 20" : "N/A", "Note sur 20 : rentabilité, dette, croissance et prix, comparés aux standards du secteur.")
         + ((s.notes || []).length ? `<ul>${s.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>` : ""));
 
-      const roe = s.roe;
-      const profitability = pillar("Rentabilité", roe == null ? "na" : roe >= 0.15 ? "good" : roe >= 0.08 ? "warn" : "bad",
-        roe == null ? "Données manquantes" : roe >= 0.15 ? "Très rentable" : roe >= 0.08 ? "Rentable" : "Peu rentable",
-        fRow("ROE", pctPlain(roe), "Bénéfice gagné pour 100 de fonds propres : au-dessus de 15 %, c'est très bon.")
+      // ROIC quand il est connu (l'endettement ne le gonfle pas), sinon ROE ; mêmes paliers de 15 et 8 %
+      const roe = s.roe, rent = s.roic ?? roe;
+      const profitability = pillar("Rentabilité", rent == null ? "na" : rent >= 0.15 ? "good" : rent >= 0.08 ? "warn" : "bad",
+        rent == null ? "Données manquantes" : `${rent >= 0.15 ? "Très rentable" : rent >= 0.08 ? "Rentable" : "Peu rentable"}${s.roic != null ? ` · ROIC ${pctPlain(s.roic)}` : ""}`,
+        (s.roic != null ? fRow("ROIC", `${pctPlain(s.roic)}${s.roic_median != null ? ` <span class="muted">(médiane ${s.roic_years} ans : ${pctPlain(s.roic_median)})</span>` : ""}`,
+          "Bénéfice d'exploitation après impôt pour 100 investis par les actionnaires et les prêteurs : au-dessus de 15 %, l'entreprise crée beaucoup de valeur.") : "")
+        + fRow("ROE", pctPlain(roe), "Bénéfice gagné pour 100 de fonds propres : au-dessus de 15 %, c'est très bon.")
         + fRow("Marge opérationnelle", pctPlain(s.operating_margin), "Ce qui reste de 100 de ventes une fois les coûts d'exploitation payés."));
 
       const bank = BALANCE_SHEET.test(`${s.industry || ""}`) || s.sector === "Finance";
-      const de = s.debt_to_equity;
-      const health = pillar("Santé financière", bank || de == null ? "na" : de < 50 ? "good" : de < 150 ? "warn" : "bad",
-        bank ? "Non comparable (banque, assurance)" : de == null ? "Données manquantes" : de < 50 ? "Peu endettée" : de < 150 ? "Endettement modéré" : "Très endettée",
-        fRow("Dette / fonds propres", de != null ? num(de, 0) + " %" : "N/A", bank ? "Pour une banque ou un assureur, la dette fait partie du métier : ce ratio ne dit pas grand-chose." : "Dette rapportée à l'argent des actionnaires : au-delà de 150 %, l'entreprise devient fragile si les taux montent."));
+      // Dette nette / EBITDA quand il est connu (plus fiable quand les fonds propres sont faibles), sinon dette / fonds propres
+      const de = s.debt_to_equity, nd = s.net_debt_ebitda;
+      const healthLevel = nd != null ? (nd < NET_DEBT_LOW ? 0 : nd < NET_DEBT_HIGH ? 1 : 2) : de == null ? null : de < 50 ? 0 : de < 150 ? 1 : 2;
+      const health = pillar("Santé financière", bank || healthLevel == null ? "na" : ["good", "warn", "bad"][healthLevel],
+        bank ? "Non comparable (banque, assurance)" : healthLevel == null ? "Données manquantes" : nd != null && nd < 0 ? "Trésorerie nette" : ["Peu endettée", "Endettement modéré", "Très endettée"][healthLevel],
+        (nd != null ? fRow("Dette nette / EBITDA", netDebtText(nd), "Années de résultat brut d'exploitation pour rembourser la dette nette : sous 1,5 peu endettée, au-delà de 3 très endettée.") : "")
+        + (s.interest_coverage != null ? fRow("Couverture des intérêts", `${num(s.interest_coverage, 1)} fois`, "Combien de fois le résultat d'exploitation paie les intérêts de la dette : sous 3, un mauvais exercice peut coûter cher.",
+          s.interest_coverage < 3 ? "negative" : "") : "")
+        + fRow("Dette / fonds propres", de != null ? num(de, 0) + " %" : "N/A", bank ? "Pour une banque ou un assureur, la dette fait partie du métier : ce ratio ne dit pas grand-chose." : "Dette rapportée à l'argent des actionnaires : au-delà de 150 %, l'entreprise devient fragile si les taux montent."));
+
+      const g = s.revenue_cagr ?? s.eps_cagr;
+      const growth = pillar("Croissance", g == null ? "na" : g >= 0.05 ? "good" : g >= 0 ? "warn" : "bad",
+        g == null ? "Historique pas encore archivé" : `${perYear(g)} (${s.revenue_cagr != null ? "chiffre d'affaires" : "bénéfice par action"})`,
+        fRow("Croissance du chiffre d'affaires", s.revenue_cagr != null ? `<span class="${signClass(s.revenue_cagr)}">${perYear(s.revenue_cagr)}</span> <span class="muted">(${s.revenue_years} ans)</span>` : "N/A",
+          "Hausse annuelle moyenne des ventes : au-dessus de 5 % par an, l'entreprise grandit plus vite que l'économie.")
+        + fRow("Croissance du BPA", s.eps_cagr != null ? `<span class="${signClass(s.eps_cagr)}">${perYear(s.eps_cagr)}</span> <span class="muted">(${s.eps_years} ans)</span>` : "N/A",
+          "Hausse annuelle moyenne du bénéfice par action, rachats d'actions compris : c'est elle qui porte le cours à long terme.")
+        + (g == null ? `<div class="hypotheses">Calculée sur les comptes annuels archivés chaque semaine : elle apparaît après le prochain passage de l'action.</div>` : ""));
 
       const y = s.dividend_yield;
       const noDividend = !y && !(s.dividend_history || []).length;
@@ -2675,7 +2724,7 @@
         <div class="analysis fiche">
           ${extraRows}
           ${fairSummary(s, f, cur)}
-          <div class="pillars">${valuation}${quality}${profitability}${health}${dividend}</div>
+          <div class="pillars">${valuation}${quality}${profitability}${growth}${health}${dividend}</div>
           ${holdersLine(s.ticker)}
           <div class="fiche-actions">
             <button class="btn" data-star="${escapeHtml(s.ticker)}">${watchlist.has(s.ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller'}</button>
@@ -2721,7 +2770,7 @@
       else if (t.id === "market-home") { Object.assign(marketFilters, { query: "", preset: "", sort: "score" }, NO_FILTERS); document.getElementById("market-search").value = ""; renderMarket(); }
       else if (d.clear) { marketFilters[d.clear] = d.clear === "preset" || typeof NO_FILTERS[d.clear] === "string" ? "" : d.clear === "qualityMin" ? 0 : false; marketShown = PAGE_SIZE; renderMarket(); }
       else if ("sheetClose" in d) { sheetDraft = null; renderFilterSheet(); }
-      else if (d.f) { const v = d.f === "qualityMin" ? Number(d.v) : d.v; sheetDraft[d.f] = sheetDraft[d.f] === v ? NO_FILTERS[d.f] : v; renderFilterSheet(); }
+      else if (d.f) { const v = typeof NO_FILTERS[d.f] === "number" ? Number(d.v) : d.v; sheetDraft[d.f] = sheetDraft[d.f] === v ? NO_FILTERS[d.f] : v; renderFilterSheet(); }
       else if (d.toggle) { sheetDraft[d.toggle] = !sheetDraft[d.toggle]; renderFilterSheet(); }
       else if (d.sort) { sheetDraft.sort = d.sort; renderFilterSheet(); }
       else if ("sheetReset" in d) { Object.assign(sheetDraft, NO_FILTERS); renderFilterSheet(); }
@@ -3341,7 +3390,12 @@
         show: (s, v) => (v == null ? "N/A" : `${v > 0 ? "+" : ""}${num(v * 100, 0)} %`), better: "low" },
       { label: "VE / EBITDA", term: "VE / EBITDA", value: (s) => (s.ev_ebitda > 0 ? s.ev_ebitda : null), show: (s, v) => num(v), better: "low" },
       { label: "ROE", term: "ROE", value: (s) => s.roe, show: (s, v) => pctPlain(v), better: "high" },
+      { label: "ROIC", term: "ROIC", value: (s) => s.roic ?? null, show: (s, v) => pctPlain(v), better: "high" },
       { label: "Marge opérationnelle", term: "Marge opérationnelle", value: (s) => s.operating_margin, show: (s, v) => pctPlain(v), better: "high" },
+      { label: "Rendement du cash-flow libre", term: "Rendement du cash-flow libre", value: (s) => fcfYieldOf(s), show: (s, v) => pctPlain(v), better: "high" },
+      { label: "Croissance du chiffre d'affaires", term: "Croissance du chiffre d'affaires", value: (s) => s.revenue_cagr ?? null, show: (s, v) => perYear(v), better: "high" },
+      { label: "Croissance du BPA", term: "Croissance du BPA", value: (s) => s.eps_cagr ?? null, show: (s, v) => perYear(v), better: "high" },
+      { label: "Dette nette / EBITDA", term: "Dette nette / EBITDA", value: (s) => s.net_debt_ebitda ?? null, show: (s, v) => (v == null ? "N/A" : num(v, 1)), better: "low" },
       { label: "Dette / fonds propres", term: "Dette / fonds propres", value: (s) => (s.debt_to_equity != null && s.debt_to_equity >= 0 ? s.debt_to_equity : null), show: (s, v) => (v == null ? "N/A" : `${num(v, 0)} %`), better: "low" },
       { label: "Rendement du dividende", term: "Rendement", value: (s) => s.dividend_yield ?? null, show: (s, v) => pctPlain(v), better: "high" },
       { label: "Croissance du dividende (5 ans)", term: "Croissance 5 ans", value: (s) => s.dividend_growth_5y ?? null, show: (s, v) => (v == null ? "N/A" : `${pctPlain(v)} /an`), better: "high" },
@@ -5064,6 +5118,12 @@
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
         "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "ROIC": "<p>Rentabilité du capital investi (return on invested capital) : résultat d'exploitation après impôt, divisé par tout l'argent mis dans l'entreprise, par les actionnaires (fonds propres) et par les prêteurs (dettes), trésorerie déduite.</p><p>Exemple : 7,9 Md€ de résultat après impôt pour 50 Md€ investis = 15,8 %.</p><p>Repères : au-dessus de 15 %, l'entreprise crée beaucoup de valeur (souvent un avantage concurrentiel durable : marque, brevets, réseau) ; sous 8 %, elle rapporte à peine son coût du capital. Plus fiable que le ROE, qu'une entreprise peut gonfler en s'endettant. La médiane sur 5 ans montre si le niveau est durable.</p><p>Calculé sur les comptes annuels archivés (SEC pour les actions américaines, Yahoo ailleurs), pas pour les banques et assurances.</p>",
+        "Rendement du cash-flow libre": "<p>Cash-flow libre (l'argent qui reste une fois l'activité et les investissements payés) par action, divisé par le cours : l'équivalent d'un rendement si toute cette trésorerie était distribuée.</p><p>Repères : au-dessus de 5 %, l'action est peu chère au regard de ce qu'elle produit ; sous 2 %, le marché paie surtout la croissance à venir. Négatif : l'entreprise consomme de la trésorerie.</p><p>Dernier chiffre annuel publié : une année de gros investissements le fait baisser.</p>",
+        "Dette nette / EBITDA": "<p>Dette moins trésorerie, divisée par le résultat brut d'exploitation (EBITDA) : le nombre d'années qu'il faudrait pour rembourser la dette avec ce que l'activité dégage.</p><p>Repères : sous 1,5, peu endettée ; de 1,5 à 3, modéré ; au-delà de 3, très endettée (un mauvais exercice peut devenir dangereux). Négatif : l'entreprise a plus de trésorerie que de dettes.</p><p>Plus fiable que la dette / fonds propres, qui s'emballe quand les fonds propres sont faibles (rachats d'actions massifs). Non pertinent pour les banques.</p>",
+        "Couverture des intérêts": "<p>Résultat d'exploitation divisé par les intérêts payés sur la dette : combien de fois l'entreprise peut payer ses intérêts.</p><p>Repères : au-dessus de 8, très confortable ; sous 3, fragile si l'activité baisse ou si les taux montent.</p>",
+        "Croissance du chiffre d'affaires": "<p>Hausse annuelle moyenne des ventes sur les 5 derniers exercices (3 au moins), calculée sur les comptes archivés.</p><p>Exemple : 100 → 161 en 5 ans = +10 % par an. Au-dessus de 5 % par an, l'entreprise grandit plus vite que l'économie ; une baisse durable est un signal à creuser.</p>",
+        "Croissance du BPA": "<p>Hausse annuelle moyenne du bénéfice par action sur 5 exercices (3 au moins), chaque année ramenée au nombre d'actions actuel (divisions corrigées).</p><p>Elle tient compte des rachats d'actions : moins d'actions, c'est plus de bénéfice pour chacune. C'est elle qui porte le cours à long terme. Non calculée si un des deux exercices est en perte.</p>",
         "RSI (14 jours)": "<p>Indice de force relative : compare l'ampleur des hausses et des baisses des 14 dernières séances, de 0 à 100.</p><p>Au-dessus de 70, on parle de <b>surachat</b> : le cours a beaucoup monté très vite, une pause ou un repli suit souvent. Sous 30, de <b>survente</b>. Entre les deux, rien de particulier.</p><p>Une action solide peut rester « en surachat » des semaines pendant une forte hausse : c'est un thermomètre, pas un signal de vente.</p>",
         "Moyenne 50 jours": "<p>Moyenne des 50 dernières clôtures (environ 2 mois et demi de bourse) : la tendance récente, plus réactive que la moyenne 200 jours.</p>",
         "Croisement 50 / 200 jours": "<p>Quand la moyenne 50 jours passe au-dessus de la moyenne 200 jours (croisement haussier, « golden cross »), la tendance récente dépasse la tendance de fond ; en dessous, c'est un croisement baissier (« death cross »).</p><p>Il arrive toujours après le mouvement, et donne souvent de faux signaux quand le cours fait du surplace.</p>",
