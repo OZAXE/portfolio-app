@@ -1952,20 +1952,38 @@
 
     function projectionSettings() {
       const p = patrimony();
-      return { base: "all", monthly: 200, preset: "equilibre", rate: null, years: 20, real: true, target: null,
+      return { base: "all", monthly: 200, raise: 0, preset: "equilibre", rate: null, years: 20, real: true, target: null,
         ...(settings.projection || {}), start: p.securities + p.cash + p.savings, startSecurities: p.securities + p.cash };
     }
 
     // Valeur mois par mois. Taux annuel -> mensuel équivalent ; en euros d'aujourd'hui, le taux est diminué de
     // l'inflation ((1 + r) / (1 + i) - 1) et les versements restent constants. Ex. 10 000 € + 200 €/mois à 5 %
     // pendant 20 ans : environ 107 700 € (26 530 € du capital + 81 160 € des versements)
-    function projectValues(start, monthly, rate, years, real) {
+    function projectValues(start, monthly, rate, years, real, raise = 0) {
       const annual = real ? (1 + rate) / (1 + INFLATION) - 1 : rate;
       const r = (1 + annual) ** (1 / 12) - 1;
       const values = [start];
       let v = start;
-      for (let m = 1; m <= years * 12; m++) { v = v * (1 + r) + monthly; if (m % 12 === 0) values.push(v); }
+      for (let m = 1; m <= years * 12; m++) {
+        v = v * (1 + r) + monthlyAt(monthly, Math.floor((m - 1) / 12), real, raise);
+        if (m % 12 === 0) values.push(v);
+      }
       return values;
+    }
+
+    // Versement mensuel de l'année n (0 = la première) quand il augmente de `raise` par an, comme un salaire :
+    // 200 € à +3 % -> 206 € la 2e année, 269 € la 11e. En euros d'aujourd'hui, la hausse est diminuée de
+    // l'inflation, comme le rendement (+3 % par an = +0,98 % en euros d'aujourd'hui)
+    function monthlyAt(monthly, year, real, raise) {
+      const step = real ? (1 + raise) / (1 + INFLATION) - 1 : raise;
+      return monthly * (1 + step) ** year;
+    }
+
+    // Total versé à la fin de chaque année (départ + mensualités), même unité que projectValues
+    function paidValues(start, monthly, years, real, raise = 0) {
+      const paid = [start];
+      for (let y = 0; y < years; y++) paid.push(paid[y] + 12 * monthlyAt(monthly, y, real, raise));
+      return paid;
     }
 
     // Projection : à l'euro près (des centimes sur 20 ans donneraient une fausse impression de précision)
@@ -1979,15 +1997,19 @@
       const start = ps.base === "all" ? ps.start : ps.startSecurities;
       const rate = ps.preset === "custom" && ps.rate != null ? ps.rate : PROJECTION_PRESETS[ps.preset] ?? 0.05;
       const years = Math.min(Math.max(Math.round(ps.years) || 20, 1), 50);
-      const central = projectValues(start, ps.monthly, rate, years, ps.real);
-      const low = projectValues(start, ps.monthly, rate - PROJECTION_SPREAD, years, ps.real);
-      const high = projectValues(start, ps.monthly, rate + PROJECTION_SPREAD, years, ps.real);
-      const final = central[years], paid = start + ps.monthly * 12 * years;
+      const raise = ps.raise || 0;
+      const central = projectValues(start, ps.monthly, rate, years, ps.real, raise);
+      const low = projectValues(start, ps.monthly, rate - PROJECTION_SPREAD, years, ps.real, raise);
+      const high = projectValues(start, ps.monthly, rate + PROJECTION_SPREAD, years, ps.real, raise);
+      const paidByYear = paidValues(start, ps.monthly, years, ps.real, raise);
+      const final = central[years], paid = paidByYear[years];
+      const lastMonthly = monthlyAt(ps.monthly, years - 1, ps.real, raise);
       const reach = ps.target ? central.findIndex((v) => v >= ps.target) : -1;
       const unit = ps.real ? " (en euros d'aujourd'hui)" : "";
       el.innerHTML = `<div class="proj-grid">
           <label>Point de départ<select data-pj="base"><option value="all" ${ps.base === "all" ? "selected" : ""}>Tout (${settings.privacy ? "••••" : eurRoundFmt.format(ps.start)})</option><option value="securities" ${ps.base === "securities" ? "selected" : ""}>Titres + espèces (${settings.privacy ? "••••" : eurRoundFmt.format(ps.startSecurities)})</option></select></label>
           <label>Versement par mois €<input data-pj="monthly" type="number" min="0" step="10" inputmode="decimal" value="${ps.monthly}" /></label>
+          <label>Hausse du versement %/an<input data-pj="raise" type="number" step="0.5" min="0" max="20" inputmode="decimal" placeholder="0" value="${raise ? +(raise * 100).toFixed(2) : ""}" /></label>
           <label>Rendement par an<select data-pj="preset">
             <option value="prudent" ${ps.preset === "prudent" ? "selected" : ""}>Prudent 3 %</option>
             <option value="equilibre" ${ps.preset === "equilibre" ? "selected" : ""}>Équilibré 5 %</option>
@@ -2002,21 +2024,21 @@
         <div class="help" style="margin-top:2px">dans ${years} an${years > 1 ? "s" : ""}${unit}, à ${pctPlain(rate)} par an${ps.real ? ` (soit ${pctPlain((1 + rate) / (1 + INFLATION) - 1)} après inflation)` : ""} · fourchette ${eurRound(low[years])} (${pctPlain(rate - PROJECTION_SPREAD)}) à ${eurRound(high[years])} (${pctPlain(rate + PROJECTION_SPREAD)})</div>
         <div class="stat" style="margin-top:12px">
           <div><div class="k">Versé (départ + mensualités)</div><div class="v">${eurRound(paid)}</div></div>
+          ${raise ? `<div><div class="k">Versement la dernière année</div><div class="v">${eurRound(lastMonthly)} /mois</div></div>` : ""}
           <div><div class="k">Gains</div><div class="v ${signClass(final - paid)}">${final >= paid ? "+" : ""}${eurRound(final - paid)}</div></div>
           <div><div class="k"><span data-term="Règle des 4 %">Revenu possible ensuite</span></div><div class="v">${eurRound(final * SAFE_WITHDRAWAL / 12)} /mois</div></div>
           ${ps.target ? `<div><div class="k">Objectif de ${eurFmt.format(ps.target)}</div><div class="v ${reach >= 0 ? "positive" : "negative"}">${reach === 0 ? "déjà atteint" : reach > 0 ? `dans ${reach} an${reach > 1 ? "s" : ""}` : `pas en ${years} ans`}</div></div>` : ""}
         </div>
         <div class="proj-box"><canvas id="projection-chart"></canvas></div>
         <p class="help" style="margin-top:8px">Calcul simple à rendement constant : les marchés, eux, montent et baissent (une année à −20 % arrive). Repères de long terme, avant impôts et frais : actions mondiales environ 7 % par an, fonds en euros 2 à 3 %, livret A 1,5 à 3 %. Indicatif, ce n'est pas un conseil en investissement.</p>`;
-      drawProjectionChart(central, low, high, start, ps.monthly, years);
+      drawProjectionChart(central, low, high, paidByYear);
     }
 
-    function drawProjectionChart(central, low, high, start, monthly, years) {
+    function drawProjectionChart(central, low, high, paid) {
       if (projectionChart) { projectionChart.destroy(); projectionChart = null; }
       const canvas = document.getElementById("projection-chart");
       if (!canvas || typeof Chart === "undefined" || !canvas.offsetParent) return;  // volet caché : dessiné à l'affichage
       const labels = central.map((_, y) => (y === 0 ? "auj." : `${y} an${y > 1 ? "s" : ""}`));
-      const paid = central.map((_, y) => start + monthly * 12 * y);
       projectionChart = new Chart(canvas, {
         type: "line",
         data: { labels, datasets: [
@@ -2041,6 +2063,7 @@
       const current = { ...(settings.projection || {}) };
       const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
       if (key === "rate") current.rate = value === "" ? null : +value / 100;
+      else if (key === "raise") current.raise = Math.min(Math.max(+value || 0, 0), 20) / 100;
       else if (["monthly", "years"].includes(key)) current[key] = Math.max(+value || 0, 0);
       else if (key === "target") current.target = value === "" || +value <= 0 ? null : +value;
       else current[key] = value;
@@ -4455,7 +4478,7 @@
         "Rachats d'actions": "<p>Évolution moyenne, par an, du nombre d'actions de l'entreprise sur ses 5 derniers exercices au plus (divisions d'actions neutralisées).</p><p>Quand l'entreprise rachète ses actions et les annule, chaque action restante détient une plus grande part du bénéfice : c'est une autre façon de rendre de l'argent aux actionnaires, sans impôt immédiat pour eux. Apple rachète environ 3 % de ses actions par an. À l'inverse, une entreprise qui émet des actions (augmentations de capital, rémunération des salariés en actions) dilue ses actionnaires.</p>",
         "Rendement pour l'actionnaire": "<p>Rendement du dividende + part des actions rachetées chaque année : ce que l'entreprise rend au total à ses actionnaires, en % du cours (approximation, les rachats passés ne garantissent pas les futurs).</p>",
         "Espèces": "<p>L'argent qui attend sur chaque compte, déduit de tes opérations : versements − retraits + intérêts − achats + ventes + dividendes.</p><p>Pour l'activer sur un compte, saisis ses versements depuis son ouverture (bouton Opération, type Versement) ou importe l'export CSV de Trade Republic, qui les contient. Chez Trade Republic, le compte titres est aussi un compte courant : les paiements par carte sont des retraits, et le solde affiché doit correspondre à celui de leur appli.</p><p>Si un achat a eu lieu avec plus d'argent que tu n'en avais versé, l'appli le voit et signale le montant qui manque au minimum.</p><p>Les versements sur le PEA servent aussi au plafond de 150 000 € (sinon estimé d'après tes achats).</p>",
-        "Projection": "<p>Ce que pourrait devenir ton patrimoine avec un versement chaque mois et un rendement annuel constant, intérêts composés : chaque mois, la valeur grandit du rendement mensuel équivalent, puis ton versement s'ajoute.</p><p>En euros d'aujourd'hui (coché par défaut), 2 % d'inflation sont retirés du rendement : 100 000 € dans 20 ans « valent » alors ce que 100 000 € achètent aujourd'hui. La fourchette montre le même calcul à 2 points de moins et de plus : un ordre de grandeur, pas une probabilité.</p><p>Limites : les marchés ne montent pas en ligne droite (l'ordre des bonnes et mauvaises années compte quand on verse ou retire), et le calcul ignore impôts et frais. Ce n'est pas un conseil en investissement.</p>",
+        "Projection": "<p>Ce que pourrait devenir ton patrimoine avec un versement chaque mois et un rendement annuel constant, intérêts composés : chaque mois, la valeur grandit du rendement mensuel équivalent, puis ton versement s'ajoute.</p><p>Hausse du versement (facultative) : ton versement mensuel augmente chaque année de ce pourcentage, comme un salaire. Avec 200 € à +3 % par an, tu verses 206 € par mois la 2e année et 269 € la 11e. En euros d'aujourd'hui, la hausse est elle aussi diminuée de l'inflation.</p><p>En euros d'aujourd'hui (coché par défaut), 2 % d'inflation sont retirés du rendement : 100 000 € dans 20 ans « valent » alors ce que 100 000 € achètent aujourd'hui. La fourchette montre le même calcul à 2 points de moins et de plus : un ordre de grandeur, pas une probabilité.</p><p>Limites : les marchés ne montent pas en ligne droite (l'ordre des bonnes et mauvaises années compte quand on verse ou retire), et le calcul ignore impôts et frais. Ce n'est pas un conseil en investissement.</p>",
         "Règle des 4 %": "<p>Repère tiré d'études américaines (Trinity, 1998) : retirer chaque année 4 % du capital de départ, puis augmenter ce montant avec l'inflation, a tenu au moins 30 ans dans la grande majorité des périodes historiques pour un portefeuille actions et obligations.</p><p>Ce n'est pas une garantie : sur un horizon plus long, avec des rendements futurs plus faibles, ou après un krach en début de retraite, 3 à 3,5 % est plus prudent.</p>",
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",

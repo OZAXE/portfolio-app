@@ -277,6 +277,9 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   capitalisé chaque mois, en euros d'aujourd'hui par défaut ((1 + r) / 1,02 − 1), scénarios à ±2 points (ordre
   de grandeur, pas une probabilité), objectif facultatif, revenu possible par la règle des 4 %. Réglages dans
   `settings.projection`. Montants arrondis à l'euro.
+  Hausse du versement (octobre 2026, demande d'Enzo) : `settings.projection.raise`, % par an appliqué chaque
+  année (`monthlyAt` : 200 € à +3 % -> 269 € la 11e année), diminué de l'inflation en euros d'aujourd'hui comme
+  le rendement ; total versé par année dans `paidValues`. Choisi plutôt que des paliers (saisie plus lourde).
 
 - **Actualités de la fiche (octobre 2026, demande d'Enzo).** `news.py`, route `/news/{ticker}?name=` (gardée
   1 h, échecs non gardés) : flux RSS de Google Actualités en français (`"<nom>" when:30d`), sinon recherche Yahoo
