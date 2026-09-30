@@ -24,18 +24,18 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 1. Sur ton téléphone, ouvre https://portfolio-front-8t6m.onrender.com
    (la première ouverture peut prendre jusqu'à une minute : le serveur gratuit se réveille),
-   onglet **Réglages > Créer un compte** : l'adresse du robot de l'appli y est affichée
+   onglet **Plus > Créer un compte** : l'adresse du robot de l'appli y est affichée
    (elle se termine par `.iam.gserviceaccount.com`).
 2. Dans ta copie, bouton **Partager** en haut à droite : ajoute cette adresse, rôle **Éditeur**,
    décoche « Envoyer une notification » (le robot ne lit pas ses mails), puis **Partager**.
 
 ## Étape 3 : créer ton compte (2 min)
 
-1. Dans l'appli, **Réglages > Créer un compte** : colle le lien de ta copie, **Vérifier mon Sheet**.
+1. Dans l'appli, **Plus > Créer un compte** : colle le lien de ta copie, **Vérifier mon Sheet**.
 2. L'appli affiche un code (`PI-…`) : dans ton Sheet, onglet **Réglages**, colle-le dans la case à droite
    de `code_inscription`. C'est la preuve que ce Sheet est bien à toi.
 3. Indique ton prénom ou un pseudo, puis **Créer mon compte**. Ton **code d'accès personnel** s'affiche
-   et reste enregistré sur ce téléphone : note-le pour tes autres appareils (Réglages > Code d'accès).
+   et reste enregistré sur ce téléphone : note-le pour tes autres appareils (Plus > Code d'accès).
    Code perdu ? Refais ces étapes avec le même Sheet, tu en recevras un nouveau.
 4. Installe l'appli sur l'écran d'accueil :
    - Android (Chrome) : menu ⋮ > **Ajouter à l'écran d'accueil** ;
@@ -43,7 +43,7 @@ L'installation prend environ 10 minutes, sans rien installer sur ton ordinateur.
 
 ## Étape 4 : tes comptes et tes banques (3 min)
 
-Dans l'appli, **Réglages > Comptes et courtiers** :
+Dans l'appli, **Plus > Comptes et courtiers** :
 
 1. **Comptes** : un compte par enveloppe et par banque, par exemple « PEA Boursorama »,
    « CTO Trade Republic », « PEA Fortuneo ». L'enveloppe est `PEA` ou `CTO`. Remplace les deux comptes
@@ -95,7 +95,7 @@ passe sous sa valeur intrinsèque, alertes de prix), et chaque vendredi soir ta 
 semaine (sans compter l'argent versé entre-temps) :
 
 1. Installe l'appli gratuite **ntfy** (Play Store ou App Store).
-2. Dans Portfolio Insights, **Réglages > Notifications** : **Générer un sujet**, puis **Enregistrer**.
+2. Dans Portfolio Insights, **Plus > Notifications** : **Générer un sujet**, puis **Enregistrer**.
 3. Dans ntfy, bouton **+**, colle ce sujet et abonne-toi. **Envoyer un test** pour vérifier.
 
 Garde ce sujet pour toi : quiconque le connaît peut lire tes notifications.
@@ -105,7 +105,7 @@ Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de p
 
 Pour découvrir tout ce que fait l'appli (performance et risque, fiche d'une action, comparaison, dividendes,
 fiscalité, alertes…), lis le [guide d'utilisation](guide-utilisation.md), aussi accessible depuis
-**Réglages > Guide d'utilisation**.
+**Plus > Guide d'utilisation**.
 
 ## Bon à savoir
 
@@ -120,11 +120,11 @@ fiscalité, alertes…), lis le [guide d'utilisation](guide-utilisation.md), aus
 
 | Message | Solution |
 |---|---|
-| « code d'accès requis » | Saisis ou recolle ton code dans Réglages. |
+| « code d'accès requis » | Saisis ou recolle ton code dans Plus > Code d'accès. |
 | « L'appli n'a pas accès à ce Sheet » | Refais l'étape 2 : partage en Éditeur avec l'adresse du robot. |
 | « Code de vérification absent ou incorrect » | Colle le code `PI-…` dans l'onglet Réglages de ton Sheet, à droite de `code_inscription`, sans espace. |
 | « Le compte de service doit être Éditeur du Google Sheet » | Refais l'étape 2 avec le rôle Éditeur. |
-| « Compte inconnu » à la saisie | Ajoute le compte dans Réglages > Comptes et courtiers. |
+| « Compte inconnu » à la saisie | Ajoute le compte dans Plus > Comptes et courtiers. |
 | « Versements incomplets » dans Espèces | Il manque des versements depuis l'ouverture du compte : saisis-les (type Versement) ou importe l'export CSV Trade Republic complet. |
 | Une position sans cours dans le Sheet | Vérifie son ticker Google dans l'onglet Titres (ex. `EPA:MC`, `NASDAQ:AAPL`). |
 | Ligne en double chaque samedi dans Historique | Supprime l'ancien script : Sheet > Extensions > Apps Script > Déclencheurs, supprime `releveHebdo`. |

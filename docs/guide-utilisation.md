@@ -3,27 +3,36 @@
 Ce guide explique comment se servir de l'appli au quotidien, onglet par onglet. Pour l'installer et créer
 ton compte, suis d'abord le [guide d'installation](tutoriel-amis.md).
 
-L'appli a quatre onglets en bas de l'écran : **Portefeuille**, **Marché**, **Briefs** et **Réglages**.
+L'appli a cinq onglets en bas de l'écran :
+
+- **Accueil** : la valeur de tes placements, la variation du jour et tout ce qui demande ton attention ;
+- **Portefeuille** : tes lignes, ta performance et ta répartition ;
+- **Marché** : trouver et analyser des actions ;
+- **Suivi** : tes opérations, ton journal, tes revenus et ta fiscalité ;
+- **Plus** : ton patrimoine (épargne, projection, objectifs), les briefs, les réglages et l'aide.
 
 > Astuce : les mots soulignés en pointillés (PRU, PER, volatilité…) s'expliquent quand tu les touches.
-> Tous sont aussi dans **Réglages > Lexique des indicateurs**.
+> Tous sont aussi dans **Plus > Lexique des indicateurs**.
 
 **Sommaire**
 
-1. [Le haut du Portefeuille](#1-le-haut-du-portefeuille)
+1. [L'Accueil et le Portefeuille](#1-laccueil-et-le-portefeuille)
 2. [Enregistrer mes opérations](#2-enregistrer-mes-opérations)
-3. [Les sous-onglets du Portefeuille](#3-les-sous-onglets-du-portefeuille) : Positions, Perf., Répartition, Revenus, Fiscalité
+3. [Les sous-onglets du Portefeuille, du Suivi et Mon patrimoine](#3-les-sous-onglets-du-portefeuille-du-suivi-et-mon-patrimoine) : Positions, Perf., Répartition, Revenus, Fiscalité, épargne, projection, objectifs
 4. [Trouver et analyser des actions (Marché)](#4-trouver-et-analyser-des-actions-onglet-marché)
 5. [Alertes et notifications](#5-alertes-et-notifications)
 6. [Briefs](#6-briefs)
-7. [Réglages](#7-réglages)
+7. [Plus : affichage et réglages](#7-plus--affichage-et-réglages)
 8. [Questions fréquentes](#questions-fréquentes)
 
 ---
 
-## 1. Le haut du Portefeuille
+## 1. L'Accueil et le Portefeuille
 
-### Ce que montre la carte du haut
+L'appli s'ouvre sur l'**Accueil** : en un coup d'œil, ce que valent tes placements et ce qui mérite ton
+attention aujourd'hui.
+
+### Ce que montre la carte de l'Accueil
 
 - **Valeur des placements** : ce que valent aujourd'hui toutes tes lignes (PEA + CTO).
 - La ligne verte ou rouge en dessous : ta **plus-value latente**, ce que tu gagnerais (ou perdrais) en
@@ -34,25 +43,38 @@ L'appli a quatre onglets en bas de l'écran : **Portefeuille**, **Marché**, **B
 - **Rendement annualisé** (ou **rendement réel** la première année) : ce qu'a rapporté ton argent, en
   tenant compte de la date de chaque versement.
 - **Gain total** : plus-value + dividendes touchés + gains des ventes déjà faites.
+- Une petite courbe : l'évolution de ta valeur sur un an (verte si elle monte). **Détail** ouvre le Portefeuille.
+
+### À regarder
+
+La liste de ce qui demande ton attention (elle remplace l'ancienne cloche) ; touche une ligne pour aller là
+où agir :
+
+- une action ou un secteur au-dessus de ton **plafond de concentration** (ouvre la Répartition) ;
+- les **alertes de la nuit** sur tes positions et ta watchlist (forte baisse, action sous sa valeur
+  intrinsèque, score en baisse, dividende réduit, super investisseur) : ouvre la fiche ;
+- une **thèse à relire** : la date de revue de ton journal est passée ;
+- une de tes actions qui **publie ses résultats** dans les 7 jours.
+
+Dessous, deux tuiles : ton **prochain dividende** attendu (estimé d'après les versements de l'an dernier) et
+ton **revenu sur 12 mois** avec son rendement sur ton prix de revient (elles ouvrent Suivi > Revenus). Puis
+**Mes alertes de prix** si tu en as créé.
+
+### Le haut du Portefeuille
+
 - Une case par enveloppe (**PEA**, **CTO**) avec sa valeur et sa performance. Touche-la pour ne voir que
   les positions de cette enveloppe ; touche-la à nouveau pour tout revoir.
 - **Espèces** : l'argent qui attend sur tes comptes, si tu as activé leur suivi (voir la partie 2).
+- **+ Opération** en haut à droite : saisir un achat, une vente, un dividende, une division, un versement…
+  (partie 2). L'import d'un relevé est dans l'onglet **Suivi** (bouton **Importer**).
 
 Les valeurs viennent de ton Google Sheet, qui suit les cours de bourse (avec environ 20 minutes de retard).
 
 ### Mode discret
 
-Touche l'**œil** en haut : tous les montants en euros et les quantités sont remplacés par des points
+Touche l'**œil** en haut de l'Accueil : tous les montants en euros et les quantités sont remplacés par des points
 (« •••• € »), les pourcentages restent visibles. Pratique pour montrer l'appli à quelqu'un. Touche à nouveau
 l'œil pour tout réafficher. Le réglage est mémorisé sur ton téléphone.
-
-### Les quatre boutons
-
-- **Opération** : saisir un achat, une vente, un dividende, une division, un versement… (partie 2).
-- **Importer** : importer un relevé de ta banque (partie 2).
-- **Transactions** : toutes tes opérations, pour les relire, les corriger ou les supprimer, et ton
-  **journal** de trading (partie 2).
-- **Objectifs** : aller directement à ton allocation cible (sous-onglet Répartition).
 
 ### La courbe d'évolution
 
@@ -132,9 +154,9 @@ enregistrées sont repérées et décochées (pour les espèces : même jour et 
 ce que tu ne veux pas, complète un ticker manquant s'il est encadré en rouge, puis valide. Pour les autres
 banques, utilise le bouton **Opération**.
 
-### Relire, corriger ou supprimer une opération (Transactions)
+### Relire, corriger ou supprimer une opération (Suivi > Opérations)
 
-Bouton **Transactions** : toutes tes opérations, des plus récentes aux plus anciennes, rangées par mois. Tu
+Onglet **Suivi**, rubrique **Opérations** : toutes tes opérations, des plus récentes aux plus anciennes, rangées par mois. Tu
 peux chercher un titre ou une note, et filtrer par type (achats et ventes, dividendes, espèces, divisions) ou
 par compte. **Exporter en CSV** télécharge les opérations affichées (filtres compris), à ouvrir
 dans Excel ou Google Sheets. **Touche une ligne** pour ouvrir sa fiche de correction : change ce qui est faux, puis
@@ -150,13 +172,13 @@ pour **revoir** ta thèse. L'appli peut créer les **alertes de prix** correspon
 le **bilan** : ce qui s'est passé comme prévu, ou pas. Les motifs saisis à chaque achat (« Pourquoi »,
 « Terme ») sont rappelés sous la thèse.
 
-L'onglet **Journal** de l'écran Transactions rassemble toutes tes thèses : écart du cours à l'objectif et au
+La rubrique **Journal** de l'onglet Suivi rassemble toutes tes thèses : écart du cours à l'objectif et au
 stop, thèses **à revoir**, et pour un titre vendu, ce que ses ventes ont rapporté. Relire ses thèses est ce
 qui fait le plus progresser.
 
 ### Supprimer des opérations en double, repartir de zéro
 
-Ces outils rares sont dans **Réglages > Opérations avancées** :
+Ces outils rares sont dans **Plus > Opérations avancées** :
 
 - **Rechercher les doublons dans mes opérations** : l'appli liste les opérations en double (même titre ou
   même montant, dates à quelques jours près) et coche la copie à supprimer, de préférence celle qui vient
@@ -172,15 +194,17 @@ Ces outils rares sont dans **Réglages > Opérations avancées** :
 
 ### Ajouter une banque ou corriger des frais
 
-**Réglages > Comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA), puis la
+**Plus > Comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA), puis la
 grille de frais de la banque, recopiée depuis sa grille tarifaire. Un compte qui a déjà des opérations ne
 peut être ni supprimé ni renommé.
 
 ---
 
-## 3. Les sous-onglets du Portefeuille
+## 3. Les sous-onglets du Portefeuille, du Suivi et Mon patrimoine
 
-Sous la courbe, cinq sous-onglets : **Positions**, **Perf.**, **Répartition**, **Revenus**, **Fiscalité**.
+Dans le **Portefeuille**, sous la courbe, trois sous-onglets : **Positions**, **Perf.** et **Répartition**.
+**Revenus** et **Fiscalité** sont dans l'onglet **Suivi** ; l'épargne, la projection et l'allocation cible dans
+**Plus > Mon patrimoine**. En affichage **Essentiel** (partie 7), l'onglet Perf. est masqué.
 
 ### Positions
 
@@ -221,8 +245,8 @@ titre sur 5 ans).
   diversification). Une action au-dessus de ton **plafond** (15 % par défaut, réglable : 10 à 25 %) est en rouge,
   avec ce qu'il faudrait alléger ou investir ailleurs pour y revenir ; un secteur au-dessus de 40 % (réglable)
   et une entreprise trop lourde une fois ses parts dans tes ETF ajoutées sont signalés. Les ETF ne comptent pas
-  comme une ligne concentrée. Les dépassements apparaissent aussi sous la **cloche**.
-- **Allocation cible** : **Définir mes cibles** crée des **poches** (ex : « ETF Monde » 60 %, « Actions
+  comme une ligne concentrée. Les dépassements apparaissent aussi dans **À regarder**, sur l'Accueil.
+- **Allocation cible** (Plus > Objectifs et rééquilibrage) : **Définir mes cibles** crée des **poches** (ex : « ETF Monde » 60 %, « Actions
   France » 20 %, « Actions US » 20 %, total 100 %) et range chaque ligne dans une poche. Le tableau compare
   ta répartition à tes cibles, puis deux modes :
   - **Sans vendre** : tape le montant que tu vas investir, l'appli te dit combien mettre dans chaque poche ;
@@ -232,18 +256,18 @@ titre sur 5 ans).
     l'argent devrait passer d'une enveloppe à l'autre (impossible : une vente sur le PEA se réinvestit sur le PEA).
 - **Espèces** : le solde de chaque compte suivi (versé, retiré, intérêts), et l'alerte si des versements
   manquent.
-- **Épargne et patrimoine** : **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes
+- **Épargne et patrimoine** (Plus > Épargne et patrimoine) : **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes
   livrets, ton assurance-vie et ton PER : la valeur de ton dernier relevé et, si tu veux, le total versé
   pour voir ta plus-value. L'appli date chaque valeur et te rappelle de la mettre à jour après 3 mois. Le
   **patrimoine financier** additionne titres, espèces et épargne. (Ton ancien onglet **Livret** du Sheet est
   repris et devient l'onglet **Épargne**.)
-- **Projection** : ce que pourrait devenir ton patrimoine avec un versement chaque mois. Choisis le point de
+- **Projection** (Plus > Projection) : ce que pourrait devenir ton patrimoine avec un versement chaque mois. Choisis le point de
   départ, le versement, un rendement prudent (3 %), équilibré (5 %), dynamique (7 %) ou le tien, la durée
   et, si tu veux, un objectif. Le calcul est en euros d'aujourd'hui (inflation de 2 % retirée), avec une
   fourchette à 2 points de moins et de plus, et le revenu mensuel possible ensuite (règle des 4 %). Un ordre
   de grandeur, pas une prévision.
 
-### Revenus
+### Revenus (onglet Suivi)
 
 - **Dividendes à venir** : les dividendes attendus sur 12 mois, mois par mois (touche une barre pour le
   détail), et le revenu annuel estimé. L'estimation suppose que chaque entreprise versera comme l'an
@@ -257,7 +281,7 @@ titre sur 5 ans).
 - **Résultats à venir** : les dates de publication des résultats de tes actions et de ta watchlist sur les
   45 prochains jours. Le cours bouge souvent fort ce jour-là.
 
-### Fiscalité
+### Fiscalité (onglet Suivi)
 
 - **Plus-values réalisées et dividendes** : par année et par enveloppe, les gains de tes ventes, les
   dividendes et les **intérêts** touchés. Pour le CTO, l'appli estime l'**impôt restant à payer** (flat tax
@@ -369,20 +393,19 @@ source d'idées, pas un signal d'achat.
 
 ### Les alertes
 
-La **cloche** en haut du Portefeuille (un point rouge quand il y a du nouveau) : chaque jour, l'appli
-signale sur tes positions et ta watchlist une forte baisse, une action qui passe sous sa valeur
+Dans **À regarder**, sur l'Accueil : chaque jour, l'appli signale sur tes positions et ta watchlist une forte baisse, une action qui passe sous sa valeur
 intrinsèque, un score qualité en baisse, un dividende réduit ou un super investisseur qui achète ou vend.
 
 ### Les alertes de prix
 
 Dans la fiche d'une action, **🔔 Alerte de prix** : choisis « sous » ou « au-dessus » d'un prix, avec une
-note si tu veux (« renforcer sous 150 € »). Elles sont listées sous la cloche, dans **Mes alertes de prix**,
+note si tu veux (« renforcer sous 150 € »). Elles sont listées sur l'Accueil, dans **Mes alertes de prix**,
 où tu peux les supprimer ou les réactiver après déclenchement. Le prix est vérifié chaque nuit sur le cours
 de clôture.
 
 ### Recevoir les notifications sur ton téléphone
 
-Configure-les dans **Réglages > Notifications ntfy** (voir le guide d'installation). Tu reçois alors chaque
+Configure-les dans **Plus > Notifications ntfy** (voir le guide d'installation). Tu reçois alors chaque
 nuit tes alertes, et chaque vendredi soir ta **plus-value de la semaine** (l'argent versé pendant la semaine
 n'est pas compté).
 
@@ -390,17 +413,24 @@ n'est pas compté).
 
 ## 6. Briefs
 
-L'onglet **Briefs** propose chaque semaine un point sur les marchés : actualité économique, graphiques, un
+**Plus > Briefs hebdo** (visible seulement si des briefs t'attendent) propose chaque semaine un point sur les marchés : actualité économique, graphiques, un
 sujet pour apprendre et l'agenda de la semaine.
 
 ---
 
-## 7. Réglages
+## 7. Plus : affichage et réglages
 
-Les réglages sont rangés en rubriques ; chacune ouvre sa page :
+En haut, la carte **Affichage** :
 
+- **Essentiel** ou **Complet** : Essentiel garde l'essentiel (valeur, positions, alertes, revenus) et masque ce
+  qui sert surtout aux habitués (onglet Perf., exposition par entreprise, analyse technique des fiches) ; il
+  passe aussi le Marché en mode Simple. Complet (par défaut) affiche tout.
+- **A− / A+** : la taille du texte, en trois crans.
+
+Puis les rubriques, chacune ouvre sa page :
+
+- **Mon patrimoine** : Épargne et patrimoine, Projection, Objectifs et rééquilibrage (partie 3).
 - **Comptes et courtiers** : tes comptes (PEA, CTO) et les grilles de frais de tes banques.
-- **Allocation cible** : tes poches et leurs objectifs (même éditeur que dans Répartition).
 - **Opérations avancées** : doublons, repartir de zéro, reconstituer l'historique (partie 2).
 - **Notifications ntfy** : ton sujet de notifications.
 - **Apparence et affichage** : le thème (**Auto** suit le téléphone, **Sombre**, **Clair**, **Noir** pour les
