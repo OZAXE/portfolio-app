@@ -367,6 +367,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   nettes des ventes du CTO x PFU ; avertissement quand une poche à acheter n'a de lignes que dans une autre enveloppe
   que les ventes. Poches sans cible exclues. Écart sous 1 % du portefeuille marqué facultatif.
 
+- **Rendement sur PRU et revenu annuel (octobre 2026, demande d'Enzo).** `compute_calendar` renvoie `lines` (revenu
+  projeté sur 12 mois par enveloppe et titre, dividende par action en devise de cotation). Front, onglet Revenus :
+  carte « Rendement de tes lignes » (`renderYieldCard` : revenu / investi = sur PRU, revenu / valeur = au cours, par
+  ligne via `holdingOf` ; revenu dans 5 ans = somme des revenus x (1 + croissance du dividende sur 5 ans du screener,
+  bornée à ±20 %, 0 si inconnue)^5) et « Revenu annuel » (`renderIncomeCard` : dividendes et intérêts bruts perçus par
+  année d'après `/portfolio/realized`, 8 ans au plus, plus la projection des 12 mois ; croissance de la dernière année
+  complète sur la précédente).
+
 ## Tester le front (banc Playwright)
 
 Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
@@ -382,7 +390,7 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
   du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, notification ntfy de
-  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, rendement sur PRU et revenu annuel attendu, export CSV / récap fiscal, momentum
+  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, export CSV / récap fiscal, momentum
   comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
   actuel, en ligne horizontale), une fois l'historique assez long pour être utile.

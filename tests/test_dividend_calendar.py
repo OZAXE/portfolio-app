@@ -40,6 +40,19 @@ def test_calendar_amounts_months_and_net_by_envelope():
     assert result["months"][3]["gross"] == 8.5  # décembre : TotalEnergies
 
 
+def test_revenu_annuel_par_ligne():
+    # TotalEnergies : 2 x 0,85 € = 1,70 € par action sur 12 mois, x 10 actions = 17 € ; Coca-Cola : 2 x 0,50 $ x 4
+    # actions x 0,9 = 3,60 €. Un ETF capitalisant ne verse rien : pas de ligne
+    holdings = [{"ticker": "TTE.PA", "name": "TotalEnergies", "envelope": "PEA", "quantity": 10},
+                {"ticker": "KO", "name": "Coca-Cola", "envelope": "CTO", "quantity": 4},
+                {"ticker": "CW8.PA", "name": "MSCI World", "envelope": "PEA", "quantity": 2}]
+    histories = {"TTE.PA": [(date(2025, 12, 30), 0.85), (date(2026, 3, 31), 0.85)],
+                 "KO": [(date(2025, 11, 28), 0.5), (date(2026, 3, 13), 0.5)]}
+    lines = compute_calendar(holdings, histories, {"TTE.PA": 1.0, "KO": 0.9, "CW8.PA": 1.0}, TODAY)["lines"]
+    assert [(x["ticker"], x["per_share"], x["gross"], x["payments"]) for x in lines] == [("TTE.PA", 1.7, 17.0, 2), ("KO", 1.0, 3.6, 2)]
+    assert lines[1]["net"] == pytest.approx(3.6 * (1 - 0.314), abs=0.01)
+
+
 def test_missing_exchange_rate_reported():
     holdings = [{"ticker": "SHEL.L", "name": "Shell", "envelope": "CTO", "quantity": 3}]
     result = compute_calendar(holdings, {"SHEL.L": [(date(2026, 8, 14), 0.26)]}, {"SHEL.L": None}, TODAY)

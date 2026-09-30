@@ -777,6 +777,16 @@
           <div id="dividends-body" class="help">Chargement…</div>
         </div>
 
+        <div id="yield-block" hidden>
+          <h2><span data-term="Rendement sur PRU">Rendement de tes lignes</span></h2>
+          <div class="card" id="yield-card"></div>
+        </div>
+
+        <div id="income-block" hidden>
+          <h2><span data-term="Revenu annuel">Revenu annuel</span></h2>
+          <div class="card" id="income-card"></div>
+        </div>
+
         <h2><span data-term="Résultats">Résultats à venir</span></h2>
         <div class="card" id="earnings-card"><div class="help">Chargement du screener…</div></div>
 
@@ -1599,6 +1609,7 @@
       document.querySelectorAll("#portfolio-content .ptab").forEach((p) => (p.hidden = p.dataset.pane !== tab));
       if (tab === "repartition" && overview) renderChartsAfterShow();
       if (tab === "performance" && overview) loadStats();
+      if (tab === "revenus" && dividendCalendar) renderYieldCard();  // croissance des dividendes : screener chargé entre-temps
     }
     // Les graphiques dessinés dans un volet caché n'ont pas de taille : on les redessine à l'affichage
     function renderChartsAfterShow() { renderSectors(); renderExposure(); renderProjection(); }
@@ -5112,6 +5123,82 @@
       }
       if (!dividendCalendar) { document.getElementById("dividends-card").previousElementSibling.hidden = true; document.getElementById("dividends-card").hidden = true; return; }
       renderDividends();
+      renderYieldCard();
+      renderIncomeCard();
+    }
+
+    // --- Rendement sur PRU : dividendes des 12 prochains mois (projection) rapportés au prix payé. Air Liquide achetée
+    // 100 €, qui verse 3,30 € : 3,3 % sur PRU, même si le cours est monté à 180 € (1,8 % de rendement actuel). Il
+    // grandit avec les hausses de dividende, alors que le rendement actuel baisse quand le cours monte ---
+    const DIVIDEND_GROWTH_BOUND = 0.2;  // croissance passée au-delà de ±20 %/an : année exceptionnelle, pas un rythme
+    const holdingOf = (line) => overview?.holdings?.find((h) => String(h.yahoo_ticker || h.ticker).toUpperCase() === line.ticker.toUpperCase()
+      && (h.envelope || "") === line.envelope);
+    // Croissance annuelle du dividende sur 5 ans (screener), bornée ; null si inconnue (ETF, action hors screener)
+    function dividendGrowthOf(ticker) {
+      const g = market?.stocks?.find((x) => x.ticker === ticker)?.dividend_growth_5y;
+      return g == null ? null : Math.max(-DIVIDEND_GROWTH_BOUND, Math.min(DIVIDEND_GROWTH_BOUND, g));
+    }
+    // Revenu dans `years` ans si chaque dividende suit sa croissance des 5 dernières années (0 si inconnue), sans achat
+    function futureIncome(lines, years) {
+      return lines.reduce((sum, l) => sum + l.gross * (1 + (dividendGrowthOf(l.ticker) ?? 0)) ** years, 0);
+    }
+    function renderYieldCard() {
+      const c = dividendCalendar;
+      const block = document.getElementById("yield-block");
+      if (!c?.lines?.length || !overview?.total) { block.hidden = true; return; }
+      const rows = c.lines.map((l) => {
+        const h = holdingOf(l);
+        // Dividende par action dans la devise de cotation (pence de Londres ramenés en livres par le serveur)
+        const currency = h?.currency === "GBp" ? "GBP" : h?.currency || market?.stocks?.find((x) => x.ticker === l.ticker)?.currency || "";
+        return { ...l, currency, value: h?.value ?? null, invested: h?.invested ?? null,
+          current: h?.value ? l.gross / h.value : null, onCost: h?.invested ? l.gross / h.invested : null };
+      });
+      const total = overview.total;
+      const payingInvested = rows.reduce((sum, r) => sum + (r.invested || 0), 0);
+      const known = rows.filter((r) => dividendGrowthOf(r.ticker) != null).length;
+      const in5 = futureIncome(c.lines, 5);
+      const cell = (k, v, sub = "") => `<div><div class="k">${k}</div><div class="v">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      document.getElementById("yield-card").innerHTML = `
+        <div class="stat">
+          ${cell(`<span data-term="Rendement sur PRU">Sur ton prix de revient</span>`, total.invested ? pctPlain(c.annual_gross / total.invested) : "N/A", payingInvested && payingInvested < total.invested * 0.99 ? `${pctPlain(c.annual_gross / payingInvested)} sur les seules lignes qui versent` : "")}
+          ${cell("Au cours actuel", total.value ? pctPlain(c.annual_gross / total.value) : "N/A", "ce que rapporterait un achat aujourd'hui")}
+        </div>
+        <div style="margin-top:10px">${rows.map((r) => `<div class="rank-row"><div>${escapeHtml(r.name)}
+            <div class="who">${escapeHtml(r.envelope)} · ${money(r.per_share, r.currency)} par action · ${r.onCost != null ? `<b>${pctPlain(r.onCost)}</b> sur PRU` : "PRU inconnu"}${r.current != null ? ` · ${pctPlain(r.current)} au cours` : ""}</div></div>
+            <div class="right">${eur.format(r.gross)}<div class="who">${pctPlain(r.gross / c.annual_gross)} du revenu</div></div></div>`).join("")}</div>
+        ${known ? `<p class="help" style="margin-top:10px">Dans 5 ans, si chaque dividende progresse comme sur ses 5 dernières années${known < rows.length ? ` (${rows.length - known} ligne${rows.length - known > 1 ? "s" : ""} sans historique, comptée${rows.length - known > 1 ? "s" : ""} sans hausse)` : ""}, sans rien acheter de plus : <b>${eur.format(in5)}</b> par an, soit ${total.invested ? `<b>${pctPlain(in5 / total.invested)}</b> de ton prix de revient actuel` : ""}. Une tendance passée, pas une promesse : un dividende peut aussi baisser.</p>` : ""}
+        <p class="help">Dividende par action dans la devise de cotation ; revenus bruts en euros au taux de change du jour, projetés sur 12 mois à partir des versements de l'an passé.</p>`;
+      block.hidden = false;
+    }
+
+    // --- Revenu annuel : dividendes et intérêts réellement perçus chaque année (onglet Opérations), puis la projection
+    // des 12 prochains mois ; croissance d'une année complète sur la précédente ---
+    function renderIncomeCard() {
+      const block = document.getElementById("income-block");
+      const years = (realized?.years || []).map((y) => {
+        const e = Object.values(y.envelopes);
+        const dividends = e.reduce((sum, x) => sum + (x.dividends_gross || 0), 0);
+        const interest = e.reduce((sum, x) => sum + (x.interest_gross || 0), 0);
+        return { year: y.year, dividends, interest, total: dividends + interest };
+      }).filter((y) => y.total > 0).sort((a, b) => a.year - b.year).slice(-8);
+      const projected = dividendCalendar?.annual_gross || 0;
+      if (!years.length && !projected) { block.hidden = true; return; }
+      const thisYear = new Date().getFullYear();
+      const full = years.filter((y) => y.year < thisYear);
+      const growth = full.length >= 2 && full[full.length - 2].total > 0 ? full[full.length - 1].total / full[full.length - 2].total - 1 : null;
+      const rows = [...years.map((y) => ({ label: y.year === thisYear ? `${y.year} (à date)` : String(y.year), value: y.total,
+        sub: y.interest ? `${eurFmt.format(y.dividends)} de dividendes + ${eurFmt.format(y.interest)} d'intérêts` : "" })),
+        ...(projected ? [{ label: "12 prochains mois (projection)", value: projected, sub: "dividendes seulement", projection: true }] : [])];
+      const max = Math.max(...rows.map((r) => r.value), 1);
+      document.getElementById("income-card").innerHTML = rows.map((r) => `
+          <div class="bar-row">
+            <div class="bar-label"><span>${escapeHtml(r.label)}</span><span>${eur.format(r.value)}${r.projection ? "" : ` · ${eur.format(r.value / 12)}/mois`}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(r.value / max) * 100}%${r.projection ? ";opacity:.5" : ""}"></div></div>
+            ${r.sub ? `<div class="bar-sub">${settings.privacy ? "" : escapeHtml(r.sub)}</div>` : ""}
+          </div>`).join("")
+        + (growth != null ? `<p class="help" style="margin-top:10px">${full[full.length - 1].year} : <b class="${signClass(growth)}">${growth >= 0 ? "+" : ""}${pctPlain(growth).replace("-", "−")}</b> par rapport à ${full[full.length - 2].year}. Tes achats et les hausses de dividende font grandir ce revenu, qui tombe même quand la bourse baisse.</p>` : "")
+        + `<p class="help">Montants bruts, avant impôt, d'après tes opérations saisies ou importées (dividendes et intérêts des espèces).</p>`;
+      block.hidden = false;
     }
 
     function eventRow(e) {
@@ -5178,6 +5265,7 @@
       select.innerHTML = realized.years.map((y) => `<option value="${y.year}">${y.year}</option>`).join("");
       select.hidden = false;
       renderRealized(realized.years[0].year);
+      renderIncomeCard();
     }
 
     function renderRealized(year) {
@@ -5369,6 +5457,8 @@
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",
+        "Rendement sur PRU": "<p>Dividende annuel rapporté au prix que tu as payé (ton PRU), et non au cours du jour. On l'appelle aussi « yield on cost ».</p><p>Exemple : Air Liquide achetée 100 €, qui verse 3,30 € par an : 3,3 % sur ton PRU. Si le cours monte à 180 €, le rendement au cours actuel tombe à 1,8 %, mais toi tu touches toujours 3,3 % de ce que tu as investi, et plus à chaque hausse du dividende.</p><p>C'est la mesure qui parle à un investisseur de long terme en dividendes : elle montre ce que ton argent te rapporte vraiment chaque année. Le rendement au cours actuel, lui, dit ce que rapporterait un achat aujourd'hui.</p>",
+        "Revenu annuel": "<p>Les dividendes et intérêts réellement perçus chaque année, d'après tes opérations, puis la projection des 12 prochains mois (dividendes de l'an passé répétés avec tes quantités actuelles).</p><p>Montants bruts, avant impôt. Contrairement à la valeur du portefeuille, ce revenu varie peu quand la bourse baisse : les entreprises solides maintiennent en général leur dividende.</p>",
         "Revenu projeté": "<p>Les dividendes que tes titres devraient te verser sur les 12 prochains mois, avant impôts : chaque dividende de l'an dernier, répété à la même date et au même montant, multiplié par ta quantité actuelle.</p><p>C'est une estimation prudente : elle ne compte pas les hausses de dividende, ni les achats à venir. Un dividende réduit ou supprimé la rend trop optimiste.</p>",
         "Date de détachement": "<p>Le jour où le dividende est « détaché » de l'action (ex-date) : il faut détenir l'action la veille au soir pour le toucher. Ce jour-là, le cours baisse d'environ le montant du dividende.</p><p>Le versement sur ton compte arrive quelques jours à quelques semaines plus tard. Les dates affichées sont estimées d'après l'an dernier.</p>",
         "Contenu des ETF": "<p>Un ETF contient des centaines d'entreprises : un ETF MSCI World, c'est environ 70 % d'actions américaines, et 5 % de NVIDIA. Cochée, la case répartit chaque ETF selon la composition de son indice, reconnu à son nom (MSCI World, S&amp;P 500, Nasdaq, Emerging Markets…).</p><p>La composition vient des fichiers publiés chaque jour par SPDR pour le même indice, ou est reconstituée d'après les capitalisations (CAC 40, STOXX 600, Nasdaq 100). Un ETF qui suit le même indice a presque exactement la même.</p>",

@@ -80,8 +80,21 @@ def compute_calendar(holdings: list[dict], histories: dict[str, list[tuple[date,
         by_envelope[e["envelope"]]["net"] += e["net"]
     months = [{"month": key, "gross": round(by_month[key][0], 2), "net": round(by_month[key][1], 2)} for key in month_keys]
 
+    # Revenu de chaque ligne sur 12 mois : l'appli le rapporte à la valeur et au prix de revient (rendement sur PRU)
+    lines: dict[tuple[str, str], dict] = {}
+    for e in events:
+        line = lines.setdefault((e["envelope"], e["ticker"]), {
+            "ticker": e["ticker"], "name": e["name"], "envelope": e["envelope"], "quantity": e["quantity"],
+            "per_share": 0.0, "gross": 0.0, "net": 0.0, "payments": 0, "frequency": e["frequency"]})
+        line["per_share"] += e["per_share"]
+        line["gross"] += e["gross"]
+        line["net"] += e["net"]
+        line["payments"] += 1
+
     gross = sum(e["gross"] for e in events)
     return {
+        "lines": sorted(({**v, "per_share": round(v["per_share"], 4), "gross": round(v["gross"], 2), "net": round(v["net"], 2)}
+                         for v in lines.values()), key=lambda v: -v["gross"]),
         "events": events,
         "months": months,
         "annual_gross": round(gross, 2),
