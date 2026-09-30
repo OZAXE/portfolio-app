@@ -40,3 +40,31 @@ def test_validation_de_l_epargne():
             validate_savings([bad], today)
     with pytest.raises(OperationError):  # même nom deux fois
         validate_savings([{"name": "PEL", "amount": 1}, {"name": "pel", "amount": 2}], today)
+
+
+class _Tab:
+    def __init__(self, title):
+        self.title = title
+
+    def update_title(self, title):
+        self.title = title
+
+
+class _Sheet:
+    def __init__(self, *titles):
+        self.tabs = [_Tab(t) for t in titles]
+
+    def worksheets(self):
+        return self.tabs
+
+
+def test_reconstruction_du_modele_renomme_l_ancien_livret():
+    from app.workbook import rename_legacy_savings
+
+    sheet = _Sheet("Positions", "Livret")
+    rename_legacy_savings(sheet)
+    assert [t.title for t in sheet.tabs] == ["Positions", "Épargne"]
+    # Les deux existent déjà (Épargne créé par l'appli) : rien ne bouge
+    sheet = _Sheet("Livret", "Épargne")
+    rename_legacy_savings(sheet)
+    assert [t.title for t in sheet.tabs] == ["Livret", "Épargne"]

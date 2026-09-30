@@ -192,9 +192,18 @@ def _validation_requests(sheet: gspread.Spreadsheet) -> list[dict]:
     ]
 
 
+def rename_legacy_savings(sheet) -> None:
+    """Ancien onglet Livret renommé en Épargne : sinon la construction créerait un onglet Épargne vide,
+    lu en priorité par l'appli, et les livrets disparaîtraient de l'affichage."""
+    livret, epargne = _find_worksheet(sheet, "Livret"), _find_worksheet(sheet, "Épargne")
+    if livret is not None and epargne is None:
+        livret.update_title("Épargne")
+
+
 def build_template(sheet: gspread.Spreadsheet) -> None:
     """Crée les onglets du modèle dans un Sheet vide (les onglets existants de même nom sont gardés)."""
     sheet.batch_update({"requests": [{"updateSpreadsheetProperties": {"properties": {"locale": "fr_FR"}, "fields": "locale"}}]})
+    rename_legacy_savings(sheet)
     existing = {ws.title for ws in sheet.worksheets()}
     for spec in TABS:
         if spec.title not in existing:
