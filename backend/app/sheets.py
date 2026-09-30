@@ -90,6 +90,7 @@ class HoldingLine:
     currency: str | None = None
     kind: str | None = None  # Action / ETF
     pocket: str | None = None  # poche d'allocation (colonne Poche de l'onglet Titres)
+    quote_source: str | None = None  # "Yahoo" : cours GOOGLEFINANCE en erreur, valeur sur le cours de secours
 
 
 @dataclass
@@ -349,6 +350,9 @@ def savings_worksheet(sheet: gspread.Spreadsheet) -> tuple[gspread.Worksheet | N
     return _find_worksheet(sheet, "Livret"), False
 
 
+QUANTITY_EPSILON = 1e-9
+
+
 def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
     """Onglet Positions du modèle : une ligne par titre et par compte (colonnes de workbook.POSITIONS_HEADERS).
     Les titres entièrement vendus (quantité nulle) sont écartés."""
@@ -356,7 +360,9 @@ def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
     for r in range(1, len(rows)):
         ticker = _cell(rows, r, 0)
         quantity = _number(_cell(rows, r, 4))
-        if not ticker or not quantity:
+        # Titre entièrement vendu : les quantités décimales laissent parfois une miette (Bitcoin à -1e-10,
+        # affiché « -0,00 € ») ; en dessous d'un milliardième, la ligne est vide
+        if not ticker or quantity is None or abs(quantity) < QUANTITY_EPSILON:
             continue
         ticker = str(ticker).strip()
         lines.append((HoldingLine(
@@ -412,7 +418,11 @@ def get_overview(sheet_id: str) -> Overview:
     if is_v2(sheet):
         _upgrade_positions(sheet_id)
         positions = _worksheet(sheet, "Positions").get_values(value_render_option=UNFORMATTED)
-        overview = Overview(holdings=[h for h, _ in parse_positions_v2(positions)], history=parse_history_v2(historique))
+        from .prices import fill_missing_values
+
+        lines = parse_positions_v2(positions)
+        fill_missing_values(lines)
+        overview = Overview(holdings=[h for h, _ in lines], history=parse_history_v2(historique))
         titres = _worksheet(sheet, "Titres").get_values(value_render_option=UNFORMATTED)
         apply_titres(overview.holdings, titres)
         allocation = _find_worksheet(sheet, "Allocation")
