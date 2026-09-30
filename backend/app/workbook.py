@@ -303,12 +303,13 @@ def parse_v1_movements(rows: list[list]) -> list[dict]:
     return operations
 
 
-def cash_row(day: date, account: str, kind: str, amount: float, note: str, row: int) -> list:
+def cash_row(day: date, account: str, kind: str, amount: float, note: str, row: int, taxes: float = 0.0) -> list:
     """Versement, retrait ou intérêts : quantité 1 et montant en prix unitaire, pour que les colonnes Montant
-    brut et Montant net gardent leurs formules (et restent modifiables à la main)."""
+    brut et Montant net gardent leurs formules (et restent modifiables à la main). Intérêts : montant brut, et
+    les prélèvements déjà faits par le courtier en Taxes (net = brut - taxes), pour l'estimation d'impôt."""
     return operation_row({"date": day, "account": account, "type": kind, "ticker": "", "quantity": 1,
                           "price": round(amount, 2), "currency": "EUR", "fx": 1, "order_type": "", "why": "",
-                          "term": "", "note": note}, row)
+                          "term": "", "note": note, "taxes": round(taxes, 2)}, row)
 
 
 _types_checked: set[str] = set()

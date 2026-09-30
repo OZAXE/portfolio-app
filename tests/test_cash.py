@@ -79,7 +79,7 @@ HEADER = '"datetime","date","account_type","category","type","asset_class","name
 
 
 def test_trade_republic_csv_regroupe_les_especes():
-    # 18/08 : virement reçu de 500 €, deux paiements par carte (4 € et 12,50 €) ; 01/09 : intérêts 1,20 €
+    # 18/08 : virement reçu de 500 €, deux paiements par carte (4 € et 12,50 €) ; 01/09 : intérêts bruts 1,20 €
     # dont 0,38 € de prélèvements ; PEA : versement de 200 € le 18/08
     rows = [
         '"","2026-08-18","DEFAULT","CASH","CUSTOMER_INBOUND","","","","","","500.00","","","EUR"',
@@ -94,5 +94,29 @@ def test_trade_republic_csv_regroupe_les_especes():
         ("2026-08-18", "CTO", "Versement", 500.0, "Espèces (1 mouvement)"),
         ("2026-08-18", "CTO", "Retrait", 16.5, "Espèces (2 mouvements)"),
         ("2026-08-18", "PEA", "Versement", 200.0, "Espèces (1 mouvement)"),
-        ("2026-09-01", "CTO", "Intérêts", 0.82, "Espèces (1 mouvement)"),
+        ("2026-09-01", "CTO", "Intérêts", 1.2, "Espèces (1 mouvement)"),
     ]
+    assert ops[-1].taxes == 0.38  # brut gardé, prélèvements à part pour l'estimation d'impôt
+
+
+def test_interets_importes_nets_reconnus_bruts():
+    # Intérêts du 01/09 déjà dans le Sheet, enregistrés nets (0,82 €) par l'ancien import ; réimportés bruts
+    # (1,20 €, dont 0,38 € de prélèvements) : même opération
+    old = Entry(date(2026, 9, 1), "CTO", "Intérêts", "", 1, 0.82, net=0.82)
+    new = Entry(date(2026, 9, 1), "CTO", "Intérêts", "", 1, 1.20, net=0.82)
+    assert same_operation(new, old)
+
+
+def test_impot_sur_les_interets_du_cto():
+    from app.realized import compute_realized
+
+    # 2026 : 100 € d'intérêts bruts sans retenue + 50 € bruts dont 15,70 € déjà prélevés (31,4 %) ; intérêts du
+    # PEA ignorés. Dû : 150 x 31,4 % = 47,10 € ; prélevé 15,70 € -> reste 31,40 €
+    moves = [CashMovement(date(2026, 3, 1), "CTO Trade Republic", "Intérêts", 100, 100, 0),
+             CashMovement(date(2026, 4, 1), "CTO Trade Republic", "Intérêts", 34.3, 50, 15.7),
+             CashMovement(date(2026, 4, 1), "PEA Boursorama", "Intérêts", 10, 10, 0),
+             CashMovement(date(2026, 4, 1), "CTO Trade Republic", "Versement", 1000)]
+    cto = compute_realized([], ENVELOPES, cash=moves)["years"][0]["envelopes"]["CTO"]
+    assert (cto["interest_gross"], cto["interest_taxes"]) == (150, 15.7)
+    assert cto["interest_tax_remaining"] == pytest.approx(31.4)
+    assert cto["estimated_tax"] == pytest.approx(31.4)

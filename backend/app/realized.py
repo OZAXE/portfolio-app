@@ -90,7 +90,9 @@ class CashMovement:
     day: date
     account: str
     kind: str  # Versement / Retrait / Intérêts
-    amount: float  # positif, en euros
+    amount: float  # positif, en euros : montant net, qui arrive réellement sur le compte
+    gross: float | None = None  # intérêts : montant brut, avant les prélèvements (colonne Taxes)
+    taxes: float = 0.0
 
 
 @dataclass
@@ -156,7 +158,9 @@ def _parse_ledger(sheet_id: str) -> Ledger:
             if amount is None:
                 amount = _num(row[4] or 1) * _num(row[5])
             if amount:
-                cash.append(CashMovement(date.fromisoformat(iso), str(row[1]), row[2], abs(float(amount))))
+                gross = row[8] if isinstance(row[8], (int, float)) else _num(row[4] or 1) * _num(row[5])
+                cash.append(CashMovement(date.fromisoformat(iso), str(row[1]), row[2], abs(float(amount)),
+                                         abs(float(gross or amount)), _num(row[10])))
             continue
         if not iso or row[2] not in ("Achat", "Vente", "Dividende") or not isinstance(row[4], (int, float)):
             continue
@@ -175,7 +179,7 @@ def _parse_ledger(sheet_id: str) -> Ledger:
 
 
 def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None,
-                     kinds: dict[str, str] | None = None) -> dict:
+                     kinds: dict[str, str] | None = None, cash: list[CashMovement] | None = None) -> dict:
     names, kinds = names or {}, kinds or {}
     positions: dict[tuple[str, str], list[float]] = defaultdict(lambda: [0.0, 0.0])  # (compte, titre) -> [quantité, coût total]
     years: dict[int, YearSummary] = {}
@@ -186,6 +190,7 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
             "realized_gain": 0.0, "sales": 0, "sale_proceeds": 0.0,
             "dividends_gross": 0.0, "dividends_taxes": 0.0, "dividends_net": 0.0,
             "dividends_tax_remaining": 0.0, "foreign_withheld": 0.0,
+            "interest_gross": 0.0, "interest_taxes": 0.0,
         })
 
     # Ordre chronologique ; le même jour, les achats avant les ventes
@@ -226,6 +231,15 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
                 "taxes": round(op.taxes + op.fees, 2), "net": round(op.net, 2),
             })
 
+    # Intérêts des espèces (Trade Republic) : imposés au prélèvement forfaitaire comme les plus-values, sans
+    # convention fiscale ni abattement. Sur le PEA, rien n'est imposé tant qu'on ne retire rien.
+    for m in cash or []:
+        if m.kind != "Intérêts" or envelopes.get(m.account) == "PEA":
+            continue
+        bucket = envelope_bucket(m.day.year, "CTO")
+        bucket["interest_gross"] += m.gross if m.gross is not None else m.amount
+        bucket["interest_taxes"] += m.taxes
+
     result = []
     for year in sorted(years, reverse=True):
         summary = years[year]
@@ -237,7 +251,12 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
                 rate = flat_tax_rate(year)
                 # Négatif : l'acompte de 12,8 % prélevé sur des dividendes étrangers dépasse l'impôt dû
                 rounded["flat_tax_rate"] = rate
-                rounded["estimated_tax"] = round(max(b["realized_gain"], 0.0) * rate + b["dividends_tax_remaining"], 2)
+                # Intérêts : dû = brut x flat tax, moins ce que le courtier a déjà prélevé (Trade Republic : parfois
+                # rien, tout reste à payer à la déclaration, case 2TR). Ex. 100 € bruts en 2026 sans retenue : 31,40 €
+                interest_remaining = b["interest_gross"] * rate - b["interest_taxes"]
+                rounded["interest_tax_remaining"] = round(interest_remaining, 2)
+                rounded["estimated_tax"] = round(max(b["realized_gain"], 0.0) * rate + b["dividends_tax_remaining"]
+                                                 + interest_remaining, 2)
                 rounded["withheld_tax"] = round(b["dividends_taxes"], 2)
                 rounded["foreign_withheld"] = round(b["foreign_withheld"], 2)
             envelopes_out[envelope] = rounded
@@ -249,4 +268,4 @@ def compute_realized(operations: list[Operation], envelopes: dict[str, str], nam
 
 def realized_summary(sheet_id: str) -> dict:
     ledger = read_ledger(sheet_id)
-    return compute_realized(ledger.operations, ledger.envelopes, ledger.names, ledger.kinds)
+    return compute_realized(ledger.operations, ledger.envelopes, ledger.names, ledger.kinds, ledger.cash)

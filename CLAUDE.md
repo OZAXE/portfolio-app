@@ -250,6 +250,10 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Import CSV Trade Republic : catégorie CASH (hors dividendes) regroupée par jour, enveloppe et sens (le compte
   titres TR est aussi un compte courant : cartes, virements) ; doublon d'espèces = même jour et même montant au
   centime. Les espèces ne sont pas dans l'onglet Historique ni dans la performance (titres seulement).
+  Intérêts (octobre 2026, demande d'Enzo) : montant **brut** en prix unitaire et prélèvements du courtier en
+  Taxes (net = brut − taxes) ; `CashMovement.gross` / `taxes`. Impôt du CTO (`compute_realized(cash=...)`) :
+  + brut × flat tax de l'année − prélevé (`interest_tax_remaining`), intérêts du PEA ignorés. Les intérêts
+  importés avant étaient nets : doublon reconnu sur le brut ou le net (`Entry.net`).
 
 - **Patrimoine et projection (septembre 2026, choix d'Enzo : assurance-vie et PER en valeur saisie à la main).**
   Onglet `Épargne` (`SAVINGS_HEADERS` : nom, montant, type Livret / Assurance-vie / PER / Autre, versé, mis à
@@ -261,6 +265,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   capitalisé chaque mois, en euros d'aujourd'hui par défaut ((1 + r) / 1,02 − 1), scénarios à ±2 points (ordre
   de grandeur, pas une probabilité), objectif facultatif, revenu possible par la règle des 4 %. Réglages dans
   `settings.projection`. Montants arrondis à l'euro.
+
+- **Actualités de la fiche (octobre 2026, demande d'Enzo).** `news.py`, route `/news/{ticker}?name=` (gardée
+  1 h, échecs non gardés) : flux RSS de Google Actualités en français (`"<nom>" when:30d`), sinon recherche Yahoo
+  (anglais). Nom d'usage sans forme juridique (`company_name`) ; un titre n'est gardé que s'il cite l'entreprise
+  (`mentions` : premier mot du nom s'il est distinctif, sinon les deux premiers : « Air Liquide », « Société
+  Générale »), liens https seulement, doublons de titres retirés, 8 au plus. Rubrique repliée sous « À propos »
+  (`loadNews`). Google et Yahoo étant bloqués depuis le conteneur de dev, lecteurs testés sur des extraits au
+  format des flux : vérifier sur l'appli en ligne après une mise en ligne.
 
 ## Pistes non faites
 

@@ -84,7 +84,7 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
     if not reader.fieldnames or not {"category", "type", "symbol", "shares", "amount"} <= set(reader.fieldnames):
         raise OperationError(f"{source} : colonnes de l'export Trade Republic introuvables")
     operations = []
-    cash: dict[tuple[str, str | None, str], list[float]] = {}  # (jour, enveloppe, type) -> [montant, nombre]
+    cash: dict[tuple[str, str | None, str], list[float]] = {}  # (jour, enveloppe, type) -> [montant, nombre, taxes]
     for row in reader:
         if row["category"] == "CORPORATE_ACTION":  # ex. actions gratuites Air Liquide (BONUS_ISSUE)
             skipped["corporate"] = skipped.get("corporate", 0) + 1
@@ -110,11 +110,12 @@ def parse_trade_republic_csv(text: str, source: str, skipped: dict | None = None
             # Sans cette colonne (ancien export), l'opération va dans le compte choisi
             envelope=TR_CSV_ENVELOPES.get((row.get("account_type") or "").strip().upper()),
         ))
-    for (day, envelope, kind), (amount, count) in sorted(cash.items(), key=lambda kv: kv[0][0]):
+    for (day, envelope, kind), (amount, count, taxes) in sorted(cash.items(), key=lambda kv: kv[0][0]):
         if round(amount, 2) > 0:
             operations.append(ParsedOperation(
                 date=day, type=kind, isin="", name=f"Espèces ({count} mouvement{'s' if count > 1 else ''})",
-                quantity=1, price=round(amount, 2), fees=0, taxes=0, order_type="", source=source, envelope=envelope))
+                quantity=1, price=round(amount, 2), fees=0, taxes=round(taxes, 2), order_type="", source=source,
+                envelope=envelope))
     return operations
 
 
@@ -122,9 +123,10 @@ def _add_cash_row(cash: dict, row: dict) -> None:
     """Mouvement d'espèces du compte Trade Republic, regroupé par jour, enveloppe et sens : le compte titres
     est aussi un compte courant (paiements par carte, virements), une ligne par café remplirait l'onglet.
     Une réimportation de la même période redonne les mêmes totaux quotidiens, reconnus comme doublons."""
-    amount = _num(row["amount"])
+    amount, tax = _num(row["amount"]), 0.0
     if row["type"] == "INTEREST_PAYMENT":
-        kind, amount = "Intérêts", amount - abs(_num(row.get("tax")))  # intérêts nets des prélèvements
+        # Brut gardé, prélèvements à part (colonne Taxes) : l'estimation d'impôt en a besoin
+        kind, tax = "Intérêts", abs(_num(row.get("tax")))
     elif amount > 0:
         kind = "Versement"
     elif amount < 0:
@@ -132,9 +134,10 @@ def _add_cash_row(cash: dict, row: dict) -> None:
     else:
         return
     key = (row["date"], TR_CSV_ENVELOPES.get((row.get("account_type") or "").strip().upper()), kind)
-    total = cash.setdefault(key, [0.0, 0])
+    total = cash.setdefault(key, [0.0, 0, 0.0])
     total[0] += abs(amount)
     total[1] += 1
+    total[2] += tax
 
 
 BOURSO_DATE = re.compile(r"(\d{2})/(\d{2})/(\d{4})")
@@ -335,9 +338,11 @@ def preview_import(sheet_id: str, account: str, files: list[dict], known_isins: 
     # Déjà dans le Sheet (ou dans un autre fichier du même import) : même opération à quelques jours près
     ordered = sorted(parsed, key=lambda o: o.date)
     known = [Entry(op.day, envelopes.get(op.account, "CTO"), op.kind, op.ticker, op.quantity, op.gross) for op in existing]
-    known += [Entry(m.day, envelopes.get(m.account, "CTO"), m.kind, "", 1, m.amount) for m in read_cash(sheet_id)]
+    known += [Entry(m.day, envelopes.get(m.account, "CTO"), m.kind, "", 1, m.gross or m.amount, net=m.amount)
+              for m in read_cash(sheet_id)]
     new = [Entry(date.fromisoformat(op.date), envelopes.get(op.account or "", op.envelope or "CTO"), op.type,
-                 op.ticker or "", op.quantity, op.quantity * op.price, source=op.source) for op in ordered]
+                 op.ticker or "", op.quantity, op.quantity * op.price, source=op.source,
+                 net=op.price - op.taxes if op.type in CASH_TYPES else None) for op in ordered]
     for op, duplicate in zip(ordered, mark_duplicates(new, known)):
         op.status = ("no_account" if not op.account else "duplicate" if duplicate
                      else "new" if op.ticker or op.type in CASH_TYPES else "no_ticker")
@@ -365,7 +370,7 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
             if op_account not in known_accounts:
                 raise OperationError(f"Compte inconnu : {op_account}. Ajoute-le dans Réglages > Mes comptes et courtiers")
             cash.append((date.fromisoformat(op["date"]), op_account, op["type"], float(op["price"]),
-                         f"Import {op.get('source', '')}".strip()))
+                         f"Import {op.get('source', '')}".strip(), float(op.get("taxes") or 0)))
             continue
         ticker = str(op.get("ticker") or "").strip().upper()
         if not ticker or op.get("type") not in ("Achat", "Vente", "Dividende"):
@@ -406,6 +411,7 @@ def write_import(sheet_id: str, account: str, operations: list[dict], titres_inf
     ops = _worksheet(sheet, "Opérations")
     start = len(ops.col_values(1)) + 1
     rows = [operation_row(op, start + i) for i, op in enumerate(clean)]
-    rows += [cash_row(*c, start + len(rows) + i) for i, c in enumerate(sorted(cash))]
+    rows += [cash_row(day, acct, kind, amount, note, start + len(rows) + i, taxes)
+             for i, (day, acct, kind, amount, note, taxes) in enumerate(sorted(cash))]
     ops.update(range_name=f"A{start}", values=rows, value_input_option="USER_ENTERED")
     return {"written": len(rows), "new_tickers": new_tickers}
