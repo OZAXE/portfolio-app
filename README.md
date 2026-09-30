@@ -94,8 +94,12 @@ l'onglet « Utilisateurs » du Sheet du propriétaire.
 
 - **Screener** (chaque nuit vers 3 h, ou à la main) : relevé du jour dans l'onglet Historique de chaque
   utilisateur (`screener/snapshot.py`, plus-value de la semaine le vendredi), super investisseurs, screener, comptes annuels,
-  notifications, puis publication sur la branche `screener-data`.
-- **Tests** : à chaque modification de `main`.
+  notifications, puis publication sur la branche `screener-data`. Dernière étape (`screener/night_report.py`) : si une
+  étape a échoué (relevé refusé, screener planté, publication ratée), notification ntfy « Calcul de nuit : n étapes
+  en échec » sur le sujet du secret `NTFY_TOPIC`, avec le lien du journal du workflow.
+- **Tests** : à chaque modification de `main` et sur chaque PR : tests du backend, plus un test de fumée du front
+  (`tests/test_front.py` : l'appli ouverte dans Chromium sur un faux portefeuille, les cinq onglets parcourus, échec à
+  la moindre erreur JavaScript ou erreur 500 de l'API).
 - **Admin** (à la main) : construit un Sheet modèle vide, ou migre un ancien Sheet vers le modèle.
 
 ```bash
@@ -108,6 +112,7 @@ gh workflow run admin.yml -f target=<ID du Sheet> -f migrate_from=   # nouveau S
 ```bash
 python -m venv backend/.venv && backend/.venv/Scripts/activate   # Windows (source backend/.venv/bin/activate ailleurs)
 pip install -r requirements-dev.txt
+python -m playwright install chromium                           # navigateur du test du front (sinon test ignoré)
 python -m pytest tests -q
 cd backend && uvicorn app.main:app --reload                     # API sur http://localhost:8000
 python screener/run.py --data-dir data --max-fundamentals 20    # mini screener local

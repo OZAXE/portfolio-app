@@ -13,11 +13,13 @@ Le relevé du vendredi (fait dans la nuit de vendredi à samedi) déclenche la n
 import argparse
 import logging
 import os
+import sys
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
 
+from night_report import add_detail
 from notify import API_URL, api_get, send
 
 log = logging.getLogger("snapshot")
@@ -70,10 +72,13 @@ def main():
 
     # Les journaux de GitHub Actions sont publics : ni noms ni titres (le message d'erreur en contient)
     results = response.json()
+    failures = 0
     for i, u in enumerate(results, 1):
         who = f"utilisateur {i}/{len(results)}"
         if u.get("error"):
             log.warning("%s : relevé impossible (cours en erreur ou Sheet illisible)", who)
+            add_detail(f"Relevé impossible pour {u.get('name') or who} : {u['error']}")  # privé : envoyé par ntfy
+            failures += 1
             continue
         log.info("%s : %s", who, "relevé ajouté" if u["recorded"] else f"pas de relevé ({u['reason']})")
         weekly, topic = u.get("weekly"), u.get("topic") or (default_topic if u.get("admin") else None)
@@ -82,6 +87,9 @@ def main():
         title, message, tag = weekly_message(weekly)
         send(topic, title, message, tag)
         log.info("%s : notification de la semaine envoyée", who)
+    # Étape en échec (le workflow continue) : le rapport de la nuit prévient que la courbe n'a pas avancé
+    if failures:
+        sys.exit(f"{failures} relevé(s) impossible(s)")
 
 
 if __name__ == "__main__":

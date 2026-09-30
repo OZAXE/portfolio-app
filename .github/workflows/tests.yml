@@ -1,4 +1,5 @@
-# Tests automatiques à chaque modification du code (calculs, lecture du Sheet, alertes...)
+# Tests automatiques à chaque modification du code (calculs, lecture du Sheet, alertes...) et test de fumée
+# du front : l'appli ouverte dans Chromium sur un faux portefeuille, les cinq onglets parcourus sans erreur
 name: Tests
 
 on:
@@ -17,4 +18,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
+      # Chromium pour le test du front (tests/test_front.py), exigé ici : sans navigateur, le test échoue au lieu
+      # d'être ignoré comme sur un poste sans Playwright
+      - run: python -m playwright install --with-deps chromium
       - run: python -m pytest tests -q
+        env:
+          FRONT_TESTS_REQUIRED: "1"
