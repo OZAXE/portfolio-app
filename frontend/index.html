@@ -577,16 +577,20 @@
     .section-head h2 { margin: 0; color: var(--text); font-size: 18px; }
     .watch-card { padding: 4px 16px; }
     .watch-card .help { padding: 12px 0; }
-    .watch-row { width: 100%; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 64px; padding: 10px 0;
-      background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .watch-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; border-top: 1px solid var(--line); }
     .watch-row:first-child { border-top: 0; }
+    .watch-main { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 64px; padding: 10px 0;
+      background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .watch-hide { width: 44px; height: 44px; background: none; border: 0; border-radius: 10px; color: var(--muted); font: inherit; font-size: 16px; cursor: pointer; }
+    .watch-hide:hover, .watch-hide:focus-visible { background: var(--card-2); color: var(--text); }
+    .watch-masked:first-child { border-top: 0; }
+    .watch-masked { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding: 4px 0; font-size: 13px; color: var(--muted); }
     .watch-row .wic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: var(--card-2); }
     .watch-row .wic.warn { background: rgba(245, 158, 11, 0.16); }
     .watch-row .wic.good { background: rgba(34, 197, 94, 0.14); }
     .watch-row .wic.info { background: rgba(56, 189, 248, 0.14); }
     .watch-row .t { display: block; font-size: 15px; font-weight: 600; }
     .watch-row .d { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .watch-row .chev { color: var(--muted); font-size: 18px; }
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     .tile { background: var(--card); border: 0; border-radius: 14px; padding: 14px; text-align: left; color: var(--text); font: inherit; cursor: pointer; min-height: 88px; }
     .tile .k { font-size: 13px; color: var(--muted); }
@@ -1976,11 +1980,11 @@
       // Au-delà de 2 lignes concernées, une seule alerte qui les cite (sinon une rafale sur un petit portefeuille)
       const over = c.titles.filter((t) => t.over);
       const lines = over.length > 2
-        ? [{ icon: "⚖️", text: `${over.length} actions dépassent ton plafond de ${pctPlain(limits.line)} : ${over.map((t) => `${t.name} ${pctPlain(t.weight)}`).join(", ")}`, origin: "concentration" }]
-        : over.map((t) => ({ icon: "⚖️", text: `${t.name} pèse ${pctPlain(t.weight)} de ton portefeuille (plafond ${pctPlain(limits.line)})`, origin: "concentration" }));
+        ? [{ icon: "⚖️", text: `${over.length} actions dépassent ton plafond de ${pctPlain(limits.line)} : ${over.map((t) => `${t.name} ${pctPlain(t.weight)}`).join(", ")}`, origin: "concentration", key: `conc:${over.map((t) => t.name).sort().join("+")}` }]
+        : over.map((t) => ({ icon: "⚖️", text: `${t.name} pèse ${pctPlain(t.weight)} de ton portefeuille (plafond ${pctPlain(limits.line)})`, origin: "concentration", key: `conc:${t.name}` }));
       return [
         ...lines,
-        ...c.sectors.map((r) => ({ icon: "⚖️", text: `Le secteur ${r.label} pèse ${pctPlain(r.weight)} de ton portefeuille (plafond ${pctPlain(limits.sector)})`, origin: "concentration" })),
+        ...c.sectors.map((r) => ({ icon: "⚖️", text: `Le secteur ${r.label} pèse ${pctPlain(r.weight)} de ton portefeuille (plafond ${pctPlain(limits.sector)})`, origin: "concentration", key: `secteur:${r.label}` })),
       ];
     }
 
@@ -3970,13 +3974,13 @@
     function watchItems() {
       const items = [
         ...concentrationAlerts().map((r) => ({ ...r, tone: "warn", go: "concentration" })),
-        ...serverAlerts.map((r) => ({ ...r, tone: r.icon === "💰" ? "good" : "warn" })),
+        ...serverAlerts.map((r) => ({ ...r, tone: r.icon === "💰" ? "good" : "warn", key: `alerte:${r.ticker || ""}:${r.text}` })),
       ];
       for (const e of journal || []) {
         if (!reviewDue(e)) continue;
         const name = market?.stocks?.find((st) => st.ticker === e.ticker)?.name
           || overview?.holdings?.find((h) => journalTicker(h) === e.ticker)?.name || e.ticker;
-        items.push({ icon: "📝", tone: "good", ticker: e.ticker, text: `Relire ta thèse sur ${shortName(name) || name}`,
+        items.push({ icon: "📝", tone: "good", ticker: e.ticker, key: `revue:${e.ticker}:${e.review}`, text: `Relire ta thèse sur ${shortName(name) || name}`,
           sub: `Revue prévue le ${dayFmt.format(new Date(e.review + "T12:00:00"))}` });
       }
       const held = new Set((overview?.holdings || []).map((h) => (h.yahoo_ticker || "").toUpperCase()));
@@ -3985,24 +3989,52 @@
         const e = earningsText(st.earnings_date);
         if (!e?.upcoming || e.days > WATCH_EARNINGS_DAYS) continue;
         const day = e.days === 0 ? "aujourd'hui" : new Date(st.earnings_date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-        items.push({ icon: "📅", tone: "info", ticker: st.ticker, text: `${shortName(st.name) || st.ticker} publie ses résultats ${e.days === 0 ? day : `le ${day}`}`,
+        items.push({ icon: "📅", tone: "info", ticker: st.ticker, key: `resultats:${st.ticker}:${st.earnings_date}`, text: `${shortName(st.name) || st.ticker} publie ses résultats ${e.days === 0 ? day : `le ${day}`}`,
           sub: "Le cours bouge souvent fort ce jour-là" });
       }
       return items;
     }
+    // Bouton « Masquer » : la ligne disparaît de cet appareil (settings.hiddenWatch, clé -> date). Les clés ne
+    // dépendent pas des chiffres du jour : « Air Liquide pèse 62 % » reste masquée quand elle passe à 63 %. Une
+    // alerte datée (thèse à relire le 15/09, résultats du 30/10) revient si la date change. Au bout de 90 jours,
+    // une ligne masquée réapparaît : une concentration acceptée en septembre mérite d'être revue en décembre.
+    const WATCH_HIDE_DAYS = 90;
+    function hiddenWatch() {
+      const limit = new Date(Date.now() - WATCH_HIDE_DAYS * 864e5).toISOString().slice(0, 10);
+      const kept = Object.fromEntries(Object.entries(settings.hiddenWatch || {}).filter(([, day]) => day >= limit));
+      if (Object.keys(kept).length !== Object.keys(settings.hiddenWatch || {}).length) { settings.hiddenWatch = kept; saveSettings(); }
+      return kept;
+    }
     function renderAlertsList() {
-      const rows = watchItems();
+      const hidden = hiddenWatch();
+      const all = watchItems();
+      const rows = all.filter((r) => !hidden[r.key]);
+      const masked = all.length - rows.length;
       document.getElementById("alerts").innerHTML = rows.map((r) => `
-        <button class="watch-row" ${r.go ? `data-watch-go="${r.go}"` : r.ticker ? `data-watch-stock="${escapeHtml(r.ticker)}"` : ""}>
-          <span class="wic ${r.tone || ""}" aria-hidden="true">${r.icon}</span>
-          <span style="min-width:0"><span class="t">${escapeHtml(r.text)}</span><span class="d">${escapeHtml(r.sub || ALERT_ORIGINS[r.origin] || "Watchlist")}</span></span>
-          ${r.go || r.ticker ? '<span class="chev" aria-hidden="true">›</span>' : "<span></span>"}
-        </button>`).join("");
-      document.getElementById("alerts-empty").hidden = rows.length > 0;
+        <div class="watch-row">
+          <button class="watch-main" ${r.go ? `data-watch-go="${r.go}"` : r.ticker ? `data-watch-stock="${escapeHtml(r.ticker)}"` : ""}>
+            <span class="wic ${r.tone || ""}" aria-hidden="true">${r.icon}</span>
+            <span style="min-width:0"><span class="t">${escapeHtml(r.text)}</span><span class="d">${escapeHtml(r.sub || ALERT_ORIGINS[r.origin] || "Watchlist")}</span></span>
+          </button>
+          <button class="watch-hide" data-watch-hide="${escapeHtml(r.key)}" aria-label="Masquer : ${escapeHtml(r.text)}" title="Masquer">✕</button>
+        </div>`).join("")
+        + (masked ? `<div class="watch-masked"><span>${masked} masquée${masked > 1 ? "s" : ""}</span><button class="link-btn" data-watch-unhide>Tout réafficher</button></div>` : "");
+      document.getElementById("alerts-empty").hidden = rows.length > 0 || masked > 0;
       document.getElementById("watch-count").textContent = rows.length || "";
     }
     document.getElementById("alerts").addEventListener("click", (e) => {
-      const row = e.target.closest(".watch-row");
+      const hide = e.target.closest("[data-watch-hide]");
+      if (hide) {
+        settings.hiddenWatch = { ...hiddenWatch(), [hide.dataset.watchHide]: new Date().toISOString().slice(0, 10) };
+        saveSettings();
+        return renderAlertsList();
+      }
+      if (e.target.closest("[data-watch-unhide]")) {
+        settings.hiddenWatch = {};
+        saveSettings();
+        return renderAlertsList();
+      }
+      const row = e.target.closest(".watch-main");
       if (!row) return;
       if (row.dataset.watchGo === "concentration") {
         showView("portfolio");
