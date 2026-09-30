@@ -297,9 +297,61 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   ligne. Sans cours Yahoo non plus, pas de relevé (jour manquant plutôt que total faux). Quantités sous 1e-9
   ignorées (`QUANTITY_EPSILON` : Bitcoin vendu en totalité à « -0,00 € »).
 
+- **Divisions et actions gratuites (octobre 2026, compte-rendu « ce qui manque » validé par Enzo).** Types
+  `Division` et `Actions gratuites` (`workbook.SHARE_TYPES`) : colonne Quantité = actions reçues (négative pour un
+  regroupement), prix 0, montant net 0. Formules Positions : E2 les ajoute, F2 les passe dans la branche achat
+  (quantité en plus, coût inchangé) ; anciens Sheets mis à niveau par `ensure_position_formulas`
+  (`is_old_quantity_formula`). Côté Python, **deux listes** dans le `Ledger` :
+  - `operations` = `apply_splits(raw)` : sans divisions, quantités d'avant chaque division ramenées sur la base
+    d'aujourd'hui (rapport = (détenu + reçu) / détenu, par compte). Pour les montants (PRU, plus-values, TRI,
+    espèces, dividendes à venir) et les calculs sur cours **corrigés** des divisions (`download_closes` : comparaison
+    à un indice, graphique des achats) ;
+  - `raw` = telles que saisies, divisions comprises : pour les calculs sur cours **réels** (`eur_closes` remet les
+    cours non corrigés via `unsplit` : `history.reconstruct`, contributions de `stats.py`) et pour les doublons à
+    l'import (`read_operations(raw=True)`). Ne pas mélanger : quantités ramenées x cours réels = faux avant la division.
+  Saisie (`_add_shares`) : titre détenu dans ce compte à cette date ; le formulaire calcule les actions reçues depuis
+  la parité et la quantité actuelle (`/settings` renvoie `holdings`). Import CSV Trade Republic : `BONUS_ISSUE`
+  -> Actions gratuites (`shares` = actions reçues) ; autres `CORPORATE_ACTION` (format inconnu) toujours signalées.
+- **Écran Transactions (octobre 2026).** Bouton du Portefeuille, vue `view-transactions` (`transactions.py`, routes
+  `/transactions`, `/transactions/update`, `/transactions/delete`). Une ligne = son numéro dans l'onglet + son
+  empreinte (`fingerprint` : date, type, titre, quantité, prix) ; le serveur refuse si la ligne ne correspond plus
+  (Sheet modifié à la main entre-temps). Correction = `add_operation(row=...)`, mêmes contrôles que la saisie, la
+  ligne corrigée exclue du calcul de la quantité détenue. Après écriture : courbe reconstituée depuis la plus
+  ancienne des deux dates. Retour du téléphone : `popstate` ignoré quand on retombe sur l'entrée `{transactions}`
+  (fiche ouverte depuis le journal).
+- **Variation du jour et effet du change (octobre 2026).** `daily.py`, route `/portfolio/daily` (10 min). Variation
+  = valeur de l'onglet Positions x variation Yahoo des deux dernières clôtures (titre et taux de change), corrigée
+  des achats / ventes de la séance (`line_day_change`). Effet du change = valeur x (1 - taux payé / taux actuel),
+  taux payé = coût en euros / coût en devise, chaque achat converti au taux Yahoo de son jour (les imports TR sont en
+  euros sans taux). Seule la devise de **cotation** compte (un ETF en euros n'en a pas). `HoldingLine.quantity`
+  ajouté (onglet Positions). Front : ligne « Aujourd'hui » (`renderDaily`), tri « Jour » des positions (`dailyKey` =
+  enveloppe|ticker), cases de la carte « Ta position », carte « Effet du change » de l'onglet Perf.
+  Limite : une ligne vendue en totalité dans la séance n'est plus dans Positions, donc pas comptée.
+- **Journal de trading et analyse technique (octobre 2026).** `journal.py`, onglet « Journal » créé au premier
+  enregistrement, une ligne par titre (thèse, objectif, stop dans la devise de cotation, horizon, date de revue,
+  bilan) ; routes `/journal`. Carte « Ton journal » dans la fiche (`renderJournalCard`, écarts au cours, motifs
+  Pourquoi / Terme des opérations), alertes de prix proposées sur l'objectif et le stop (`journalAlerts`, sans
+  doublon), onglet Journal de l'écran Transactions (`renderJournalList`). Analyse technique calculée dans le front
+  sur les clôtures de `/prices` (`technicals` : RSI de Wilder 14 j, moyennes 50 / 200 j et dernier croisement sur
+  un an, plus haut / bas sur 252 séances, momentum 1 / 3 / 6 / 12 mois), rubrique `pillar` sous la courbe, puce
+  « Moyenne 50 j ». Ton prudent : jamais un signal d'achat ou de vente.
+
+## Tester le front (banc Playwright)
+
+Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
+`screener.json` par raw.githubusercontent. Le plus fiable : vraie API (`TestClient(main.app)`) sur un faux Sheet en
+mémoire (patcher `sheets.sheets_client` et `workbook.sheets_client`, `main.resolve`), `performance.download_closes` et
+`prices.fetch_price_history` remplacés par des cours synthétiques, requêtes vers l'API Render redirigées vers le
+TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, sinon le service worker intercepte
+`screener.json` avant Playwright (« Screener pas encore disponible »).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
+- Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
+  du CTO, ROIC / FCF yield / dette nette sur EBITDA / croissance sur 5 ans dans le screener, alerte de concentration
+  et suggestions de rééquilibrage, rendement sur PRU et revenu annuel attendu, export CSV / récap fiscal, momentum
+  comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
   actuel, en ligne horizontale), une fois l'historique assez long pour être utile.
