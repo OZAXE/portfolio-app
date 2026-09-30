@@ -258,12 +258,19 @@
     .price-card .segmented { display: flex; margin-top: 8px; }
     .price-card .segmented button { flex: 1; }
     .price-card .hypotheses { margin-top: 6px; font-size: 12px; color: var(--muted); }
+    /* Puces des graphiques de la fiche : allumée = courbe affichée, grisée = impossible à tracer */
+    .line-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .line-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; }
+    .line-chip.on-line { color: var(--text); border-color: var(--muted); background: var(--card-2); }
+    .line-chip:not(.on-line) .dot { opacity: 0.35; }
+    .line-chip:disabled { opacity: 0.45; cursor: default; }
     .price-card .trend.up { color: var(--positive); } .price-card .trend.down { color: var(--accent-neg); }
+    /* .pillar.about : les règles .pillar (plus bas) l'emporteraient sinon à spécificité égale */
     .about { margin-top: 12px; }
     .about-missing, .about-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
-    .about .psum { font-weight: 400; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .about[open] .psum { display: none; }
-    .about .pbody { padding-left: 14px; }
+    .pillar.about .psum { font-weight: 400; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pillar.about[open] .psum { display: none; }
+    .pillar.about .pbody { padding-left: 14px; }
     .about-text { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-line; }
     .about-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
     .about-meta a { color: var(--accent); }
@@ -2283,12 +2290,27 @@
     let openedStock = null;
     let priceChart = null;
 
+    // Puces des graphiques de la fiche : une courbe éteinte le reste sur toutes les fiches (settings.hiddenLines)
+    const lineShown = (key) => !(settings.hiddenLines || []).includes(key);
+    function lineChip(key, label, color, disabledWhy = "") {
+      const on = lineShown(key) && !disabledWhy;
+      return `<button class="chip line-chip${on ? " on-line" : ""}" data-line="${key}" aria-pressed="${on}"${disabledWhy ? ` disabled title="${escapeHtml(disabledWhy)}"` : ""}>`
+        + `<span class="dot" style="background:${color}"></span>${label}</button>`;
+    }
+    function toggleLine(key) {
+      const hidden = new Set(settings.hiddenLines || []);
+      if (hidden.has(key)) hidden.delete(key); else hidden.add(key);
+      settings.hiddenLines = [...hidden];
+      saveSettings();
+    }
+
     function priceChartBlock() {
       const period = settings.pricePeriod || "1A";
       return `<div class="price-card">
           <div class="price-change" id="price-change"></div>
           <div class="price-box"><canvas id="price-canvas" aria-label="Évolution du cours"></canvas><div class="price-status" id="price-status">Chargement des cours…</div></div>
           <div class="segmented" id="price-periods">${PRICE_PERIODS.map(([key]) => `<button data-period="${key}" class="${key === period ? "active" : ""}">${key}</button>`).join("")}</div>
+          <div class="line-chips" id="price-lines"></div>
           <div class="hypotheses" id="price-legend"></div>
         </div>`;
     }
@@ -2344,8 +2366,14 @@
       const f = s.minimal ? null : fairValueOf(s);
       const shown = idx.map((i) => closes[i]);
       const lo = Math.min(...shown), hi = Math.max(...shown);
-      const fairOnChart = f && f.value >= lo * 0.8 && f.value <= hi * 1.25;
-      const withMa = months >= 12 && ma[ma.length - 1] != null;  // absente au début des 10 ans : la courbe grise démarre plus tard
+      const fairFits = f && f.value >= lo * 0.8 && f.value <= hi * 1.25;
+      const fairOnChart = fairFits && lineShown("fair");
+      // Moyenne absente au début des 10 ans (200 séances pour la première) : la courbe grise démarre plus tard.
+      // Une action cotée depuis moins de 200 séances n'en a pas du tout : pas de puce
+      const maAvailable = ma[ma.length - 1] != null;
+      const withMa = maAvailable && lineShown("ma");
+      document.getElementById("price-lines").innerHTML = (maAvailable ? lineChip("ma", "Moyenne 200 j", cssVar("--muted")) : "")
+        + (f ? lineChip("fair", "Prix juste", cssVar("--series-pea"), fairFits ? "" : "Trop loin de la courbe sur cette période") : "");
 
       const color = change >= 0 ? cssVar("--positive") : cssVar("--accent-neg");
       const datasets = [{ label: "Cours", data: idx.map((i) => closes[i]), borderColor: color, borderWidth: 1.8, pointRadius: 0, tension: 0.1,
@@ -2384,17 +2412,21 @@
         const trend = gap > 0.02 ? ["up", "tendance de fond haussière"] : gap < -0.02 ? ["down", "tendance de fond baissière"] : ["", "sans tendance nette"];
         legend.push(`Cours ${gap >= 0 ? "au-dessus" : "en dessous"} de sa <span data-term="Moyenne 200 jours">moyenne 200 jours</span> (${gap >= 0 ? "+" : ""}${num(gap * 100)} %) : <span class="trend ${trend[0]}">${trend[1]}</span>.`);
       }
-      if (f) legend.push(fairOnChart ? `Pointillés bleus : prix juste actuel (${money(f.value, cur)}), estimation d'aujourd'hui et non historique.`
-        : `Prix juste actuel ${money(f.value, cur)}, trop loin de la courbe sur cette période pour y figurer.`);
+      if (f && !fairFits) legend.push(`Prix juste actuel ${money(f.value, cur)}, trop loin de la courbe sur cette période pour y figurer.`);
+      else if (fairOnChart) legend.push(`Pointillés bleus : prix juste actuel (${money(f.value, cur)}), estimation d'aujourd'hui et non historique.`);
       document.getElementById("price-legend").innerHTML = legend.join(" ");
     }
 
     document.getElementById("view-stock").addEventListener("click", (e) => {
       const b = e.target.closest("#price-periods button[data-period]");
-      if (!b || !openedStock) return;
-      settings.pricePeriod = b.dataset.period;
-      saveSettings();
-      document.querySelectorAll("#price-periods button").forEach((x) => x.classList.toggle("active", x === b));
+      const chip = e.target.closest("#price-lines button[data-line]");
+      if ((!b && !chip) || !openedStock) return;
+      if (chip) toggleLine(chip.dataset.line);
+      else {
+        settings.pricePeriod = b.dataset.period;
+        saveSettings();
+        document.querySelectorAll("#price-periods button").forEach((x) => x.classList.toggle("active", x === b));
+      }
       const ticker = openedStock.yahoo_ticker || openedStock.ticker;
       const s = openedStock;
       priceRequests[ticker]?.then((data) => { if (openedStock === s) drawPriceChart(s, data); }).catch(() => {});
@@ -2683,7 +2715,7 @@
       updateAlertsDot();
     }
 
-    // --- Historique hebdomadaire du screener (cours et valeur intrinsèque) ---
+    // --- Historique hebdomadaire du screener (cours, prix juste et valeur intrinsèque) ---
     const HISTORY_URL = "https://raw.githubusercontent.com/OZAXE/portfolio-app/screener-data/history.json";
     let historyData = null;
     const historyCharts = {};
@@ -2702,6 +2734,12 @@
         slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
         return;
       }
+      drawHistory(ticker);
+    }
+
+    function drawHistory(ticker) {
+      const slot = document.querySelector(`[data-history-slot="${CSS.escape(ticker)}"]`);
+      if (!slot) return;
       const series = historyData.series[ticker] || [];
       const points = historyData.dates.map((d, i) => ({ d, p: series[i] })).filter((x) => x.p);
       if (points.length < 2) {
@@ -2715,22 +2753,27 @@
       if (!fairFrom) notes.push("prix juste relevé chaque semaine à partir de la prochaine analyse de nuit de cette action");
       else if (fairFrom !== points[0]) notes.push(`prix juste relevé depuis le ${dateFmt.format(new Date(fairFrom.d))}`);
       notes.push(`Score qualité : ${points.map((x) => x.p[3] ?? "—").join(" → ")}`);
-      slot.innerHTML = `<div class="history-box"><canvas></canvas></div>
+      // Puces à la place de la légende Chart.js (qui masquait aussi une courbe au toucher, sans que ça se voie)
+      const lines = [
+        ["h-price", "Cours", "--series-total", points.map((x) => x.p[0]), {}, true],
+        ["h-fair", "Prix juste", "--series-pea", fair, { borderDash: [5, 4] }, !!fairFrom],
+        ["h-iv", "Valeur intrinsèque", "--series-cto", points.map((x) => x.p[1]), { borderDash: [2, 3], borderWidth: 1.5 }, true],
+      ];
+      slot.innerHTML = `<div class="line-chips" data-history-lines="${escapeHtml(ticker)}">${lines.map(([key, label, color, , , available]) =>
+          lineChip(key, label, cssVar(color), available ? "" : "Pas encore relevé pour cette action")).join("")}</div>
+        <div class="history-box"><canvas></canvas></div>
         <div class="hypotheses">${notes.join(" · ")}</div>`;
       if (historyCharts[ticker]) historyCharts[ticker].destroy();
       historyCharts[ticker] = new Chart(slot.querySelector("canvas"), {
         type: "line",
         data: {
           labels: points.map((x) => dateFmt.format(new Date(x.d))),
-          datasets: [
-            { label: "Cours", data: points.map((x) => x.p[0]), borderColor: cssVar("--series-total"), backgroundColor: cssVar("--series-total"), pointRadius: 2, tension: 0.2 },
-            ...(fairFrom ? [{ label: "Prix juste", data: fair, borderColor: cssVar("--series-pea"), backgroundColor: cssVar("--series-pea"), borderDash: [5, 4], pointRadius: 2, tension: 0.2 }] : []),
-            { label: "Valeur intrinsèque", data: points.map((x) => x.p[1]), borderColor: cssVar("--series-cto"), backgroundColor: cssVar("--series-cto"), borderDash: [2, 3], borderWidth: 1.5, pointRadius: 2, tension: 0.2 },
-          ],
+          datasets: lines.filter(([key, , , , , available]) => available && lineShown(key)).map(([, label, color, data, extra]) =>
+            ({ label, data, borderColor: cssVar(color), backgroundColor: cssVar(color), pointRadius: 2, tension: 0.2, ...extra })),
         },
         options: {
           responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-          plugins: { legend: { labels: { color: cssVar("--muted"), boxWidth: 12 } } },
+          plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { display: false } },
             y: { ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { color: cssVar("--line") } },
@@ -2811,6 +2854,8 @@
     document.addEventListener("click", (e) => {
       const star = e.target.closest("button[data-star]");
       if (star) { e.preventDefault(); toggleWatch(star.dataset.star, star); return; }
+      const histLine = e.target.closest("[data-history-lines] button[data-line]");
+      if (histLine) { e.preventDefault(); toggleLine(histLine.dataset.line); drawHistory(histLine.closest("[data-history-lines]").dataset.historyLines); return; }
       const hist = e.target.closest("button[data-history]");
       if (hist) { e.preventDefault(); showHistory(hist.dataset.history); return; }
       const fin = e.target.closest("button[data-financials]");
@@ -3696,7 +3741,7 @@
         "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Réglages.</p>",
       }],
       ["Qualité de l'entreprise", {
-        "Moyenne 200 jours": "<p>La moyenne des cours de clôture des 200 dernières séances de bourse (environ 10 mois), tracée en gris sur la courbe à partir de la période 1A. Elle lisse les à-coups du quotidien et montre la tendance de fond.</p><p>Cours au-dessus de sa moyenne : tendance haussière ; en dessous : baissière. C'est un repère très suivi par les investisseurs, pas une prévision : une action peut rester longtemps sous sa moyenne, et une bonne affaire se trouve souvent quand le marché la délaisse.</p>",
+        "Moyenne 200 jours": "<p>La moyenne des cours de clôture des 200 dernières séances de bourse (environ 10 mois), tracée en gris sur la courbe de la fiche (la puce « Moyenne 200 j » l'affiche ou la masque). Elle lisse les à-coups du quotidien et montre la tendance de fond.</p><p>Cours au-dessus de sa moyenne : tendance haussière ; en dessous : baissière. C'est un repère très suivi par les investisseurs, pas une prévision : une action peut rester longtemps sous sa moyenne, et une bonne affaire se trouve souvent quand le marché la délaisse.</p>",
         "Valorisation": "<p>La rubrique qui répond à « cher ou pas cher ? » : le verdict du prix juste (vert sous-évaluée, orange prix correct, rouge chère), puis les ratios de prix (PER, cours / valeur comptable, VE / EBITDA) et le DCF.</p>",
         "Qualité": "<p>Le score qualité sur 20, en mots : très solide (15 et plus), solide (12 à 15), moyenne (8 à 12), fragile (moins de 8). Vert à partir de 12, orange de 8 à 12, rouge en dessous.</p>",
         "Rentabilité": "<p>Vert quand le ROE dépasse 15 % (très rentable), orange entre 8 et 15 %, rouge en dessous. Repères généraux : un secteur peu rentable par nature (distribution, services publics) ressort plus souvent en orange.</p>",
