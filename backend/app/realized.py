@@ -86,6 +86,14 @@ class Operation:
 
 
 @dataclass
+class CashMovement:
+    day: date
+    account: str
+    kind: str  # Versement / Retrait / Intérêts
+    amount: float  # positif, en euros
+
+
+@dataclass
 class YearSummary:
     year: int
     envelopes: dict = field(default_factory=dict)
@@ -104,6 +112,8 @@ class Ledger:
     names: dict[str, str]  # titre -> nom (onglet Titres)
     currencies: dict[str, str]  # titre -> devise de cotation (onglet Titres)
     kinds: dict[str, str] = field(default_factory=dict)  # titre -> Action / ETF / Crypto (onglet Titres)
+    # Versements, retraits et intérêts, à part : les calculs de rendement ne voient que les titres
+    cash: list[CashMovement] = field(default_factory=list)
 
 
 # Rendement, plus-values, frais, dividendes et comparaison à un indice lisent tous les opérations :
@@ -130,12 +140,24 @@ def read_operations(sheet_id: str) -> tuple[list[Operation], dict[str, str], dic
     return list(ledger.operations), dict(ledger.envelopes), dict(ledger.names)
 
 
+def read_cash(sheet_id: str) -> list[CashMovement]:
+    """Versements, retraits et intérêts de l'onglet Opérations."""
+    return list(read_ledger(sheet_id).cash)
+
+
 def _parse_ledger(sheet_id: str) -> Ledger:
     sheet = _open_sheet(sheet_id)
-    operations = []
+    operations, cash = [], []
     for row in _worksheet(sheet, "Opérations").get_values(value_render_option=UNFORMATTED)[1:]:
         row = (row + [""] * 12)[:12]
         iso = _serial_to_iso(row[0])
+        if iso and row[2] in ("Versement", "Retrait", "Intérêts"):
+            amount = next((v for v in (row[11], row[8]) if isinstance(v, (int, float))), None)
+            if amount is None:
+                amount = _num(row[4] or 1) * _num(row[5])
+            if amount:
+                cash.append(CashMovement(date.fromisoformat(iso), str(row[1]), row[2], abs(float(amount))))
+            continue
         if not iso or row[2] not in ("Achat", "Vente", "Dividende") or not isinstance(row[4], (int, float)):
             continue
         gross = row[8] if isinstance(row[8], (int, float)) else row[4] * _num(row[5]) * (_num(row[7]) or 1)
@@ -149,7 +171,7 @@ def _parse_ledger(sheet_id: str) -> Ledger:
     names = {str(r[0]).strip().upper(): str(r[2]) for r in titres if len(r) > 2 and r[0]}
     currencies = {str(r[0]).strip().upper(): str(r[5] or "EUR").strip() for r in titres if len(r) > 5 and r[0]}
     kinds = {str(r[0]).strip().upper(): str(r[6]).strip() for r in titres if len(r) > 6 and r[0]}
-    return Ledger(operations, envelopes, names, currencies, kinds)
+    return Ledger(operations, envelopes, names, currencies, kinds, cash)
 
 
 def compute_realized(operations: list[Operation], envelopes: dict[str, str], names: dict[str, str] | None = None,

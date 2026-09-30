@@ -11,6 +11,7 @@ Endpoints prévus pour le MVP :
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/stats      -> performance par période (TWR), risque, contribution de chaque ligne
+- GET /portfolio/cash       -> espèces de chaque compte (versements, retraits, intérêts, opérations)
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
@@ -494,6 +495,19 @@ def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
     return result
 
 
+# --- Espèces de chaque compte (versements, retraits, intérêts saisis dans l'onglet Opérations) ---
+@app.get("/portfolio/cash")
+def get_cash(user: User = Depends(require_access)):
+    from .cash import cash_summary
+    from .realized import read_ledger
+
+    def compute():
+        ledger = read_ledger(user.sheet_id)
+        return cash_summary(ledger.operations, ledger.cash, ledger.envelopes)
+
+    return _sheet_call(compute)
+
+
 # --- Plus-values réalisées et dividendes perçus (onglet Opérations) ---
 @app.get("/portfolio/realized")
 def get_realized(user: User = Depends(require_access)):
@@ -796,11 +810,14 @@ def get_costs(user: User = Depends(require_access)):
     from datetime import date
 
     from .costs import ensure_fee_column, etf_costs, fees_by_year, manual_fees, pea_ceiling
-    from .realized import read_operations
     from .sheets import UNFORMATTED, _open_sheet, _worksheet
 
     def compute():
-        operations, envelopes, _ = read_operations(user.sheet_id)
+        from .cash import pea_deposits
+        from .realized import read_ledger
+
+        ledger = read_ledger(user.sheet_id)
+        operations, envelopes = list(ledger.operations), dict(ledger.envelopes)
         titres_ws = _worksheet(_open_sheet(user.sheet_id, write=True), "Titres")
         try:
             ensure_fee_column(titres_ws)
@@ -822,7 +839,7 @@ def get_costs(user: User = Depends(require_access)):
                                                           "manual": h.ticker.upper() in manual})
                 line["value"] += h.value or 0
         holdings = list(etfs.values())
-        return {"pea": pea_ceiling(operations, envelopes, date.today()),
+        return {"pea": pea_ceiling(operations, envelopes, date.today(), pea_deposits(ledger.cash, envelopes)),
                 "years": fees_by_year(operations, envelopes), "etf": etf_costs(holdings, ter)}
 
     return _sheet_call(compute)

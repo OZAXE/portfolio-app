@@ -44,8 +44,16 @@ def _base(ticker: str) -> str:
     return ticker.upper().split(".")[0].split("-")[0]
 
 
+CASH_KINDS = ("Versement", "Retrait", "Intérêts")
+
+
 def same_operation(a: Entry, b: Entry, days: int = DATE_TOLERANCE_DAYS, same_ticker_only: bool = False) -> bool:
-    if a.kind != b.kind or a.envelope != b.envelope or abs((a.day - b.day).days) > days:
+    if a.kind != b.kind or a.envelope != b.envelope:
+        return False
+    # Espèces : même jour et même montant au centime (deux cafés à 4 € deux jours de suite sont deux dépenses)
+    if a.kind in CASH_KINDS:
+        return a.day == b.day and abs(a.amount - b.amount) < 0.005
+    if abs((a.day - b.day).days) > days:
         return False
     same_ticker = bool(a.ticker and b.ticker and (a.ticker.upper() == b.ticker.upper() or _base(a.ticker) == _base(b.ticker)))
     if same_ticker_only and not same_ticker:

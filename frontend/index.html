@@ -581,6 +581,7 @@
           <div class="gain" id="total-gain"></div>
           <div class="returns" id="total-returns" hidden></div>
           <div class="envelopes" id="envelopes"></div>
+          <div class="returns" id="cash-line" hidden></div>
         </div>
 
         <div class="quick">
@@ -589,7 +590,7 @@
           <button id="goals-open"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Objectifs</button>
         </div>
         <div class="card" id="imp-panel" hidden>
-          <p class="help" style="margin-top:0"><b>Trade Republic</b> : le relevé de compte PDF (Profil &gt; Documents, ou le relevé envoyé chaque mois), qui contient aussi ton PEA, ou l'export CSV des transactions. <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
+          <p class="help" style="margin-top:0"><b>Trade Republic</b> : le relevé de compte PDF (Profil &gt; Documents, ou le relevé envoyé chaque mois), qui contient aussi ton PEA, ou l'export CSV des transactions (qui apporte aussi tes versements, retraits et paiements par carte, et intérêts, regroupés par jour). <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
           <div class="op-grid">
             <label class="wide">Compte<select id="imp-account"></select></label>
             <label class="wide">Fichiers (CSV ou PDF)<input id="imp-files" type="file" accept=".csv,.pdf,text/csv,application/pdf" multiple /></label>
@@ -707,6 +708,9 @@
 
         <h2>Allocation cible</h2>
         <div class="card" id="allocation"></div>
+
+        <h2><span data-term="Espèces">Espèces</span></h2>
+        <div class="card" id="cash-card"><div class="help">Chargement…</div></div>
 
         <div id="savings-block" hidden>
           <h2>Épargne et patrimoine</h2>
@@ -1922,6 +1926,7 @@
       loadLookthrough();
 
       loadReturns();
+      loadCash();
       loadDividends();
       loadPriceAlerts();
       loadCosts();
@@ -3189,6 +3194,41 @@
       buyCharts.set(slot, chart);
     }
 
+
+    // --- Espèces de chaque compte : versements - retraits + intérêts - achats + ventes + dividendes ---
+    let cashData = null;
+    async function loadCash() {
+      try {
+        cashData = await api("/portfolio/cash");
+      } catch {
+        cashData = null;  // ancien format de Sheet ou API indisponible : la carte explique comment activer le suivi
+      }
+      renderCash();
+    }
+
+    function renderCash() {
+      const line = document.getElementById("cash-line");
+      const card = document.getElementById("cash-card");
+      const accounts = cashData?.accounts || [];
+      const incomplete = accounts.filter((a) => a.missing > 0);
+      line.hidden = !accounts.length;
+      if (accounts.length) {
+        const filled = Object.entries(cashData.envelopes).filter(([, v]) => v > 0);
+        const parts = filled.map(([e, v]) => `${e} ${eur.format(v)}`).join(" · ");
+        line.innerHTML = `<span data-term="Espèces">Espèces</span> : <b>${eur.format(cashData.total)}</b>${filled.length > 1 ? ` (${parts})` : ""}${incomplete.length ? ` · <span class="negative">versements incomplets</span>` : ""}`;
+      }
+      if (!cashData) { card.innerHTML = `<p class="help" style="margin:0">Disponible avec le Sheet modèle (onglet Opérations).</p>`; return; }
+      const rows = accounts.map((a) => `<div class="rank-row">
+          <div>${escapeHtml(a.account)}<div class="who">versé ${eur.format(a.deposits)}${a.withdrawals ? ` · retiré ${eur.format(a.withdrawals)}` : ""}${a.interest ? ` · intérêts ${eur.format(a.interest)}` : ""}</div>
+            ${a.missing > 0 ? `<div class="who negative">Il manque au moins ${eur.format(a.missing)} de versements avant le ${new Date(a.missing_before + "T12:00:00").toLocaleDateString("fr-FR")} : le solde est faux tant qu'ils ne sont pas saisis.</div>` : ""}</div>
+          <div class="right"><b class="${a.balance < 0 ? "negative" : ""}">${eur.format(a.balance)}</b><div class="who">${escapeHtml(a.envelope)}</div></div>
+        </div>`).join("");
+      const untracked = cashData.untracked.length
+        ? `<p class="help" style="margin-top:10px">${accounts.length ? "Pas encore suivi" : "Suivi des espèces pas encore activé"} pour ${cashData.untracked.map(escapeHtml).join(", ")} : ajoute ses versements (bouton Opération, type Versement, ou import de l'export CSV Trade Republic) depuis l'ouverture du compte.</p>` : "";
+      card.innerHTML = (rows || "") + untracked
+        + (accounts.length ? `<p class="help" style="margin-top:10px">Solde = versements − retraits + intérêts − achats + ventes + dividendes. Ta performance (onglet Perf.) ne compte que tes titres : l'argent qui attend n'y pèse pas.</p>` : "");
+    }
+
     // --- Plafond du PEA et frais payés ---
     async function loadCosts() {
       const body = document.getElementById("costs-body");
@@ -3203,7 +3243,7 @@
       const pea = c.pea ? `
         <div class="div-title" style="margin-top:0"><span data-term="Plafond PEA">Plafond du PEA</span></div>
         <div class="pea-track"><div class="pea-fill" style="width:${Math.max(c.pea.used * 100, 0.5)}%"></div></div>
-        <div style="font-size:14px">${eur.format(c.pea.deposits)} versés sur ${eur.format(c.pea.ceiling)} · reste ${eur.format(c.pea.remaining)}</div>
+        <div style="font-size:14px">${eur.format(c.pea.deposits)} versés sur ${eur.format(c.pea.ceiling)} · reste ${eur.format(c.pea.remaining)}${c.pea.estimated === false ? "" : ` <span class="muted">(estimé d'après tes achats : saisis tes versements pour un chiffre exact)</span>`}</div>
         <div class="help" style="margin-top:4px">${c.pea.five_years_reached
           ? "Ton PEA a plus de 5 ans : un retrait n'est plus soumis qu'aux prélèvements sociaux, sans fermer le plan."
           : `Cap des 5 ans le ${new Date(c.pea.five_years + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} (d'après ta première opération) : ensuite, plus d'impôt sur le revenu sur les gains retirés. Avant, un retrait ferme le PEA.`}</div>` : "";
@@ -3564,8 +3604,27 @@
       return { fees: Math.round(fees * 100) / 100, taxes: ttf ? Math.round(amount * 0.004 * 100) / 100 : 0, amount, ttf };
     }
 
+    // Versement, retrait, intérêts : seulement une date, un compte et un montant (espèces du compte)
+    const CASH_TYPES = ["Versement", "Retrait", "Intérêts"];
+    const CASH_HELP = {
+      Versement: "argent que tu déposes sur ce compte",
+      Retrait: "argent que tu retires du compte (chez Trade Republic, un paiement par carte aussi)",
+      Intérêts: "rémunération des espèces versée par le courtier",
+    };
+    const TRADE_ONLY_FIELDS = ["op-order", "op-ticker", "op-qty", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
+
     function updateOperationForm() {
       const type = opEl("op-type").value;
+      const cashType = CASH_TYPES.includes(type);
+      // display plutôt que hidden : la grille du formulaire impose display aux libellés
+      for (const id of TRADE_ONLY_FIELDS) opEl(id).closest("label").style.display = cashType ? "none" : "";
+      if (cashType) {
+        opEl("op-price-label").textContent = "Montant €";
+        const amount = opNum("op-price");
+        opEl("op-summary").textContent = `${type} : ${CASH_HELP[type]}.${amount ? ` ${eurFmt.format(amount)} ${type === "Retrait" ? "sortent du" : "entrent sur le"} compte.` : ""}`
+          + " Saisis tous les versements depuis l'ouverture du compte pour que le solde des espèces soit juste.";
+        return;
+      }
       opEl("op-qty-label").textContent = type === "Dividende" ? "Nombre d'actions" : "Quantité";
       opEl("op-price-label").textContent = type === "Dividende" ? "Dividende par action" : "Prix unitaire";
       const costs = suggestedCosts();
@@ -3596,6 +3655,7 @@
     async function submitOperation() {
       const status = opEl("op-status");
       const payload = {
+        amount: opNum("op-price"),
         type: opEl("op-type").value, date: opEl("op-date").value, account: opEl("op-account").value,
         order_type: opEl("op-order").value, ticker: opEl("op-ticker").value.trim().toUpperCase(),
         quantity: opNum("op-qty"), price: opNum("op-price"), currency: opEl("op-currency").value,
@@ -3614,8 +3674,8 @@
         ["op-qty", "op-price", "op-why", "op-note", "op-ticker"].forEach((id) => (opEl(id).value = ""));
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
-        // Opération passée : la courbe est recalculée depuis cette date
-        if (payload.date && payload.date < new Date().toISOString().slice(0, 10)) rebuildHistory(payload.date);
+        // Opération passée : la courbe est recalculée depuis cette date (les espèces n'y figurent pas)
+        if (!CASH_TYPES.includes(payload.type) && payload.date && payload.date < new Date().toISOString().slice(0, 10)) rebuildHistory(payload.date);
       } catch (e) {
         status.textContent = e.message;
       }
@@ -3800,7 +3860,7 @@
         <div class="imp-row ${o.status === "new" ? "" : "skip"}" data-i="${i}">
           <input type="checkbox" data-imp-check="${i}" ${o.status === "new" ? "checked" : ""} />
           <div>${escapeHtml(o.type)} · ${escapeHtml(o.name)}
-            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))} · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
+            <div class="who">${escapeHtml(new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR"))}${CASH_TYPES.includes(o.type) ? "" : ` · ${hideable(num(o.quantity, 6))} × ${money(o.price, "€")}`}${o.fees || o.taxes ? ` · frais ${eur.format(o.fees + o.taxes)}` : ""}${o.order_type === "Plan d'investissement" ? " · plan" : ""}
               ${o.ticker ? ` · ${escapeHtml(o.ticker)}` : ""}${o.account && o.account !== opEl("imp-account").value ? ` · <b>${escapeHtml(o.account)}</b>` : ""}${IMPORT_STATUS[o.status] ? ` · <span class="${["no_ticker", "no_account"].includes(o.status) ? "negative" : ""}">${IMPORT_STATUS[o.status]}</span>` : ""}</div>
             ${o.status === "no_ticker" ? `<input class="imp-ticker" data-imp-ticker="${i}" placeholder="ticker Yahoo" autocomplete="off" />` : ""}
           </div>
@@ -3814,10 +3874,11 @@
       const btn = opEl("imp-submit");
       btn.hidden = !importPreview.operations.length;
       const accounts = [...new Set(selected.map((o) => o.account || opEl("imp-account").value))];
-      btn.disabled = !selected.length || selected.some((o) => !o.ticker || o.status === "no_account");
+      const needsTicker = (o) => !o.ticker && !CASH_TYPES.includes(o.type);
+      btn.disabled = !selected.length || selected.some((o) => needsTicker(o) || o.status === "no_account");
       btn.textContent = selected.some((o) => o.status === "no_account")
         ? "Ajoute le compte manquant dans Réglages ou décoche ces lignes"
-        : selected.some((o) => !o.ticker)
+        : selected.some(needsTicker)
         ? "Complète les tickers manquants ou décoche ces lignes"
         : `Importer ${selected.length} opération${selected.length > 1 ? "s" : ""} dans ${accounts.map((a) => `« ${a} »`).join(" et ")}`;
     }
@@ -4123,6 +4184,7 @@
         "Résultats": "<p>Date de publication des prochains résultats (trimestriels ou annuels), telle qu'annoncée par l'entreprise ou estimée par Yahoo. Le cours bouge souvent fortement ce jour-là, dans un sens ou dans l'autre.</p><p>Après la publication, les bénéfices et ratios de la fiche sont mis à jour à la prochaine analyse de l'action (tous les 3-4 jours).</p>",
         "Rachats d'actions": "<p>Évolution moyenne, par an, du nombre d'actions de l'entreprise sur ses 5 derniers exercices au plus (divisions d'actions neutralisées).</p><p>Quand l'entreprise rachète ses actions et les annule, chaque action restante détient une plus grande part du bénéfice : c'est une autre façon de rendre de l'argent aux actionnaires, sans impôt immédiat pour eux. Apple rachète environ 3 % de ses actions par an. À l'inverse, une entreprise qui émet des actions (augmentations de capital, rémunération des salariés en actions) dilue ses actionnaires.</p>",
         "Rendement pour l'actionnaire": "<p>Rendement du dividende + part des actions rachetées chaque année : ce que l'entreprise rend au total à ses actionnaires, en % du cours (approximation, les rachats passés ne garantissent pas les futurs).</p>",
+        "Espèces": "<p>L'argent qui attend sur chaque compte, déduit de tes opérations : versements − retraits + intérêts − achats + ventes + dividendes.</p><p>Pour l'activer sur un compte, saisis ses versements depuis son ouverture (bouton Opération, type Versement) ou importe l'export CSV de Trade Republic, qui les contient. Chez Trade Republic, le compte titres est aussi un compte courant : les paiements par carte sont des retraits, et le solde affiché doit correspondre à celui de leur appli.</p><p>Si un achat a eu lieu avec plus d'argent que tu n'en avais versé, l'appli le voit et signale le montant qui manque au minimum.</p><p>Les versements sur le PEA servent aussi au plafond de 150 000 € (sinon estimé d'après tes achats).</p>",
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",

@@ -239,6 +239,18 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     d'accent (pas en vert : « −21 % » n'est pas une bonne nouvelle parce que c'est le moins pire), noms courts
     (`shortName` retire les formes juridiques). Raccourci « Comparer (n) » dans le Marché.
 
+- **Espèces (septembre 2026, choix d'Enzo : versements dans Opérations).** Types `Versement`, `Retrait`,
+  `Intérêts` dans l'onglet Opérations (`CASH_TYPES`, `cash_row` : sans ticker, quantité 1, montant en prix
+  unitaire, formules des montants gardées). Liste stricte de la colonne Type complétée à la première écriture
+  (`ensure_operation_types`). Lus à part (`Ledger.cash`, `read_cash`) : `Ledger.operations` ne contient que
+  achats / ventes / dividendes, sinon le TRI et la performance prendraient un versement pour un dividende.
+  Solde (`cash.py`) = versements − retraits + intérêts − achats + ventes + dividendes, pour les comptes ayant
+  au moins un versement ; le plus bas solde négatif = versements manquants (compte « incomplet », non compté).
+  Plafond PEA sur les versements réels quand il y en a (`pea_deposits`), sinon estimé d'après les achats.
+  Import CSV Trade Republic : catégorie CASH (hors dividendes) regroupée par jour, enveloppe et sens (le compte
+  titres TR est aussi un compte courant : cartes, virements) ; doublon d'espèces = même jour et même montant au
+  centime. Les espèces ne sont pas dans l'onglet Historique ni dans la performance (titres seulement).
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
