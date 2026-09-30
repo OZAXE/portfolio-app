@@ -12,10 +12,11 @@ Onglets lus :
 - Portefeuille : TICKER (format Yahoo) / QUANTITE / ENVELOPPE, pour les analyses
 - Courbe : une ligne par position (valeur, investi, plus-value, secteur), enveloppe en colonne A
 - Historique : un relevé par colonne (date, perf et valeur PEA / CTO / total)
-- Livret : épargne réglementée (nom, montant), facultatif
+- Épargne (ou l'ancien onglet Livret) : livrets, assurance-vie, PER saisis à la main, facultatif
 """
 
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass, field
@@ -313,14 +314,39 @@ def parse_history(rows: list[list]) -> list[HistoryPoint]:
     return sorted(points, key=lambda p: p.date)
 
 
-def parse_savings(rows: list[list]) -> list[dict]:
-    """Onglet Livret : nom en colonne A, montant en colonne B (lignes fusionnées ignorées)."""
+SAVINGS_TYPES = ("Livret", "Assurance-vie", "PER", "Autre")
+
+
+def parse_savings(rows: list[list], extended: bool = True) -> list[dict]:
+    """Onglet Épargne : nom (A), montant (B), puis type (C), montant versé (D) et date de mise à jour (E),
+    facultatifs. Ancien onglet Livret (extended=False) : nom et montant seulement, rangés en livrets ; ses
+    autres colonnes (anciens Sheets, cellules fusionnées) ne sont pas lues. Lignes sans montant ignorées."""
     savings = []
     for r in range(len(rows)):
         name, amount = _cell(rows, r, 0), _number(_cell(rows, r, 1))
-        if name and amount is not None:
-            savings.append({"name": str(name).strip(), "amount": amount})
+        if not name or amount is None:
+            continue
+        kind = str(_cell(rows, r, 2) or "").strip() if extended else ""
+        savings.append({"name": str(name).strip(), "amount": amount,
+                        "type": kind if kind in SAVINGS_TYPES else "Livret",
+                        "invested": _number(_cell(rows, r, 3)) if extended else None,
+                        "updated": _date_cell(_cell(rows, r, 4)) if extended else None})
     return savings
+
+
+def _date_cell(value) -> str | None:
+    """Date en numéro de série (cellule au format date) ou écrite en texte AAAA-MM-JJ."""
+    if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value.strip()):
+        return value.strip()
+    return _serial_to_iso(value)
+
+
+def savings_worksheet(sheet: gspread.Spreadsheet) -> tuple[gspread.Worksheet | None, bool]:
+    """(onglet, format étendu) : Épargne, sinon l'ancien Livret."""
+    ws = _find_worksheet(sheet, "Épargne")
+    if ws is not None:
+        return ws, True
+    return _find_worksheet(sheet, "Livret"), False
 
 
 def parse_positions_v2(rows: list[list]) -> list[tuple[HoldingLine, float]]:
@@ -395,9 +421,9 @@ def get_overview(sheet_id: str) -> Overview:
     else:
         courbe = _worksheet(sheet, "Courbe").get_values(value_render_option=UNFORMATTED)
         overview = Overview(holdings=parse_holdings(courbe), history=parse_history(historique))
-    livret = _find_worksheet(sheet, "Livret")  # onglet facultatif
+    livret, extended = savings_worksheet(sheet)  # onglet facultatif
     if livret is not None:
-        overview.savings = parse_savings(livret.get_values(value_render_option=UNFORMATTED))
+        overview.savings = parse_savings(livret.get_values(value_render_option=UNFORMATTED), extended)
     return overview
 
 

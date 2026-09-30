@@ -2,8 +2,11 @@
 Modification depuis l'appli de ce qui se réglait dans le Sheet :
 - comptes (onglet Comptes : nom, enveloppe PEA / CTO, courtier) et grilles de frais (onglet Frais),
   pour ajouter n'importe quelle banque ;
-- allocation cible (onglet Allocation : poche, cible) et poche de chaque titre (colonne Poche de Titres).
+- allocation cible (onglet Allocation : poche, cible) et poche de chaque titre (colonne Poche de Titres) ;
+- épargne saisie à la main (onglet Épargne : livrets, assurance-vie, PER).
 """
+
+from datetime import date
 
 from .operations import OperationError, _records
 from .sheets import _find_worksheet, _open_sheet, _worksheet
@@ -37,6 +40,68 @@ def _rewrite(ws, width_letter: str, rows: list[list]) -> None:
     ws.batch_clear([f"A2:{width_letter}"])
     if rows:
         ws.update(range_name="A2", values=rows, value_input_option="RAW")
+
+
+# --- Épargne saisie à la main : livrets, assurance-vie, PER (onglet Épargne, ancien onglet Livret) ---
+def validate_savings(lines: list[dict], today: date) -> list[list]:
+    """Nom, valeur, type, montant versé (facultatif, pour la plus-value d'une assurance-vie) et date de la
+    valeur : celle envoyée par l'appli, qui la met à aujourd'hui quand la valeur change."""
+    from .sheets import SAVINGS_TYPES
+
+    rows, names = [], set()
+    for line in lines:
+        name = _text(line.get("name"), "Nom", 60)
+        if name.startswith("-"):  # écrit en USER_ENTERED : serait lu comme une formule
+            raise OperationError(f"Nom invalide : {name}")
+        if name.lower() in names:
+            raise OperationError(f"{name} : nom en double")
+        names.add(name.lower())
+        kind = line.get("type") or "Livret"
+        if kind not in SAVINGS_TYPES:
+            raise OperationError(f"{name} : type attendu {', '.join(SAVINGS_TYPES)}")
+        amount = _amount(line.get("amount"), f"{name} : valeur")
+        invested = None if line.get("invested") in (None, "") else _amount(line.get("invested"), f"{name} : montant versé")
+        updated = str(line.get("updated") or today.isoformat())
+        try:
+            if date.fromisoformat(updated) > today:
+                raise ValueError
+        except ValueError:
+            raise OperationError(f"{name} : date de mise à jour invalide")
+        rows.append([name, amount, kind, "" if invested is None else invested, updated])
+    return rows
+
+
+def _amount(value, label: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise OperationError(f"{label} invalide")
+    if number < 0 or number > 1e9:
+        raise OperationError(f"{label} invalide")
+    return round(number, 2)
+
+
+def save_savings(sheet_id: str, lines: list[dict], today: date | None = None) -> dict:
+    """Réécrit l'onglet Épargne. Un ancien onglet Livret est renommé et complété (ses lignes, lues comme des
+    livrets, arrivent déjà dans `lines` : l'appli les affiche avant la sauvegarde)."""
+    from .sheets import savings_worksheet
+    from .workbook import SAVINGS_HEADERS
+
+    rows = validate_savings(lines, today or date.today())
+    sheet = _open_sheet(sheet_id, write=True)
+    ws, extended = savings_worksheet(sheet)
+    if ws is None:
+        ws = sheet.add_worksheet("Épargne", rows=30, cols=len(SAVINGS_HEADERS))
+    elif not extended:
+        ws.update_title("Épargne")
+        if ws.col_count < len(SAVINGS_HEADERS):
+            ws.add_cols(len(SAVINGS_HEADERS) - ws.col_count)
+    ws.update(range_name="A1", values=[SAVINGS_HEADERS])
+    ws.batch_clear(["A2:E"])
+    if rows:
+        # USER_ENTERED : la date AAAA-MM-JJ devient une vraie date (noms déjà protégés contre les formules)
+        ws.update(range_name="A2", values=rows, value_input_option="USER_ENTERED")
+    return {"lines": len(rows)}
 
 
 # --- Comptes ---

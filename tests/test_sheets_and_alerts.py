@@ -33,7 +33,8 @@ def test_history_parsed_by_column_and_sorted():
 
 
 def test_savings_ignore_header():
-    assert parse_savings([["", "Somme"], ["Livret A", 3600.7]]) == [{"name": "Livret A", "amount": 3600.7}]
+    assert parse_savings([["", "Somme"], ["Livret A", 3600.7]], extended=False) == [
+        {"name": "Livret A", "amount": 3600.7, "type": "Livret", "invested": None, "updated": None}]
 
 
 def test_sector_families():

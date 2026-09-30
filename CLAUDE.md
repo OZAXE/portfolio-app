@@ -251,6 +251,17 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   titres TR est aussi un compte courant : cartes, virements) ; doublon d'espèces = même jour et même montant au
   centime. Les espèces ne sont pas dans l'onglet Historique ni dans la performance (titres seulement).
 
+- **Patrimoine et projection (septembre 2026, choix d'Enzo : assurance-vie et PER en valeur saisie à la main).**
+  Onglet `Épargne` (`SAVINGS_HEADERS` : nom, montant, type Livret / Assurance-vie / PER / Autre, versé, mis à
+  jour) ; l'ancien onglet `Livret` reste lu (nom et montant seulement, autres colonnes ignorées) et est renommé
+  et complété à la première sauvegarde depuis l'appli (`save_savings`, route `/savings`). Éditeur dans
+  Répartition > Épargne et patrimoine : la date de la valeur passe à aujourd'hui quand la valeur change, rappel
+  après 90 jours. Patrimoine financier = titres + espèces + épargne.
+  Projection (front seul, `projectValues`) : capital de départ + versement mensuel, rendement constant
+  capitalisé chaque mois, en euros d'aujourd'hui par défaut ((1 + r) / 1,02 − 1), scénarios à ±2 points (ordre
+  de grandeur, pas une probabilité), objectif facultatif, revenu possible par la règle des 4 %. Réglages dans
+  `settings.projection`. Montants arrondis à l'euro.
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
