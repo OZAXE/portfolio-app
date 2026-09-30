@@ -1,55 +1,67 @@
 # Guide d'utilisation de Portfolio Insights
 
-Ce guide explique comment se servir de l'appli au quotidien. Pour l'installer et créer ton compte,
-suis d'abord le [guide d'installation](tutoriel-amis.md).
+Ce guide explique comment se servir de l'appli au quotidien, onglet par onglet. Pour l'installer et créer
+ton compte, suis d'abord le [guide d'installation](tutoriel-amis.md).
 
 L'appli a quatre onglets en bas de l'écran : **Portefeuille**, **Marché**, **Briefs** et **Réglages**.
 
-> Astuce : les mots soulignés en pointillés (PRU, PER, marge de sécurité…) s'expliquent quand tu
-> les touches. Tous sont aussi dans **Réglages > Lexique des indicateurs**.
+> Astuce : les mots soulignés en pointillés (PRU, PER, volatilité…) s'expliquent quand tu les touches.
+> Tous sont aussi dans **Réglages > Lexique des indicateurs**.
+
+**Sommaire**
+
+1. [Le haut du Portefeuille](#1-le-haut-du-portefeuille)
+2. [Enregistrer mes opérations](#2-enregistrer-mes-opérations)
+3. [Les sous-onglets du Portefeuille](#3-les-sous-onglets-du-portefeuille) : Positions, Perf., Répartition, Revenus, Fiscalité
+4. [Trouver et analyser des actions (Marché)](#4-trouver-et-analyser-des-actions-onglet-marché)
+5. [Alertes et notifications](#5-alertes-et-notifications)
+6. [Briefs](#6-briefs)
+7. [Réglages](#7-réglages)
+8. [Questions fréquentes](#questions-fréquentes)
 
 ---
 
-## 1. Suivre mon portefeuille
+## 1. Le haut du Portefeuille
 
-### Ce que montre le haut de la page
+### Ce que montre la carte du haut
 
 - **Valeur des placements** : ce que valent aujourd'hui toutes tes lignes (PEA + CTO).
-- La ligne verte ou rouge en dessous : ta **plus-value latente**, c'est-à-dire ce que tu gagnerais
-  (ou perdrais) en vendant tout maintenant, en euros et en %, par rapport à l'argent investi.
-- **Rendement annualisé** (ou **rendement réel** la première année) : ta performance réelle, qui tient
-  compte de la date de chaque versement. C'est le bon chiffre pour te comparer à un livret ou à un indice.
+- La ligne verte ou rouge en dessous : ta **plus-value latente**, ce que tu gagnerais (ou perdrais) en
+  vendant tout maintenant, en euros et en %, par rapport à l'argent investi.
+- **Rendement annualisé** (ou **rendement réel** la première année) : ce qu'a rapporté ton argent, en
+  tenant compte de la date de chaque versement.
 - **Gain total** : plus-value + dividendes touchés + gains des ventes déjà faites.
-- Une case par enveloppe (**PEA**, **CTO**) avec sa valeur et sa performance.
+- Une case par enveloppe (**PEA**, **CTO**) avec sa valeur et sa performance. Touche-la pour ne voir que
+  les positions de cette enveloppe ; touche-la à nouveau pour tout revoir.
+- **Espèces** : l'argent qui attend sur tes comptes, si tu as activé leur suivi (voir la partie 2).
 
 Les valeurs viennent de ton Google Sheet, qui suit les cours de bourse (avec environ 20 minutes de retard).
 
-### Cacher les montants (mode discret)
+### Mode discret
 
-Touche l'**œil** en haut à droite de « Valeur des placements » : tous les montants en euros et les
-quantités sont floutés, les pourcentages restent visibles. Pratique pour montrer l'appli à quelqu'un.
-Touche à nouveau l'œil pour tout réafficher. Le réglage est mémorisé sur ton téléphone.
+Touche l'**œil** en haut : tous les montants en euros et les quantités sont remplacés par des points
+(« •••• € »), les pourcentages restent visibles. Pratique pour montrer l'appli à quelqu'un. Touche à nouveau
+l'œil pour tout réafficher. Le réglage est mémorisé sur ton téléphone.
+
+### Les trois boutons
+
+- **Opération** : saisir un achat, une vente, un dividende, un versement… (partie 2).
+- **Importer** : importer un relevé de ta banque (partie 2).
+- **Objectifs** : aller directement à ton allocation cible (sous-onglet Répartition).
 
 ### La courbe d'évolution
 
-- **Valeur** : l'évolution de ton patrimoine en euros (total, PEA, CTO).
-- **Performance** : la même chose en %, ce qui neutralise tes versements.
+- **Valeur** : l'évolution de tes placements en euros (total, PEA, CTO), avec en pointillés le montant
+  **investi** de chaque enveloppe.
+- **Performance** : la même chose en %.
 - **Comparer au MSCI World / S&P 500 / CAC 40** : l'appli rejoue ton historique comme si chaque euro
   avait été placé le même jour dans un ETF de l'indice. Si ta courbe est au-dessus, tes choix battent
   l'indice ; en dessous, un simple ETF aurait fait mieux.
+- Les **puces** sous le graphique (Total, PEA, CTO, Investi) affichent ou masquent chaque courbe.
 
-Un point est ajouté chaque nuit après un jour de bourse : la courbe se remplit toute seule.
-Quand tu importes un relevé ou saisis une opération passée, la courbe est aussi **reconstituée**
-depuis la date de l'opération, jour par jour, avec les cours de clôture de chaque jour. Le bouton
-**Reconstituer l'historique depuis mes opérations** recalcule toute la courbe depuis ton premier achat.
-
-### Le détail d'une ligne
-
-Dans **Positions**, touche une ligne pour la déplier :
-- ce que tu as investi, ton gain total et ton rendement sur cette ligne ;
-- la **valeur intrinsèque** estimée, la **marge de sécurité** et le **score qualité** sur 20 (voir la partie 4) ;
-- le bouton **📈 Graphique des achats** : le cours depuis ton premier achat, avec chaque achat, chaque
-  vente et ton **PRU** (prix de revient moyen). Tu vois d'un coup d'œil si tu as acheté haut ou bas.
+Un point est ajouté chaque nuit après un jour de bourse, et le point du jour est pris sur tes positions
+actuelles. Quand tu importes un relevé ou saisis une opération passée, la courbe est **reconstituée**
+depuis la date de l'opération, avec les cours de clôture de chaque jour.
 
 ---
 
@@ -57,234 +69,272 @@ Dans **Positions**, touche une ligne pour la déplier :
 
 ### Un achat, une vente ou un dividende
 
-Onglet **Portefeuille**, bouton **+ Nouvelle opération** :
+Bouton **Opération** :
 
-1. Choisis le **type** (Achat, Vente, Dividende), la **date** et le **compte**.
+1. Choisis le **type**, la **date** et le **compte**.
 2. Tape le **titre** au format Yahoo : `MC.PA` pour LVMH, `AI.PA` pour Air Liquide, `AAPL` pour Apple,
-   `SAP.DE` pour SAP, `BTC-EUR` pour le Bitcoin, `ETH-EUR` pour l'Ethereum. La liste propose les titres
-   que tu as déjà. Une crypto se range dans ton CTO ; elle n'a ni valeur intrinsèque ni score.
-3. Indique la **quantité** et le **prix unitaire**. Pour un titre en dollars, choisis la devise :
-   le taux de change se remplit tout seul.
+   `SAP.DE` pour SAP, `BTC-EUR` pour le Bitcoin. La liste propose les titres que tu as déjà. Une crypto se
+   range dans ton CTO ; elle n'a ni prix juste ni score.
+3. Indique la **quantité** et le **prix unitaire**. Pour un titre en dollars, choisis la devise : le taux de
+   change se remplit tout seul.
 4. Les **frais** et **taxes** (dont la taxe sur les transactions financières de 0,4 % sur les grandes
    entreprises françaises) sont proposés d'après la grille de ta banque. Les champs en pointillés sont
    calculés : corrige-les si ton relevé indique autre chose.
 5. **Enregistrer dans le Sheet**. Le portefeuille se met à jour.
 
-Pour un **dividende** : mets le montant brut, et en taxes la retenue ou le prélèvement indiqué sur ton relevé.
+Pour un **dividende** : le montant brut, et en taxes la retenue ou le prélèvement indiqué sur ton relevé.
+
+### Un versement, un retrait ou des intérêts (espèces)
+
+Pour savoir combien d'argent attend sur chaque compte, l'appli a besoin de tes mouvements d'espèces.
+Bouton **Opération**, puis le type :
+- **Versement** : l'argent que tu déposes sur le compte ;
+- **Retrait** : l'argent que tu retires (chez Trade Republic, un paiement par carte aussi) ;
+- **Intérêts** : la rémunération de tes espèces. Mets le montant **brut**, et en **Taxes** ce que le courtier
+  a déjà prélevé : l'appli en a besoin pour estimer l'impôt restant (sous-onglet Fiscalité).
+
+Le formulaire se réduit alors à la date, au compte et au montant. Saisis **tous les versements depuis
+l'ouverture du compte** : si l'appli voit que tu as acheté avec plus d'argent que tu n'en avais versé, elle
+te signale le montant qui manque au minimum. Chez Trade Republic, le plus simple est d'importer l'export CSV,
+qui contient déjà tout (voir ci-dessous).
 
 ### Importer un relevé de ta banque
 
-Bouton **Importer un relevé**, choisis le compte puis le ou les fichiers :
-- **Trade Republic** : relevé de compte PDF (Profil > Documents) ou export CSV des transactions, depuis
-  l'ouverture du compte. Le relevé PDF contient le CTO et le PEA : chaque opération est rangée dans le
-  compte de la bonne enveloppe. Il ne donne qu'un montant par ligne : les frais sont comptés 1 € par
-  ordre (0 € pour un plan d'investissement) et les dividendes sont enregistrés nets de la retenue à la
-  source. Les cryptos (Bitcoin, Ethereum…) sont importées ; les attributions d'actions gratuites ne le
-  sont pas : saisis les actions reçues en **Achat** au prix de 0 € ;
-- **Boursorama** : avis d'opéré PDF (Espace client > Documents), tous d'un coup.
+Bouton **Importer**, choisis le compte puis le ou les fichiers :
+- **Trade Republic** : relevé de compte PDF (Profil > Documents) ou **export CSV des transactions**, depuis
+  l'ouverture du compte. Les deux contiennent le CTO et le PEA : chaque opération est rangée dans le compte
+  de la bonne enveloppe. L'export CSV apporte en plus tes **versements, retraits, paiements par carte et
+  intérêts**, regroupés par jour : ton solde d'espèces doit alors correspondre à celui de l'appli Trade
+  Republic. Les attributions d'actions gratuites ne sont pas importées : saisis les actions reçues en
+  **Achat** au prix de 0 € ;
+- **Boursorama** : avis d'opéré PDF (Espace client > Documents), tous d'un coup. Ils ne contiennent pas
+  les versements : saisis-les à la main pour suivre les espèces du PEA.
 
 Touche **Analyser** : l'appli liste les opérations trouvées **sans rien écrire**. Les opérations déjà
-enregistrées sont repérées et décochées. Décoche ce que tu ne veux pas, complète un ticker manquant
-s'il est encadré en rouge, puis valide. Pour les autres banques, utilise **+ Nouvelle opération**.
+enregistrées sont repérées et décochées (pour les espèces : même jour et même montant au centime). Décoche
+ce que tu ne veux pas, complète un ticker manquant s'il est encadré en rouge, puis valide. Pour les autres
+banques, utilise le bouton **Opération**.
 
-### Supprimer des opérations en double
+### Supprimer des opérations en double, repartir de zéro
 
-Si une opération apparaît deux fois (fichier importé deux fois, opération déjà saisie à la main…) :
-**Importer un relevé** puis **Rechercher les doublons dans mes opérations**. L'appli liste les
-opérations en double (même titre ou même montant, dates à quelques jours près) et coche la copie à
-supprimer, de préférence celle qui vient d'un import. Vérifie la liste : deux ordres identiques le même
-jour peuvent être réels, décoche-les alors. **Supprimer** retire les lignes de l'onglet Opérations et
-recalcule la courbe.
+Ces outils rares sont dans **Réglages > Opérations avancées** :
 
-L'outil propose aussi, **décochées**, les lignes du même titre et de même quantité à quelques semaines
-d'écart (date saisie approximativement) : coche-les si c'est bien la même opération. Et il repère les
-achats **« Date à préciser »** (achats antérieurs au suivi, repris de l'ancien Sheet) : cochés quand tes
-relevés importés contiennent les vrais achats datés du même titre, pour la même quantité au moins.
-
-### Repartir de zéro
-
-Si tes opérations sont trop emmêlées : **Importer un relevé**, section **Repartir de zéro**. Choisis
-les opérations à effacer (tous tes comptes ou un seul) et si tu gardes tes saisies à la main (case
-« Seulement les lignes importées »). Pour tout reprendre depuis tes relevés, y compris les lignes de
-l'ancien Sheet, décoche la case. L'appli copie d'abord ton onglet Opérations (et ta courbe) dans un
-onglet « Sauvegarde … » de ton Sheet, puis efface. Réimporte ensuite tous tes relevés : la courbe est
-reconstituée. Tu t'es trompé ? **Annuler : remettre mes opérations** remet tout comme avant. Les onglets
-de sauvegarde restent dans ton Sheet : supprime-les quand tout est bon.
+- **Rechercher les doublons dans mes opérations** : l'appli liste les opérations en double (même titre ou
+  même montant, dates à quelques jours près) et coche la copie à supprimer, de préférence celle qui vient
+  d'un import. Vérifie : deux ordres identiques le même jour peuvent être réels, décoche-les alors. Elle
+  propose aussi, **décochées**, les lignes de même titre et même quantité à quelques semaines d'écart, et
+  repère les achats **« Date à préciser »** repris de l'ancien Sheet quand tes relevés contiennent les vrais.
+- **Repartir de zéro** : efface les opérations d'un compte ou de tous (case « Seulement les lignes
+  importées » pour garder tes saisies à la main), après une copie dans un onglet « Sauvegarde … » de ton
+  Sheet. **Annuler : remettre mes opérations** remet tout comme avant.
+- **Reconstituer l'historique depuis mes opérations** : recalcule toute la courbe depuis ton premier achat.
 
 ### Ajouter une banque ou corriger des frais
 
-**Réglages > Mes comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA),
-puis la grille de frais de la banque, recopiée depuis sa grille tarifaire. Un compte qui a déjà des
-opérations ne peut être ni supprimé ni renommé.
+**Réglages > Comptes et courtiers** : ajoute un compte (ex : « PEA Fortuneo », enveloppe PEA), puis la
+grille de frais de la banque, recopiée depuis sa grille tarifaire. Un compte qui a déjà des opérations ne
+peut être ni supprimé ni renommé.
 
 ---
 
-## 3. Piloter mes investissements
+## 3. Les sous-onglets du Portefeuille
 
-### Où placer mon prochain versement ? (allocation cible)
+Sous la courbe, cinq sous-onglets : **Positions**, **Perf.**, **Répartition**, **Revenus**, **Fiscalité**.
 
-Section **Allocation cible** :
+### Positions
 
-1. **Définir mes cibles** (ou **Modifier mes cibles**) : crée des **poches**, par exemple
-   « ETF Monde » 60 %, « Actions France » 20 %, « Actions US » 20 % (le total doit faire 100 %).
-2. Choisis la poche de chaque ligne, puis **Enregistrer**.
-3. Le tableau compare ta répartition **actuelle** à ta **cible** et affiche l'**écart** en euros.
-4. Tape le montant que tu vas investir dans « Je vais investir … € » : l'appli te dit combien mettre
-   dans chaque poche pour te rapprocher de tes cibles, sans rien vendre.
+Tes lignes, triées par **Valeur** ou par **Perf.** Touche une ligne pour ouvrir sa fiche : en tête, la
+carte **Ta position** (valeur, plus-value, investi, quantité, gain total, rendement de la ligne) et le
+bouton **📈 Graphique des achats** (le cours depuis ton premier achat, avec chaque achat, chaque vente et
+ton PRU). En dessous, la fiche complète de l'action (partie 4). Un ETF ou une crypto a une fiche réduite.
 
-### Ma répartition
+### Perf. : performance et risque
 
-Section **Répartition** : ton portefeuille par **secteur**, **zone** géographique, **devise** ou **poche**.
-Coche **Voir à travers les ETF** pour compter le contenu réel de tes ETF (un ETF S&P 500 compte alors
-comme 500 entreprises américaines). **Exposition par entreprise** montre tes plus grosses entreprises,
-en direct et via tes ETF : utile pour repérer si tu es trop exposé à Apple ou Nvidia sans le savoir.
+- **Performance par période** : 1 mois, depuis le 1er janvier, 1, 3, 5 ans et depuis le début, pour le
+  total, le PEA ou le CTO, face à l'indice de ton choix (MSCI World, S&P 500, CAC 40). Elle est « pondérée
+  par le temps » : tes versements ne la faussent pas, elle se compare donc directement à l'indice.
+  L'écart avec l'indice est donné en points, et le gain de la période en euros.
+- **Risque** (12 derniers mois) : la **volatilité** (l'amplitude habituelle des variations), la **pire
+  baisse** que ton portefeuille a encaissée depuis un sommet, l'écart avec ton plus haut, le **ratio de
+  Sharpe** (le rendement obtenu par unité de risque) et le **bêta** (ta sensibilité à l'indice), avec une
+  phrase en clair. Il faut quelques semaines de relevés quotidiens avant qu'ils s'affichent.
+- **Ce qui a fait ta performance** : le gain de chaque ligne sur la période choisie, en euros et en
+  points. La somme des lignes donne le total.
 
-### Mes dividendes à venir
+Le calcul prend quelques secondes à la première ouverture de l'onglet (il récupère les cours de chaque
+titre sur 5 ans).
 
-Section **Dividendes à venir** : les dividendes attendus sur 12 mois, mois par mois (touche une barre
-pour le détail), le revenu annuel estimé en brut et en net d'impôt. L'estimation suppose que chaque
-entreprise versera comme l'an dernier. Les ETF capitalisants ne versent rien : c'est normal.
+### Répartition
 
-### Frais et plafond du PEA
+- **Répartition** : ton portefeuille par **secteur**, **zone**, **devise** ou **poche**. **Voir à travers
+  les ETF** compte le contenu réel de tes ETF (un ETF S&P 500 compte alors comme 500 entreprises
+  américaines).
+- **Exposition par entreprise** : tes plus grosses entreprises, en direct et via tes ETF (utile pour
+  repérer si tu es trop exposé à Apple ou Nvidia sans le savoir).
+- **Allocation cible** : **Définir mes cibles** crée des **poches** (ex : « ETF Monde » 60 %, « Actions
+  France » 20 %, « Actions US » 20 %, total 100 %) et range chaque ligne dans une poche. Le tableau compare
+  ta répartition à tes cibles ; tape le montant que tu vas investir dans « Je vais investir … € » : l'appli
+  te dit combien mettre dans chaque poche, sans rien vendre.
+- **Espèces** : le solde de chaque compte suivi (versé, retiré, intérêts), et l'alerte si des versements
+  manquent.
+- **Épargne et patrimoine** : **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes
+  livrets, ton assurance-vie et ton PER : la valeur de ton dernier relevé et, si tu veux, le total versé
+  pour voir ta plus-value. L'appli date chaque valeur et te rappelle de la mettre à jour après 3 mois. Le
+  **patrimoine financier** additionne titres, espèces et épargne. (Ton ancien onglet **Livret** du Sheet est
+  repris et devient l'onglet **Épargne**.)
+- **Projection** : ce que pourrait devenir ton patrimoine avec un versement chaque mois. Choisis le point de
+  départ, le versement, un rendement prudent (3 %), équilibré (5 %), dynamique (7 %) ou le tien, la durée
+  et, si tu veux, un objectif. Le calcul est en euros d'aujourd'hui (inflation de 2 % retirée), avec une
+  fourchette à 2 points de moins et de plus, et le revenu mensuel possible ensuite (règle des 4 %). Un ordre
+  de grandeur, pas une prévision.
 
-Section **Plafond PEA et frais** :
-- **Plafond du PEA** : ce que tu as versé sur 150 000 € autorisés, et ce qu'il te reste ;
-- **frais payés par année** : courtage, taxes sur les transactions, impôts sur les dividendes ;
-- **frais courants des ETF** : ce que tes ETF te coûtent chaque année (en % et en euros).
+### Revenus
 
-### Mes plus-values réalisées et l'impôt
+- **Dividendes à venir** : les dividendes attendus sur 12 mois, mois par mois (touche une barre pour le
+  détail), et le revenu annuel estimé. L'estimation suppose que chaque entreprise versera comme l'an
+  dernier. Les ETF capitalisants ne versent rien : c'est normal.
+- **Résultats à venir** : les dates de publication des résultats de tes actions et de ta watchlist sur les
+  45 prochains jours. Le cours bouge souvent fort ce jour-là.
 
-Section **Plus-values réalisées et dividendes** : par année et par enveloppe, les gains de tes ventes
-et les dividendes touchés. Pour le CTO, l'appli estime l'impôt (flat tax de 30 %, 31,4 % à partir de
-2026). Sur le PEA, rien n'est imposé tant que tu ne retires pas d'argent. C'est une estimation : ta
-déclaration fait foi.
+### Fiscalité
 
-### Performance et risque (sous-onglet Perf.)
-
-Ta performance sur 1 mois, depuis le 1er janvier, 1, 3 et 5 ans et depuis le début, comparée à l'indice de ton
-choix. Elle est « pondérée par le temps » : tes apports ne la faussent pas. En dessous : la volatilité, la pire
-baisse que ton portefeuille a encaissée, le ratio de Sharpe, le bêta, puis le gain de chaque ligne sur la période
-choisie (ce qui a fait ta performance). Chaque indicateur s'explique en touchant son nom.
-
-### Espèces
-
-Pour savoir combien d'argent attend sur chaque compte, saisis ses versements (bouton **Opération**, type
-**Versement**, **Retrait** ou **Intérêts**) depuis l'ouverture du compte, ou importe l'export CSV de Trade Republic,
-qui les contient déjà (paiements par carte compris, regroupés par jour). Si l'appli voit que tu as acheté avec plus
-d'argent que tu n'en avais versé, elle te signale le montant qui manque. Les versements sur le PEA servent aussi
-au plafond de 150 000 €.
-
-### Épargne et patrimoine
-
-Dans **Répartition**, le bouton **Ajouter mon épargne** (ou **Mettre à jour mon épargne**) enregistre tes livrets,
-ton assurance-vie et ton PER : la valeur de ton dernier relevé et, si tu veux, le total versé pour voir ta
-plus-value. L'appli te rappelle de mettre à jour une valeur de plus de 3 mois. Le patrimoine financier additionne
-titres, espèces et épargne. (L'ancien onglet **Livret** du Sheet est repris et devient l'onglet **Épargne**.)
-
-### Projection
-
-Juste en dessous : ce que pourrait devenir ton patrimoine avec un versement chaque mois, selon un rendement
-prudent (3 %), équilibré (5 %), dynamique (7 %) ou le tien, en euros d'aujourd'hui (inflation retirée). La
-fourchette refait le calcul à 2 points de moins et de plus. Un ordre de grandeur, pas une prévision.
+- **Plus-values réalisées et dividendes** : par année et par enveloppe, les gains de tes ventes, les
+  dividendes et les **intérêts** touchés. Pour le CTO, l'appli estime l'**impôt restant à payer** (flat tax
+  de 31,4 % en 2026), dividende par dividende et avec les intérêts : un montant négatif est à récupérer (par
+  exemple l'acompte de 12,8 % prélevé en trop sur un dividende américain chez Trade Republic). Sur le PEA,
+  rien n'est imposé tant que tu ne retires pas d'argent. C'est une estimation : ton IFU fait foi.
+- **Plafond PEA et frais** : ce que tu as versé sur les 150 000 € autorisés (calculé sur tes vrais
+  versements s'ils sont saisis, sinon estimé d'après tes achats), les frais payés par année (courtage,
+  taxes, retenues) et les frais courants de tes ETF.
 
 ---
 
 ## 4. Trouver et analyser des actions (onglet Marché)
 
-### Le screener
+### L'accueil du Marché
 
-Près de 2 000 actions (grands indices américains, européens et asiatiques) analysées chaque nuit. Tu peux :
-- **rechercher** une action par nom ou ticker ;
-- **filtrer** par région, secteur, ou avec les boutons : **DCF fiable**, **Sous-évaluées**, **Score ≥ 14**,
-  **Mes positions**, **Super investisseurs**, **Ma watchlist**, **Dividende en hausse 5 ans** ;
-- **trier** par marge de sécurité, écart au prix juste, score qualité, PER, capitalisation ou rendement du dividende.
+Près de 2 000 actions (grands indices américains, européens et asiatiques) analysées chaque nuit, rangées
+en sections : **Tes actions**, **Ta watchlist**, **Solides et sous-évaluées**, **Les plus solides**,
+**Dividendes réguliers**. **Tout voir** affiche une section en entier, et **Voir les … actions**, tout le
+screener.
 
-À droite de chaque action, le verdict du **prix juste** : sous-évaluée, prix correct ou surévaluée,
-avec le potentiel de hausse ou de baisse. Un **⚠** devant le verdict signale une limite qui peut le
-nuancer (entreprise de qualité, secteur cyclique, score faible) : ouvre la fiche pour la lire.
-
-Une action absente du screener ? Tape son ticker Yahoo puis **Analyser « … » en direct**.
+- **Rechercher** une action par nom ou ticker. Une action absente ? Tape son ticker Yahoo puis
+  **Analyser « … » en direct**.
+- **Filtres** : estimation (sous-évaluée, prix correct, chère, DCF fiable), qualité minimum, région,
+  secteur, tes listes (positions, watchlist, super investisseurs), dividende en hausse depuis 5 ans, et le
+  tri (qualité, potentiel estimé, marge de sécurité, rendement, taille, PER). Chaque filtre actif apparaît en
+  puce, que tu peux retirer d'un toucher.
+- En haut à droite, **Simple** ou **Détaillé** : Détaillé ajoute les chiffres aux lignes et ouvre toutes les
+  rubriques des fiches ; Simple ajoute une phrase d'explication sous chaque ratio.
+- **⇄ Comparer (n)** apparaît dès que tu as choisi deux actions à comparer (voir plus bas).
 
 ### Lire la fiche d'une action
 
-Touche une action pour l'ouvrir. Les repères essentiels :
-- **Score qualité (sur 20)** : rentabilité, marges, dette et régularité, comparées aux entreprises
-  du même secteur. Au-dessus de 14, c'est une entreprise solide.
-- **Prix juste** : la moyenne de plusieurs estimations (DCF, PER normal du secteur, et valeur comptable
-  pour les banques), avec la fourchette de la plus prudente à la plus optimiste. Cours plus de 15 % en
-  dessous : **sous-évaluée** ; plus de 15 % au-dessus : **surévaluée** ; entre les deux : **prix correct**.
-  En italique, les méthodes divergent beaucoup : à prendre avec prudence.
-  C'est une estimation automatique, avec des limites signalées dans la fiche quand elles concernent
-  l'action : une entreprise de grande qualité paraît souvent surévaluée face à son secteur, une
-  entreprise cyclique en haut de cycle paraît bon marché, et une action décotée l'est parfois pour de
-  bonnes raisons. Touche **limites de la méthode** sous le prix juste pour la liste complète.
-- **Valeur intrinsèque** : ce que vaut l'action d'après les cash-flows futurs estimés (méthode DCF).
-- **Marge de sécurité** : l'écart entre cette valeur et le cours. Positive, l'action paraît sous-évaluée ;
-  négative, elle paraît chère. Ne te fie qu'aux DCF marqués **fiables** : les autres sont indicatifs.
-- **PER** : le prix payé pour 1 € de bénéfice. Plus il est bas, moins l'action est chère, à comparer
-  avec les entreprises du même secteur.
-- **Dividende** : rendement, historique sur 12 ans, années de hausse consécutives.
-- **Historique du screener** et **Comptes annuels** : l'évolution du cours, de la valeur intrinsèque,
-  du chiffre d'affaires et des bénéfices sur plusieurs années.
+Touche une action pour l'ouvrir en plein écran (le bouton retour du téléphone la ferme) :
+
+- **La courbe du cours** sur 1 mois à 10 ans, avec la moyenne 200 jours et le prix juste en pointillés
+  (puces sous le graphique pour les afficher ou les masquer), et une phrase sur la tendance.
+- **À propos de l'entreprise** : sa présentation (en anglais, avec un lien pour la traduire), son site et
+  son effectif.
+- **Actualités** : les titres des 30 derniers jours qui citent l'entreprise (Google Actualités, en
+  français), avec leur source et un lien vers l'article.
+- **Le verdict en une phrase** et sa jauge : l'action paraît sous-évaluée, à son juste prix ou chère.
+- **Cinq rubriques colorées** (vert, orange, rouge) :
+  - **Valorisation** : le **prix juste** et le potentiel, le **PER**, le PER prévisionnel, le **PER
+    historique** (le PER habituel de l'action sur ses dernières années), le cours / valeur comptable, le
+    VE / EBITDA, l'**objectif des analystes** et leur **avis**, la date des **résultats**, puis la valeur
+    intrinsèque (DCF) ;
+  - **Qualité** : le **score qualité sur 20** (rentabilité, marges, dette, prix, comparés au secteur ;
+    au-dessus de 14, l'entreprise est solide) ;
+  - **Rentabilité** : ROE et marge opérationnelle ;
+  - **Santé financière** : dette ;
+  - **Dividende et rachats** : rendement, régularité, croissance, historique sur 12 ans, et les **rachats
+    d'actions** (l'entreprise rachète-t-elle ses actions, ou en émet-elle ?) avec le rendement total pour
+    l'actionnaire.
+- Puis la **watchlist**, les **alertes de prix**, l'**historique du screener** (cours, prix juste et valeur
+  intrinsèque chaque semaine) et les **comptes annuels** sur plusieurs années.
+
+**Le prix juste** est la moyenne de plusieurs estimations : le DCF, le bénéfice × le PER normal du secteur,
+le bénéfice × le PER historique de l'action, et la valeur comptable pour les banques. Cours plus de 15 % en
+dessous : **sous-évaluée** ; plus de 15 % au-dessus : **chère** ; entre les deux : **prix correct**. En
+italique, les méthodes divergent beaucoup. C'est une estimation automatique, avec ses limites signalées dans
+la fiche quand elles concernent l'action (entreprise de qualité durablement chère, secteur cyclique, action
+décotée pour de bonnes raisons) : touche **limites de la méthode** sous le prix juste pour la liste complète.
+
+Certaines informations (PER historique, analystes, résultats, rachats, présentation) arrivent avec la
+prochaine analyse de nuit de chaque action : une fiche peut ne pas encore les avoir.
 
 Aucun indicateur ne suffit seul : une action peu chère l'est parfois pour une bonne raison.
 
+### Comparer des actions
+
+En haut de la fiche, **⇄ Comparer** ajoute l'action à ta comparaison (4 au plus). Dès deux actions,
+**Voir la comparaison** affiche un tableau côte à côte : cours, verdict, prix juste, score qualité, PER et
+PER face à son historique, rentabilité, dette, dividende, rachats, objectif des analystes, taille. La
+meilleure valeur de chaque ligne est mise en couleur. **Retirer ✕** enlève une action.
+
 ### Surveiller une action (watchlist)
 
-Dans la fiche, **☆ Surveiller** l'ajoute à ta watchlist (section **Actions surveillées** du
-Portefeuille, et filtre **Ma watchlist** du screener). Tu seras alerté si elle passe sous sa valeur
-intrinsèque. Touche **★ Surveillée** pour la retirer.
+Dans la fiche, **☆ Surveiller** l'ajoute à ta watchlist (section **Ta watchlist** du Marché, filtre, et
+agenda des résultats). Tu seras alerté si elle passe sous sa valeur intrinsèque. Touche **★ Surveillée**
+pour la retirer.
 
 ### Les super investisseurs
 
-**Marché > Super investisseurs** : ce qu'achètent et vendent 27 grands gérants (Warren Buffett,
-Bill Ackman…), d'après leurs déclarations trimestrielles aux États-Unis. Ces déclarations ont jusqu'à
-45 jours de retard : c'est une source d'idées, pas un signal d'achat.
+**Marché > Super investisseurs** : ce qu'achètent et vendent 27 grands gérants (Warren Buffett, Bill
+Ackman…), d'après leurs déclarations trimestrielles aux États-Unis : les plus achetés ce trimestre, les plus
+détenus, et le portefeuille de chaque fonds. Ces déclarations ont jusqu'à 45 jours de retard : c'est une
+source d'idées, pas un signal d'achat.
 
 ---
 
 ## 5. Alertes et notifications
 
-### Les alertes automatiques
+### Les alertes
 
-Section **Alertes** du Portefeuille : chaque jour, l'appli signale sur tes positions et ta watchlist
-une forte baisse, une action qui passe sous sa valeur intrinsèque, un score qualité en baisse, un
-dividende réduit ou un super investisseur qui achète ou vend.
+La **cloche** en haut du Portefeuille (un point rouge quand il y a du nouveau) : chaque jour, l'appli
+signale sur tes positions et ta watchlist une forte baisse, une action qui passe sous sa valeur
+intrinsèque, un score qualité en baisse, un dividende réduit ou un super investisseur qui achète ou vend.
 
 ### Les alertes de prix
 
-Dans la fiche d'une action, **🔔 Alerte de prix** : choisis « passe sous » ou « dépasse » un prix, avec
-une note si tu veux (« renforcer sous 150 € »). Elles sont listées dans **Mes alertes de prix**, où tu
-peux les supprimer ou les réactiver après déclenchement. Le prix est vérifié chaque nuit sur le cours
+Dans la fiche d'une action, **🔔 Alerte de prix** : choisis « sous » ou « au-dessus » d'un prix, avec une
+note si tu veux (« renforcer sous 150 € »). Elles sont listées sous la cloche, dans **Mes alertes de prix**,
+où tu peux les supprimer ou les réactiver après déclenchement. Le prix est vérifié chaque nuit sur le cours
 de clôture.
 
 ### Recevoir les notifications sur ton téléphone
 
-Configure-les dans **Réglages > Notifications** (voir le guide d'installation). Tu reçois alors chaque
-nuit tes alertes, et chaque vendredi soir ta **plus-value de la semaine** (l'argent versé pendant la
-semaine n'est pas compté).
+Configure-les dans **Réglages > Notifications ntfy** (voir le guide d'installation). Tu reçois alors chaque
+nuit tes alertes, et chaque vendredi soir ta **plus-value de la semaine** (l'argent versé pendant la semaine
+n'est pas compté).
 
 ---
 
 ## 6. Briefs
 
-L'onglet **Briefs** propose chaque semaine un point sur les marchés : actualité économique, graphiques,
-un sujet pour apprendre et l'agenda de la semaine.
+L'onglet **Briefs** propose chaque semaine un point sur les marchés : actualité économique, graphiques, un
+sujet pour apprendre et l'agenda de la semaine.
 
 ---
 
 ## 7. Réglages
 
-- **Apparence** : le thème (**Auto** suit le mode clair ou sombre du téléphone, **Sombre**, **Clair**,
-  **Noir** pour les écrans OLED), la couleur des boutons et onglets, la taille du texte et l'icône de
-  l'appli. Les gains restent en vert et les pertes en rouge quelle que soit la couleur. Pour voir la
-  nouvelle icône sur l'écran d'accueil, supprime l'appli de l'écran d'accueil puis ajoute-la à nouveau.
+Les réglages sont rangés en rubriques ; chacune ouvre sa page :
+
+- **Comptes et courtiers** : tes comptes (PEA, CTO) et les grilles de frais de tes banques.
+- **Allocation cible** : tes poches et leurs objectifs (même éditeur que dans Répartition).
+- **Opérations avancées** : doublons, repartir de zéro, reconstituer l'historique (partie 2).
+- **Notifications ntfy** : ton sujet de notifications.
+- **Apparence et affichage** : le thème (**Auto** suit le téléphone, **Sombre**, **Clair**, **Noir** pour les
+  écrans OLED), la couleur, la taille du texte, le mode **Simple** ou **Détaillé** et l'icône de l'appli. Pour
+  voir une nouvelle icône, retire l'appli de l'écran d'accueil puis ajoute-la à nouveau.
+- **Hypothèses du DCF** : pour les curieux, remplace les hypothèses automatiques (croissance, actualisation,
+  croissance à long terme) par les tiennes ; toutes les valeurs intrinsèques et prix justes sont recalculés.
 - **Code d'accès** : à saisir une fois par appareil. Perdu ? Refais l'inscription avec le même Sheet.
-- **Mes comptes et courtiers** : tes comptes et les grilles de frais de tes banques.
-- **Hypothèses du DCF** : pour les curieux, remplace les hypothèses automatiques (croissance,
-  taux d'actualisation) par les tiennes ; toutes les valeurs intrinsèques sont recalculées.
-- **Notifications** : ton sujet ntfy.
+- **Créer un compte** : l'inscription d'un nouvel utilisateur.
 - **Lexique des indicateurs** : la définition de chaque terme, avec des repères chiffrés.
+- **Guide d'utilisation** : ce guide et le guide d'installation.
 
 ---
 
@@ -294,12 +344,19 @@ un sujet pour apprendre et l'agenda de la semaine.
 30 secondes à une minute à se réveiller. Pendant ce temps, l'appli affiche tes dernières valeurs connues
 (« Valeurs du … · mise à jour… »).
 
+**Je ne vois pas la nouveauté annoncée.** L'appli installée garde une copie pour s'ouvrir vite : ferme-la
+complètement puis rouvre-la.
+
 **Ça marche sans réseau ?** Oui en lecture : l'appli s'ouvre et affiche tes dernières valeurs et le
 screener de la veille. Il faut du réseau pour enregistrer une opération.
 
 **Je modifie mon Sheet à la main : l'appli le voit ?** Oui : valeurs, positions et opérations en moins
-d'une minute. La comparaison à un indice et les dividendes à venir, plus longs à calculer, sont
-recalculés dans la journée (ou tout de suite si tu enregistres l'opération depuis l'appli).
+d'une minute. La performance, la comparaison à un indice et les dividendes à venir, plus longs à calculer,
+sont recalculés dans la journée (ou tout de suite si tu enregistres l'opération depuis l'appli).
+
+**Mon solde d'espèces est faux.** Il manque sans doute des versements : l'appli le signale en rouge dans
+Répartition > Espèces, avec le montant manquant au minimum. Chez Trade Republic, importe l'export CSV
+complet depuis l'ouverture du compte.
 
 **Une ligne n'a pas de cours.** Vérifie son ticker Google dans l'onglet Titres du Sheet
 (`EPA:MC`, `NASDAQ:AAPL`…).
@@ -307,5 +364,5 @@ recalculés dans la journée (ou tout de suite si tu enregistres l'opération de
 **Qui voit mes données ?** Toi, et techniquement l'administrateur de l'appli (dont le robot lit ton
 Sheet). Les autres utilisateurs ne voient rien de ton portefeuille.
 
-**C'est un conseil en investissement ?** Non. Les calculs sont automatiques et simplifiés : ils aident
-à réfléchir, ils ne décident pas à ta place.
+**C'est un conseil en investissement ?** Non. Les calculs sont automatiques et simplifiés : ils aident à
+réfléchir, ils ne décident pas à ta place.

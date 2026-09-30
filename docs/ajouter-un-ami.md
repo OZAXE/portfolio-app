@@ -7,7 +7,7 @@ rien à faire pour ajouter quelqu'un : chacun crée son compte depuis l'appli.
 
 Envoie-lui le lien de l'appli (https://portfolio-front-8t6m.onrender.com) et le guide
 [tutoriel-amis.md](tutoriel-amis.md). Il copie le Sheet modèle, le partage avec le compte de service,
-puis crée son compte dans **Réglages > Pas encore de compte ?** (un code à coller dans son Sheet
+puis crée son compte dans **Réglages > Créer un compte** (un code à coller dans son Sheet
 prouve qu'il en est le propriétaire).
 
 Préviens-le qu'en partageant son Sheet avec le compte de service, **tu as techniquement accès à
