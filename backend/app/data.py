@@ -133,6 +133,14 @@ class CompanyFinancials:
     dividend_streak: int | None = None  # années de hausse consécutives
     dividend_cut: bool = False  # dernière année complète en baisse de plus de 10 %
 
+    # Consensus des analystes (quoteSummary seulement) : objectifs de cours en unité principale
+    target_mean_price: float | None = None
+    target_low_price: float | None = None
+    target_high_price: float | None = None
+    recommendation_mean: float | None = None  # 1 = achat fort ... 5 = vente
+    analyst_count: int | None = None
+    earnings_date: str | None = None  # prochaine (ou dernière) publication de résultats, ISO
+
     # Facteur entre le cours brut Yahoo et l'unité principale (100 pour les pence de Londres)
     price_divisor: float = 1.0
 
@@ -328,6 +336,26 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
 
     result.total_debt = _number(info.get("totalDebt"))
     result.total_cash = _number(info.get("totalCash"))
+    _fill_consensus(result, info)
+
+
+def _fill_consensus(result: CompanyFinancials, info: dict) -> None:
+    """Objectifs de cours et avis des analystes, date des résultats. Un objectif hors de 0,2 à 5 fois le
+    cours est une donnée Yahoo erronée (devise ou unité mélangée) : ignoré. Moins de 3 analystes : pas un
+    consensus."""
+    count = _number(info.get("numberOfAnalystOpinions"))
+    result.analyst_count = int(count) if count else None
+    price = result.current_price
+    if result.analyst_count and result.analyst_count >= 3 and price:
+        targets = [_number(info.get(k)) for k in ("targetMeanPrice", "targetLowPrice", "targetHighPrice")]
+        targets = [t / result.price_divisor if t else None for t in targets]
+        if targets[0] and 0.2 <= targets[0] / price <= 5:
+            result.target_mean_price, result.target_low_price, result.target_high_price = targets
+        mean = _number(info.get("recommendationMean"))
+        result.recommendation_mean = mean if mean and 1 <= mean <= 5 else None
+    stamp = _number(info.get("earningsTimestampStart")) or _number(info.get("earningsTimestamp"))
+    if stamp:
+        result.earnings_date = datetime.fromtimestamp(stamp, timezone.utc).date().isoformat()
 
 
 def _latest(df, *labels) -> float | None:

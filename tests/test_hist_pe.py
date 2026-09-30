@@ -66,12 +66,26 @@ def test_screener_lit_le_per_historique_archive(tmp_path):
 
 
 def test_bpa_actuel_sur_le_nombre_d_actions_du_screener():
-    # Air Liquide 2025 : Yahoo donne 578,6 millions d'actions au lieu d'environ 699 (attribution gratuite de
-    # juin 2025, 1 pour 10). BPA actuel = 3 517,9 M€ / 699 M = 5,03 € (et non 6,08 €)
+    # Air Liquide : exercice 2025 donné sur l'ancienne base (578,6 millions d'actions), alors que les cours
+    # Yahoo sont corrigés de l'attribution gratuite de juin 2025 (1 pour 10) : 638 millions d'actions aujourd'hui
+    # dans le screener. BPA actuel = 3 517,9 M€ / 638 M = 5,51 € (Yahoo : 168,88 / PER 30,43 = 5,55 €)
     years = [{"year": 2023, "net_income": 3078e6, "shares": 635.2e6}, {"year": 2024, "net_income": 3306.1e6, "shares": 635.8e6},
              {"year": 2025, "net_income": 3517.9e6, "shares": 578.6e6}]
     closes = {2023: [148] * 12, 2024: [150] * 12, 2025: [172] * 12}
-    result = financials.historical_pe(years, closes, [(date(2025, 6, 10), 1.1)], shares_now=699e6)
-    assert result["eps"] == pytest.approx(5.0328, abs=1e-4)
-    # 2024 : 635,8 M x 1,1 = 699 M (plus proche de 699 que 635,8) -> BPA 4,73, PER 150 / 4,73 = 31,7
-    assert result["years"][1] == {"year": 2024, "pe": 31.7}
+    result = financials.historical_pe(years, closes, [(date(2025, 6, 10), 1.1)], shares_now=638e6)
+    assert result["eps"] == pytest.approx(5.514, abs=5e-4)
+    # 2025 : 578,6 M x 1,1 = 636,5 M (plus proche de 638 M) -> BPA 5,53, PER 172 / 5,527 = 31,1
+    # 2024 : 635,8 M déjà sur la nouvelle base -> BPA 5,20, PER 150 / 5,20 = 28,8
+    assert result["years"][1:] == [{"year": 2024, "pe": 28.8}, {"year": 2025, "pe": 31.1}]
+
+
+def test_rachats_d_actions_sur_cinq_ans():
+    # 100 millions d'actions en 2020, 90 en 2025 : (90 / 100)^(1/5) - 1 = -2,09 % par an
+    years = [{"year": y, "net_income": 1, "shares": 100e6 - 2e6 * (y - 2020)} for y in range(2020, 2026)]
+    trend = financials.shares_trend(years, [], 90e6)
+    assert trend == {"shares_cagr": pytest.approx(-0.0209, abs=1e-4), "shares_years": 5}
+    # Division par 2 en 2023 non retraitée dans les rapports d'avant : neutralisée (200 M x 2 = 400 M)
+    years = [{"year": 2021, "net_income": 1, "shares": 200e6}, {"year": 2022, "net_income": 1, "shares": 200e6},
+             {"year": 2023, "net_income": 1, "shares": 396e6}]
+    assert financials.shares_trend(years, [(date(2023, 3, 1), 2.0)], 396e6)["shares_cagr"] == pytest.approx(-0.005, abs=1e-3)
+    assert financials.shares_trend(years[:1], [], 200e6) == {"shares_cagr": None, "shares_years": None}

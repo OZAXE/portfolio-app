@@ -48,6 +48,8 @@ class ValuationResult:
     fair_value_hist_pe: float | None = None  # bénéfice par action x PER médian de l'action sur 10 ans
     hist_pe_median: float | None = None
     hist_pe_years: int | None = None
+    shares_cagr: float | None = None  # évolution annuelle du nombre d'actions (négatif : rachats)
+    shares_years: int | None = None
 
 
 # Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
@@ -322,6 +324,8 @@ def _add_fair_value(result: ValuationResult, cf: CompanyFinancials, pe_history: 
             result.fair_value_pb = round(book_value_per_share * pb, 2)
             result.justified_pb_used = round(pb, 2)
 
+    if pe_history:
+        result.shares_cagr, result.shares_years = pe_history.get("shares_cagr"), pe_history.get("shares_years")
     hist = historical_pe_fair_value(pe_history)
     if hist is not None:
         result.fair_value_hist_pe = round(hist, 2)
