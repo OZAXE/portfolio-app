@@ -56,6 +56,11 @@ où agir :
 - une **thèse à relire** : la date de revue de ton journal est passée ;
 - une de tes actions qui **publie ses résultats** dans les 7 jours.
 
+Une ligne que tu as déjà vue et acceptée (par exemple une concentration voulue) se masque avec la croix **✕** à
+droite. Elle reste masquée même si le pourcentage bouge un peu, puis revient au bout de 3 mois pour que tu la
+revoies. Une thèse à relire ou des résultats reviennent aussi si la date change. **Tout réafficher**, sous la
+liste, remet tout. Le masquage est mémorisé sur ton téléphone seulement.
+
 Dessous, deux tuiles : ton **prochain dividende** attendu (estimé d'après les versements de l'an dernier) et
 ton **revenu sur 12 mois** avec son rendement sur ton prix de revient (elles ouvrent Suivi > Revenus). Puis
 **Mes alertes de prix** si tu en as créé.

@@ -391,7 +391,9 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Accueil : `#privacy-toggle`, carte valeur (`#total-value`, `#day-change`, mini-courbe `renderSpark` sur un an,
     `#total-gain`, `#total-returns`), « À regarder » (`renderAlertsList` / `watchItems` : concentration, alertes du
     serveur, thèses dont la revue est passée, résultats à 7 jours de titres détenus ; remplace la cloche et
-    `updateAlertsDot`), tuiles `renderHomeTiles` (prochain dividende estimé, revenu 12 mois et % sur PRU), alertes de prix.
+    `updateAlertsDot`) ; bouton ✕ « Masquer » par ligne (`settings.hiddenWatch`, clé -> date, sur l'appareil : clé sans les
+    chiffres du jour, `conc:<titre>`, `secteur:<label>`, `revue:<ticker>:<date>`, `resultats:<ticker>:<date>` ; réapparaît après
+    90 jours ou si la date change ; « Tout réafficher »), tuiles `renderHomeTiles` (prochain dividende estimé, revenu 12 mois et % sur PRU), alertes de prix.
     Salutation Bonjour / Bonsoir + nom de `/me` (`loadMe`). Accueil et Portefeuille chargent ensemble (`setPortfolioStatus`).
   - Portefeuille : enveloppes, espèces, « + Opération », courbe, sous-onglets Positions / Perf. / Répartition. Revenus et
     Fiscalité -> Suivi ; épargne, projection et allocation -> pages de Plus (`patrimoine`, `projection`, `goals`, message
