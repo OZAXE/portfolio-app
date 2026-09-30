@@ -38,6 +38,7 @@ class Entry:
     account: str = ""
     note: str = ""
     source: str | None = None  # fichier d'origine d'une opération importée
+    net: float | None = None  # intérêts : montant net (brut - prélèvements), comparé aussi
 
 
 def _base(ticker: str) -> str:
@@ -52,7 +53,10 @@ def same_operation(a: Entry, b: Entry, days: int = DATE_TOLERANCE_DAYS, same_tic
         return False
     # Espèces : même jour et même montant au centime (deux cafés à 4 € deux jours de suite sont deux dépenses)
     if a.kind in CASH_KINDS:
-        return a.day == b.day and abs(a.amount - b.amount) < 0.005
+        # Intérêts importés avant septembre 2026 : enregistrés nets, réimportés bruts -> brut ou net suffit
+        amounts_a = {a.amount} | ({a.net} if a.net is not None else set())
+        amounts_b = {b.amount} | ({b.net} if b.net is not None else set())
+        return a.day == b.day and any(abs(x - y) < 0.005 for x in amounts_a for y in amounts_b)
     if abs((a.day - b.day).days) > days:
         return False
     same_ticker = bool(a.ticker and b.ticker and (a.ticker.upper() == b.ticker.upper() or _base(a.ticker) == _base(b.ticker)))

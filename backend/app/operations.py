@@ -178,10 +178,13 @@ def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
     """Versement, retrait ou intérêts : seulement une date, un compte et un montant en euros."""
     when = _operation_date(payload)
     amount = _positive(payload.get("amount") or payload.get("price"), "Montant")
+    taxes = _non_negative(payload.get("taxes"), "Impôts prélevés") if kind == "Intérêts" else 0.0
+    if taxes > amount:
+        raise OperationError("Les impôts prélevés dépassent le montant brut des intérêts")
     ensure_operation_types(sheet)
     ops = _worksheet(sheet, "Opérations")
     row = len(ops.col_values(1)) + 1
-    ops.update(range_name=f"A{row}", values=[cash_row(when, account, kind, amount, payload.get("note") or "", row)],
+    ops.update(range_name=f"A{row}", values=[cash_row(when, account, kind, amount, payload.get("note") or "", row, taxes)],
                value_input_option="USER_ENTERED")
     return {"row": row, "gross_eur": round(amount, 2), "new_ticker": False}
 

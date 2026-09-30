@@ -12,6 +12,7 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/stats      -> performance par période (TWR), risque, contribution de chaque ligne
 - GET /portfolio/cash       -> espèces de chaque compte (versements, retraits, intérêts, opérations)
+- GET /news/{ticker}        -> actualités récentes (Google Actualités en français, sinon Yahoo)
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
@@ -869,6 +870,27 @@ def get_position_chart(ticker: str, user: User = Depends(require_access)):
 # ouverture de la fiche. Gardée 6 h ; les échecs (ticker inconnu, Yahoo muet) ne sont pas gardés
 PRICES_CACHE_SECONDS = 6 * 3600
 _prices_cache: dict[str, tuple[float, dict]] = {}
+
+
+# --- Actualités d'une action (Google Actualités, sinon Yahoo), gardées 1 h ---
+NEWS_CACHE_SECONDS = 3600
+_news_cache: dict[tuple[str, str], tuple[float, dict]] = {}
+
+
+@app.get("/news/{ticker}", dependencies=[Depends(require_access)])
+def get_news(ticker: str, name: str = ""):
+    from .news import fetch_news
+
+    key = (ticker.strip().upper(), name.strip())
+    cached = _news_cache.get(key)
+    if cached and time.monotonic() - cached[0] < NEWS_CACHE_SECONDS:
+        return cached[1]
+    result = fetch_news(key[0], key[1] or key[0])
+    if result["articles"]:  # un échec n'est pas gardé : retenté à la prochaine ouverture de la fiche
+        if len(_news_cache) > 500:
+            _news_cache.clear()
+        _news_cache[key] = (time.monotonic(), result)
+    return result
 
 
 @app.get("/prices/{ticker}", dependencies=[Depends(require_access)])

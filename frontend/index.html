@@ -285,6 +285,9 @@
     .price-card .trend.up { color: var(--positive); } .price-card .trend.down { color: var(--accent-neg); }
     /* .pillar.about : les règles .pillar (plus bas) l'emporteraient sinon à spécificité égale */
     .about { margin-top: 12px; }
+    .news-item { display: block; padding: 9px 0; border-top: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.35; }
+    .news-item:first-child { border-top: 0; padding-top: 2px; }
+    .news-item .who { font-size: 12px; color: var(--muted); margin-top: 3px; }
     .about-missing, .about-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
     .pillar.about .psum { font-weight: 400; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .pillar.about[open] .psum { display: none; }
@@ -2794,6 +2797,42 @@
           </div></details>`;
     }
 
+    // --- Actualités de la fiche : Google Actualités (français), sinon Yahoo, via l'API (gardées 1 h) ---
+    function timeAgo(iso) {
+      if (!iso) return "";
+      const minutes = Math.max(Math.round((Date.now() - new Date(iso)) / 60000), 0);
+      if (minutes < 60) return `il y a ${minutes || 1} min`;
+      if (minutes < 24 * 60) return `il y a ${Math.round(minutes / 60)} h`;
+      const days = Math.round(minutes / 1440);
+      return days < 7 ? `il y a ${days} j` : new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    }
+
+    async function loadNews(s) {
+      const el = document.getElementById("stock-news");
+      if (!el || s.minimal) { if (el) el.innerHTML = ""; return; }
+      el.innerHTML = "";
+      let data = null;
+      try {
+        data = await api(`/news/${encodeURIComponent(s.yahoo_ticker || s.ticker)}?name=${encodeURIComponent(s.name || "")}`);
+      } catch {
+        data = null;  // API endormie ou code d'accès absent : la fiche reste complète sans la rubrique
+      }
+      if (openedStock !== s) return;
+      const articles = data?.articles || [];
+      if (!articles.length) {
+        el.innerHTML = data ? `<div class="about-missing">Pas d'actualité récente trouvée pour ${escapeHtml(data.query || s.name || s.ticker)}.</div>` : "";
+        return;
+      }
+      el.innerHTML = `<details class="pillar about">
+          <summary><span class="dot" style="background:var(--series-cto)"></span>
+            <span style="min-width:0"><span class="ptitle">Actualités · ${timeAgo(articles[0].published)}</span><span class="psum">${escapeHtml(articles[0].title)}</span></span><span class="chev" aria-hidden="true">›</span></summary>
+          <div class="pbody">
+            ${articles.map((a) => `<a class="news-item" href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.title)}
+              <div class="who">${[a.source, timeAgo(a.published)].filter(Boolean).map(escapeHtml).join(" · ")}</div></a>`).join("")}
+            <div class="about-note">Titres des 30 derniers jours trouvés par ${escapeHtml(data.source)}${data.source === "Yahoo Finance" ? " (en anglais)" : ""}, liens vers les sites d'origine. L'appli ne les trie pas : à lire avec recul.</div>
+          </div></details>`;
+    }
+
     // --- Fiche action plein écran : même contenu partout (Marché, positions, watchlist, analyse en direct) ---
     let stockReturn = null;  // vue et défilement à retrouver en fermant la fiche
     function openStock(s, extraRows = "", showDates = true) {
@@ -2812,11 +2851,13 @@
         <div id="compare-open-slot"></div>
         ${priceChartBlock()}
         <div id="stock-about"></div>
+        <div id="stock-news"></div>
         ${s.minimal ? `<div class="analysis fiche">${extraRows}</div>` : renderStockDetail(s, extraRows, showDates)}`;
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-stock"));
       window.scrollTo(0, 0);
       loadPriceChart(s);
       loadProfile(s);
+      loadNews(s);
       renderCompareButton();
     }
     function closeStock() {
@@ -3806,7 +3847,7 @@
     const CASH_HELP = {
       Versement: "argent que tu déposes sur ce compte",
       Retrait: "argent que tu retires du compte (chez Trade Republic, un paiement par carte aussi)",
-      Intérêts: "rémunération des espèces versée par le courtier",
+      Intérêts: "rémunération des espèces versée par le courtier (montant brut, et en taxes ce qu'il a déjà prélevé)",
     };
     const TRADE_ONLY_FIELDS = ["op-order", "op-ticker", "op-qty", "op-currency", "op-fx", "op-fees", "op-taxes", "op-why", "op-term"];
 
@@ -3814,11 +3855,14 @@
       const type = opEl("op-type").value;
       const cashType = CASH_TYPES.includes(type);
       // display plutôt que hidden : la grille du formulaire impose display aux libellés
-      for (const id of TRADE_ONLY_FIELDS) opEl(id).closest("label").style.display = cashType ? "none" : "";
+      // Intérêts : les prélèvements déjà faits par le courtier restent saisissables (estimation d'impôt)
+      for (const id of TRADE_ONLY_FIELDS) opEl(id).closest("label").style.display = cashType && !(id === "op-taxes" && type === "Intérêts") ? "none" : "";
       if (cashType) {
-        opEl("op-price-label").textContent = "Montant €";
-        const amount = opNum("op-price");
-        opEl("op-summary").textContent = `${type} : ${CASH_HELP[type]}.${amount ? ` ${eurFmt.format(amount)} ${type === "Retrait" ? "sortent du" : "entrent sur le"} compte.` : ""}`
+        opEl("op-price-label").textContent = type === "Intérêts" ? "Montant brut €" : "Montant €";
+        if (!opEdited.has("op-taxes")) opEl("op-taxes").value = 0;
+        // Intérêts : c'est le net (brut - prélèvements) qui arrive sur le compte
+        const amount = opNum("op-price") - (type === "Intérêts" ? opNum("op-taxes") : 0);
+        opEl("op-summary").textContent = `${type} : ${CASH_HELP[type]}.${amount > 0 ? ` ${eurFmt.format(amount)} ${type === "Retrait" ? "sortent du" : "entrent sur le"} compte.` : ""}`
           + " Saisis tous les versements depuis l'ouverture du compte pour que le solde des espèces soit juste.";
         return;
       }
@@ -4229,6 +4273,8 @@
           <div class="perf">plus-values réalisées${e.sales ? ` · ${e.sales} vente${e.sales > 1 ? "s" : ""}` : ""}</div>
           <div class="amount" style="margin-top:6px">${eur.format(e.dividends_net)}</div>
           <div class="perf">dividendes nets${e.dividends_taxes ? ` (brut ${eur.format(e.dividends_gross)}, retenues ${eur.format(e.dividends_taxes)})` : ""}</div>
+          ${e.interest_gross ? `<div class="amount" style="margin-top:6px">${eur.format(e.interest_gross)}</div>
+            <div class="perf">intérêts bruts${e.interest_taxes ? ` (déjà prélevé ${eur.format(e.interest_taxes)})` : ""} · reste dû ${eur.format(e.interest_tax_remaining)}</div>` : ""}
           ${e.estimated_tax != null ? `<div class="perf" style="margin-top:6px">${e.estimated_tax < 0 ? "Impôt à récupérer estimé" : "Impôt restant estimé"} (flat tax ${num((e.flat_tax_rate ?? realized.flat_tax_rate) * 100)} %) : ${eur.format(Math.abs(e.estimated_tax))}${e.withheld_tax ? ` · déjà prélevé sur les dividendes : ${eur.format(e.withheld_tax)}${e.foreign_withheld ? `, dont ${eur.format(e.foreign_withheld)} à l'étranger` : ""}` : ""}</div>` : ""}
         </div>`).join("");
       const sales = y.sales.map((s) => `
@@ -4241,7 +4287,7 @@
         <div class="realized-grid">${cards}</div>
         ${sales ? `<details class="realized-list"><summary>Ventes ${y.year} (${y.sales.length})</summary>${sales}</details>` : ""}
         ${dividends ? `<details class="realized-list"><summary>Dividendes ${y.year} (${y.dividends.length})</summary>${dividends}</details>` : ""}
-        <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation de ce qui reste à payer, dividende par dividende : la retenue étrangère (15 % aux États-Unis) efface les 12,8 % d'impôt sur le revenu, pas les prélèvements sociaux. Quand ton courtier a déjà prélevé l'acompte de 12,8 % sur un dividende étranger (Trade Republic), il est en trop : tu le récupères via ta déclaration. Le taux de la convention est déduit de la place de cotation (un ADR comme TSMC est compté américain). Moins-values reportables et option pour le barème non prises en compte : fie-toi à ton IFU.</p>`;
+        <p class="help" style="margin-top:10px">Plus-values calculées au prix moyen pondéré, frais inclus. Sur le PEA, rien n'est imposé tant que tu ne fais pas de retrait. L'impôt du CTO est une estimation de ce qui reste à payer, dividende par dividende : la retenue étrangère (15 % aux États-Unis) efface les 12,8 % d'impôt sur le revenu, pas les prélèvements sociaux. Quand ton courtier a déjà prélevé l'acompte de 12,8 % sur un dividende étranger (Trade Republic), il est en trop : tu le récupères via ta déclaration. Le taux de la convention est déduit de la place de cotation (un ADR comme TSMC est compté américain). Les intérêts des espèces (Trade Republic) sont imposés à la même flat tax, sans convention ni abattement : dû = brut × flat tax, moins ce que le courtier a déjà prélevé (s'il n'a rien retenu, tout est à payer à la déclaration, case 2TR). Moins-values reportables et option pour le barème non prises en compte : fie-toi à ton IFU.</p>`;
     }
 
     document.getElementById("realized-year").addEventListener("change", (e) => renderRealized(e.target.value));
