@@ -410,6 +410,8 @@
     .tx-edit .op-grid input, .tx-edit .op-grid select { background: var(--card); }
     .tx-edit .danger { color: var(--accent-neg); }
     .tx-tag { font-size: 11px; color: var(--muted); }
+    .fx-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .fx-row > span:last-child { text-align: right; white-space: nowrap; }
     .op-ratio { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; color: var(--text); }
     .op-grid input, .op-grid select {
       background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
@@ -599,6 +601,7 @@
           <div class="label"><span>Valeur des placements</span></div>
           <div class="value" id="total-value"></div>
           <div class="gain" id="total-gain"></div>
+          <div class="returns" id="day-change" hidden></div>
           <div class="returns" id="total-returns" hidden></div>
           <div class="envelopes" id="envelopes"></div>
           <div class="returns" id="cash-line" hidden></div>
@@ -681,7 +684,7 @@
 
         <div class="ptab" data-pane="positions">
           <div class="ptools"><span class="result-count" id="positions-count" style="margin:0"></span>
-            <div class="segmented" id="positions-sort"><button data-sort="value" class="active">Valeur</button><button data-sort="perf">Perf.</button></div></div>
+            <div class="segmented" id="positions-sort"><button data-sort="value" class="active">Valeur</button><button data-sort="perf">Perf.</button><button data-sort="day">Jour</button></div></div>
           <div class="mlist" id="positions"></div>
           <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
         </div>
@@ -700,6 +703,11 @@
 
         <h2>Risque</h2>
         <div class="card" id="stats-risk"><div class="help">Chargement…</div></div>
+
+        <div id="fx-block" hidden>
+          <h2><span data-term="Effet du change">Effet du change</span></h2>
+          <div class="card" id="fx-effect"></div>
+        </div>
 
         <h2>Ce qui a fait ta performance</h2>
         <div class="card">
@@ -1475,7 +1483,13 @@
     }
     function renderPositions() {
       let list = overview.holdings.filter((h) => !portfolioView.envelope || h.envelope === portfolioView.envelope);
-      list = [...list].sort(portfolioView.sort === "perf" ? (a, b) => (b.gain_pct ?? -Infinity) - (a.gain_pct ?? -Infinity) : (a, b) => (b.value || 0) - (a.value || 0));
+      const dayOf = (h) => daily?.lines?.[dailyKey(h)];
+      const sorters = {
+        perf: (a, b) => (b.gain_pct ?? -Infinity) - (a.gain_pct ?? -Infinity),
+        day: (a, b) => (dayOf(b)?.pct ?? -Infinity) - (dayOf(a)?.pct ?? -Infinity),
+        value: (a, b) => (b.value || 0) - (a.value || 0),
+      };
+      list = [...list].sort(sorters[portfolioView.sort] || sorters.value);
       document.getElementById("positions-count").innerHTML = `${list.length} ligne${list.length > 1 ? "s" : ""}`
         + (portfolioView.envelope ? ` <button class="chip on removable" data-penv="${escapeHtml(portfolioView.envelope)}">${escapeHtml(portfolioView.envelope)}</button>` : "");
       document.getElementById("positions").innerHTML = list.map((h) => {
@@ -1487,7 +1501,9 @@
             <div style="min-width:0"><div class="name">${escapeHtml(name)}</div>
               <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
             <div class="right"><span class="price">${h.value != null ? eur.format(h.value) : "N/A"}</span>
-              <span class="pill-gain ${signClass(h.gain)}">${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</span></div>
+              ${portfolioView.sort === "day"
+                ? `<span class="pill-gain ${signClass(dayOf(h)?.change)}">${dayOf(h) ? `${pctFmt.format(dayOf(h).pct ?? 0)} · ${signedEur(dayOf(h).change)}` : "N/A"}</span>`
+                : `<span class="pill-gain ${signClass(h.gain)}">${h.gain_pct != null ? pctFmt.format(h.gain_pct) : ""}</span>`}</div>
           </button>`;
       }).join("");
       document.querySelectorAll("#positions-sort button").forEach((b) => b.classList.toggle("active", b.dataset.sort === portfolioView.sort));
@@ -1500,6 +1516,7 @@
       const r = returns?.positions_by_envelope?.[h.envelope]?.[ticker] ?? returns?.positions?.[ticker];
       const label = returnLabel(r);
       const a = portfolioAnalyses[h.yahoo_ticker];
+      const day = daily?.lines?.[dailyKey(h)], fx = daily?.currency?.lines?.[dailyKey(h)];
       const cell = (k, v, cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
       return `<div class="poscard"><h3>Ta position${h.envelope ? ` · ${escapeHtml(h.envelope)}` : ""}</h3>
           <div class="stat">
@@ -1509,6 +1526,9 @@
             ${a?.quantity != null ? cell("Quantité", hideable(num(a.quantity, 6))) : ""}
             ${r ? cell("Gain total", signedEur(r.gain), signClass(r.gain)) : ""}
             ${label ? cell(label.term, label.text, signClass(r.xirr)) : ""}
+            ${day ? cell(`<span data-term="Variation du jour">Aujourd'hui</span>`, `${signedEur(day.change)}${day.pct != null ? ` · ${pctFmt.format(day.pct)}` : ""}`, signClass(day.change)) : ""}
+            ${fx ? cell(`<span data-term="Effet du change">Effet du change</span>`, `${signedEur(fx.effect)}`, signClass(fx.effect)) : ""}
+            ${fx?.stock_effect != null ? cell("Venu de l'action", signedEur(fx.stock_effect), signClass(fx.stock_effect)) : ""}
           </div>
           <button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button><div class="buy-chart-slot"></div>
         </div>`;
@@ -2123,6 +2143,49 @@
       renderSavings();
     }
 
+    // --- Variation du jour et effet de change (daily.py) : cours Yahoo, chargés après les positions ---
+    // Clé d'une ligne : enveloppe et ticker Yahoo, comme renvoyés par /portfolio/daily
+    let daily = null;
+    const dailyKey = (h) => `${String(h.envelope || "").toUpperCase()}|${String(h.yahoo_ticker || h.ticker).toUpperCase()}`;
+    const sessionDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    async function loadDaily() {
+      try {
+        daily = await api("/portfolio/daily");
+      } catch {
+        return;  // Yahoo injoignable : la page reste utilisable sans la variation du jour
+      }
+      renderDaily();
+      renderPositions(portfolioAnalyses);
+      renderFxEffect();
+    }
+    function renderDaily() {
+      const el = document.getElementById("day-change");
+      const t = daily?.total;
+      if (!t || !t.lines) { el.hidden = true; return; }
+      const today = new Date().toISOString().slice(0, 10);
+      const when = daily.session === today ? "Aujourd'hui" : `Séance du ${sessionDate.format(new Date(daily.session + "T12:00:00"))}`;
+      el.hidden = false;
+      el.innerHTML = `<span data-term="Variation du jour">${when}</span> : <b class="${signClass(t.change)}">${signedEur(t.change)}${t.pct != null ? ` (${pctFmt.format(t.pct)})` : ""}</b>`
+        + (t.missing.length ? ` · sans ${t.missing.map(escapeHtml).join(", ")} (cours Yahoo manquant)` : "");
+    }
+    // Onglet Perf. : part de la plus-value latente des lignes cotées en devise qui vient du taux de change
+    function renderFxEffect() {
+      const fx = daily?.currency;
+      const block = document.getElementById("fx-block");
+      if (!fx || !fx.by_currency.length) { block.hidden = true; return; }
+      block.hidden = false;
+      const lines = Object.entries(fx.lines).map(([key, l]) => {
+        const h = overview.holdings.find((x) => dailyKey(x) === key);
+        return { ...l, name: h?.name || key.split("|")[1], envelope: key.split("|")[0] };
+      }).sort((a, b) => a.effect - b.effect);
+      document.getElementById("fx-effect").innerHTML = `
+        <div class="stat">${fx.by_currency.map((c) => `<div><div class="k">${escapeHtml(c.currency)}</div><div class="v ${signClass(c.effect)}">${signedEur(c.effect)}</div>
+          <div class="help" style="margin:2px 0 0;font-size:12px">sur ${eur.format(c.value)} de titres</div></div>`).join("")}</div>
+        <div style="margin-top:10px">${lines.map((l) => `<div class="fx-row"><span>${escapeHtml(l.name)} <span class="muted">· ${escapeHtml(l.envelope)}</span></span>
+            <span><span class="${signClass(l.effect)}">${signedEur(l.effect)}</span> <span class="muted">change</span>${l.stock_effect != null ? ` · <span class="${signClass(l.stock_effect)}">${signedEur(l.stock_effect)}</span> <span class="muted">action</span>` : ""}</span></div>`).join("")}</div>
+        <p class="help" style="margin-top:10px">Part de ta plus-value latente due au taux de change : ${fx.total < 0 ? "la baisse" : "la hausse"} des devises face à l'euro depuis tes achats ${fx.total < 0 ? "t'a coûté" : "t'a rapporté"} ${hideable(eurFmt.format(Math.abs(fx.total)), "•••• €")}. Seule la devise de cotation compte : un ETF coté en euros n'en a pas, même s'il détient des actions américaines.</p>`;
+    }
+
     async function loadReturns() {
       try {
         returns = await api("/portfolio/returns");
@@ -2170,6 +2233,7 @@
       loadLookthrough();
 
       loadReturns();
+      loadDaily();
       loadCash();
       loadDividends();
       loadPriceAlerts();
@@ -4738,6 +4802,8 @@
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
         "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "Variation du jour": "<p>Ce que ton portefeuille a gagné ou perdu depuis la clôture précédente de chaque titre, en euros, taux de change compris (cours Yahoo, mis à jour toutes les 10 minutes environ).</p><p>Une ligne achetée pendant la séance ne compte que ce qu'elle a gagné depuis ton achat, frais compris : un achat du jour n'est pas une hausse. Le week-end, c'est la variation de la dernière séance.</p><p>Chaque place a ses horaires : le matin, une action américaine affiche encore la variation de la veille.</p>",
+        "Effet du change": "<p>Part de ta plus-value latente qui vient du taux de change, pour les titres cotés dans une autre devise que l'euro.</p><p>Exemple : 10 actions Apple achetées 2 000 € quand 1 $ valait 0,92 € (2 174 $). Elles valent 2 300 $, soit 1 978 € à 0,86 € : au taux d'achat, elles vaudraient 2 116 €. Le change t'a coûté 138 €, l'action t'a rapporté 116 € : au total, −22 €.</p><p>Taux d'achat : celui du jour de chaque achat (Yahoo). Seule la devise de cotation compte : un ETF coté en euros qui détient des actions américaines n'a pas d'effet du change ici, alors qu'il subit bien celui du dollar.</p>",
         "Volatilité": "<p>Amplitude habituelle des variations de ton portefeuille, sur un an (écart-type des variations quotidiennes, × √252 jours de bourse).</p><p>Repères : 15 % environ pour le MSCI World, 20 à 25 % pour un portefeuille de quelques actions, plus de 30 % pour des valeurs de croissance ou des cryptos. Plus elle est haute, plus les baisses peuvent être fortes et rapides.</p>",
         "Pire baisse": "<p>La plus forte chute de ton portefeuille depuis un sommet (max drawdown), apports neutralisés : de ton plus haut à ton plus bas qui a suivi.</p><p>C'est la question « quelle baisse ai-je déjà encaissée ? ». Le MSCI World a perdu environ 34 % en mars 2020 et 17 % en 2022. « Effacée » : tu es depuis repassé au-dessus de ce sommet.</p>",
         "Sous le sommet": "<p>Écart entre la performance actuelle et ton plus haut historique (apports neutralisés). 0 : tu es au sommet.</p>",

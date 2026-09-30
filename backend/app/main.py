@@ -532,6 +532,27 @@ def get_returns(user: User = Depends(require_access)):
     return _sheet_call(lambda: returns_summary(user.sheet_id))
 
 
+# --- Variation du jour et effet de change (daily.py) : cours Yahoo gardés 10 min, recalculés après une écriture ---
+DAILY_CACHE_SECONDS = 600
+_daily_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+@app.get("/portfolio/daily")
+def get_daily(user: User = Depends(require_access)):
+    from .daily import portfolio_daily
+    from .sheets import cache_generation
+
+    key = (user.sheet_id, cache_generation())
+    cached = _daily_cache.get(key)
+    if cached and time.monotonic() - cached[0] < DAILY_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: portfolio_daily(user.sheet_id))
+    if len(_daily_cache) > 200:
+        _daily_cache.clear()
+    _daily_cache[key] = (time.monotonic(), result)
+    return result
+
+
 # --- Dividendes à venir (historique Yahoo de chaque titre : une requête par titre, gardé 12 h) ---
 DIVIDENDS_CACHE_SECONDS = 12 * 3600
 _dividends_cache: dict[str, tuple[float, dict | None]] = {}
