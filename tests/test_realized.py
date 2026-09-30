@@ -29,6 +29,25 @@ def test_weighted_average_cost_and_gain():
     assert cto["estimated_tax"] == 0.0  # moins-value nette : pas d'impôt estimé sur les plus-values
 
 
+def test_cases_de_la_declaration():
+    # Achat 1 000 € frais compris, vente 1 300 € nets : 2074 = cession 1 300, acquisition 1 000, 3VG 300.
+    # 1 000 € de dividendes américains chez Trade Republic, 464 € retenus en 2026 : 150 aux États-Unis (15 %) et
+    # 314 en France (31,4 %, dont 128 d'acompte de 12,8 % et 186 de prélèvements sociaux) : 2DC 1 000, 2AB 150, 2CK 128
+    ops = [op("2026-01-10", "CTO Trade Republic", "Achat", "AAPL", 10, 999.0, fees=1.0),
+           op("2026-03-10", "CTO Trade Republic", "Dividende", "AAPL", 10, 1000.0, taxes=464.0),
+           op("2026-06-10", "CTO Trade Republic", "Vente", "AAPL", 10, 1301.0, fees=1.0)]
+    boxes = compute_realized(ops, ENVELOPES)["years"][0]["envelopes"]["CTO"]["declaration"]
+    assert boxes == {"cessions": 1300.0, "acquisitions": 1000.0, "3VG": 300.0, "3VH": 0.0, "2DC": 1000.0, "2TR": 0.0,
+                     "2CK": 128.0, "2AB": 150.0, "social_withheld": 186.0}
+
+
+def test_moins_value_en_3vh():
+    ops = [op("2026-01-10", "CTO Trade Republic", "Achat", "AAPL", 10, 1000.0),
+           op("2026-06-10", "CTO Trade Republic", "Vente", "AAPL", 10, 800.0)]
+    boxes = compute_realized(ops, ENVELOPES)["years"][0]["envelopes"]["CTO"]["declaration"]
+    assert (boxes["3VG"], boxes["3VH"]) == (0.0, 200.0)
+
+
 def test_cost_tracked_per_account():
     # Même titre sur deux comptes : chacun son PRU
     ops = [

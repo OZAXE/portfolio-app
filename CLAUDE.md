@@ -375,6 +375,15 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   année d'après `/portfolio/realized`, 8 ans au plus, plus la projection des 12 mois ; croissance de la dernière année
   complète sur la précédente).
 
+- **Export CSV et récap fiscal (octobre 2026, demande d'Enzo).** CSV créés dans le front (`downloadCsv` : point-virgule,
+  virgule décimale, dates JJ/MM/AAAA, UTF-8 avec BOM pour Excel) : opérations affichées dans l'écran Transactions
+  (`exportTransactions`) et récap fiscal d'une année (`exportTaxRecap` : cases, ventes, dividendes). `dividend_tax`
+  renvoie aussi `ir_withheld` (acompte de 12,8 % prélevé en France), `social_withheld` et `credit` (retenue étrangère
+  dans la limite de la convention) ; `declaration_boxes` (CTO seulement) : 2074 cessions / acquisitions, 3VG / 3VH,
+  2DC, 2AB, 2CK, 2TR. Carte « Pour ta déclaration N+1 » sous l'année (`taxRecap`). Cases indicatives : l'IFU fait foi ;
+  prélèvements retenus sur les intérêts non ventilés (pas dans 2CK) ; moins-values antérieures non déduites ;
+  mention prudente du formulaire 3916 (compte à l'étranger) sans affirmer le cas de chaque courtier.
+
 ## Tester le front (banc Playwright)
 
 Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
@@ -390,7 +399,7 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
   du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, notification ntfy de
-  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, export CSV / récap fiscal, momentum
+  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, momentum
   comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
   actuel, en ligne horizontale), une fois l'historique assez long pour être utile.
