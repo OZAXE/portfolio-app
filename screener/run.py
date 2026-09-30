@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.data import SOURCE_UNAVAILABLE_ERROR, fetch_company_financials  # noqa: E402
 from app.sectors import normalize_sector  # noqa: E402
 from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, blend_fair_value, evaluate_company  # noqa: E402
+from translate_profiles import keep_translation  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 OUTPUT_NAME = "screener.json"
@@ -186,12 +187,18 @@ def company_profile(cf) -> dict | None:
 
 
 def save_profile(data_dir: Path, ticker: str, profile: dict | None) -> None:
-    """Sans nouvelle présentation (Yahoo partiellement bloqué), l'ancien fichier reste en place."""
+    """Sans nouvelle présentation (Yahoo partiellement bloqué), l'ancien fichier reste en place. La traduction
+    française (translate_profiles.py) est gardée tant que le texte anglais n'a pas changé."""
     if not profile:
         return
     out_dir = data_dir / PROFILES_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"{ticker}.json").write_text(json.dumps(profile, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    path = out_dir / f"{ticker}.json"
+    try:
+        old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    except (OSError, ValueError):
+        old = None
+    path.write_text(json.dumps(keep_translation(profile, old), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
 def refresh_with_price(record: dict, raw_price: float) -> None:
