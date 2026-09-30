@@ -13,7 +13,7 @@ watchlist, alertes et briefs marchés hebdomadaires.
 | Onglet | Contenu |
 |---|---|
 | **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
-| **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / sous-évaluées / score / dividende / super investisseurs / watchlist, tris) et fiche par action : ratios, score qualité calibré par secteur, prix juste avec verdict sous-évaluée / correcte / surévaluée, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
+| **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / sous-évaluées / score / dividende / super investisseurs / watchlist, tris) et fiche par action : courbe du cours (1 mois à 10 ans, moyenne 200 jours, prix juste en repère), présentation de l'entreprise, ratios, score qualité calibré par secteur, prix juste avec verdict sous-évaluée / correcte / surévaluée, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Briefs** | Briefs marchés hebdomadaires déposés par une tâche Claude Cowork dans un dossier Google Drive. |
 | **Guides** | [Guide d'utilisation](docs/guide-utilisation.md), [installation pour un nouvel utilisateur](docs/tutoriel-amis.md), [gestion des utilisateurs](docs/ajouter-un-ami.md). |
 | **Réglages** | Code d'accès, hypothèses personnelles du DCF (recalcul instantané de toutes les valeurs). |
@@ -50,6 +50,8 @@ frontend/ (site statique sur Render, installable sur téléphone)
 | Donnée | Source | Remarque |
 |---|---|---|
 | Cours, ratios, cash-flows, dividendes | Yahoo Finance (yfinance) | Gratuit et non officiel : données parfois manquantes hors US. |
+| Courbe de cours de la fiche | Yahoo (API chart), via le backend (`/prices`) | 10 ans de clôtures quotidiennes, gardées 6 h. |
+| Présentation des entreprises | Yahoo (quoteSummary), archivée par le screener | Un fichier par action (`profiles/`), en anglais, ajouté à la prochaine analyse de chaque action. |
 | Comptes annuels US (~20 ans) | SEC, API XBRL | Europe / Asie : 4 ans Yahoo, archivés et fusionnés au fil des ans. |
 | Super investisseurs | SEC, formulaires 13F | Jusqu'à 45 jours de décalage, actions américaines uniquement. |
 | Composition des indices | Wikipedia, Xtrackers (Stoxx 600), OpenFIGI | Voir `screener/build_universe.py`. |

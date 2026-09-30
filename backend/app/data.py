@@ -100,6 +100,11 @@ class CompanyFinancials:
     sector: str | None = None
     industry: str | None = None
 
+    # Présentation de l'entreprise (quoteSummary seulement, en anglais) : affichée dans la fiche
+    summary: str | None = None
+    website: str | None = None
+    employees: int | None = None
+
     # Risque de marché (sert au taux d'actualisation du DCF)
     beta: float | None = None
     # Devise des états financiers, parfois différente de celle de la cotation (ADR, cotations étrangères).
@@ -305,6 +310,10 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
 
     result.sector = info.get("sector")
     result.industry = info.get("industry")
+    result.summary = (info.get("longBusinessSummary") or "").strip() or None
+    result.website = info.get("website") or None
+    employees = _number(info.get("fullTimeEmployees"))
+    result.employees = int(employees) if employees and employees > 0 else None
     result.beta = _number(info.get("beta"))
     result.financial_currency = info.get("financialCurrency")
 

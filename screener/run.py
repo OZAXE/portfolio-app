@@ -39,6 +39,9 @@ from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, blend_fair_val
 UNIVERSE = Path(__file__).with_name("universe.csv")
 OUTPUT_NAME = "screener.json"
 HISTORY_NAME = "history.json"
+# Présentations des entreprises, un petit fichier par action (profiles/<ticker>.json) : ~1,5 ko de texte
+# par société triplerait screener.json, que l'appli télécharge en entier à chaque ouverture
+PROFILES_DIR = "profiles"
 HISTORY_EVERY_DAYS = 6  # un relevé par semaine (le run du samedi, après la clôture du vendredi)
 
 # Valeurs de la veille gardées sur chaque fiche : les alertes comparent avec elles
@@ -147,8 +150,26 @@ def analyze(entry: dict) -> dict:
         "justified_pb_used": v.justified_pb_used,
         "notes": v.notes,
         "data_source": cf.data_source,
+        "profile": company_profile(cf),
     })
     return record
+
+
+def company_profile(cf) -> dict | None:
+    """Présentation affichée dans la fiche. Absente quand quoteSummary est bloqué (STATEMENTS_SOURCE)."""
+    if not cf.summary:
+        return None
+    return {"summary": cf.summary, "website": cf.website, "employees": cf.employees,
+            "updated": datetime.now(timezone.utc).date().isoformat()}
+
+
+def save_profile(data_dir: Path, ticker: str, profile: dict | None) -> None:
+    """Sans nouvelle présentation (Yahoo partiellement bloqué), l'ancien fichier reste en place."""
+    if not profile:
+        return
+    out_dir = data_dir / PROFILES_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{ticker}.json").write_text(json.dumps(profile, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
 def refresh_with_price(record: dict, raw_price: float) -> None:
@@ -243,6 +264,7 @@ def main():
                 consecutive_blocks = 0
             continue  # on garde l'ancienne analyse, elle sera retentée
         consecutive_blocks = 0
+        save_profile(Path(args.data_dir), entry["ticker"], record.pop("profile", None))
         infer_price_scale(record, prices.get(entry["ticker"]))
         stocks[entry["ticker"]] = record
         done += 1
