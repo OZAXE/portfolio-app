@@ -3419,8 +3419,9 @@
             ${a.missing > 0 ? `<div class="who negative">Il manque au moins ${eur.format(a.missing)} de versements avant le ${new Date(a.missing_before + "T12:00:00").toLocaleDateString("fr-FR")} : le solde est faux tant qu'ils ne sont pas saisis.</div>` : ""}</div>
           <div class="right"><b class="${a.balance < 0 ? "negative" : ""}">${eur.format(a.balance)}</b><div class="who">${escapeHtml(a.envelope)}</div></div>
         </div>`).join("");
-      const untracked = cashData.untracked.length
-        ? `<p class="help" style="margin-top:10px">${accounts.length ? "Pas encore suivi" : "Suivi des espèces pas encore activé"} pour ${cashData.untracked.map(escapeHtml).join(", ")} : ajoute ses versements (bouton Opération, type Versement, ou import de l'export CSV Trade Republic) depuis l'ouverture du compte.</p>` : "";
+      const untrackedAccounts = cashData.untracked || [];
+      const untracked = untrackedAccounts.length
+        ? `<p class="help" style="margin-top:10px">${accounts.length ? "Pas encore suivi" : "Suivi des espèces pas encore activé"} pour ${untrackedAccounts.map(escapeHtml).join(", ")} : ajoute ses versements (bouton Opération, type Versement, ou import de l'export CSV Trade Republic) depuis l'ouverture du compte.</p>` : "";
       card.innerHTML = (rows || "") + untracked
         + (accounts.length ? `<p class="help" style="margin-top:10px">Solde = versements − retraits + intérêts − achats + ventes + dividendes. Ta performance (onglet Perf.) ne compte que tes titres : l'argent qui attend n'y pèse pas.</p>` : "");
     }
