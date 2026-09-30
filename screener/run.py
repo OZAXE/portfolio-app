@@ -91,7 +91,18 @@ def fetch_prices(tickers: list[str]) -> dict[str, float]:
     return prices
 
 
-def analyze(entry: dict) -> dict:
+def load_pe_history(data_dir: Path | None, ticker: str) -> dict | None:
+    """PER historique archivé par screener/financials.py (absent tant que l'action n'y est pas passée)."""
+    path = data_dir / "financials" / f"{ticker}.json" if data_dir else None
+    if not path or not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("pe_history")
+    except (OSError, ValueError):
+        return None
+
+
+def analyze(entry: dict, data_dir: Path | None = None) -> dict:
     """Fondamentaux + valorisation, réduits aux champs utiles au screener."""
     cf = fetch_company_financials(entry["ticker"])
     record = {
@@ -107,7 +118,7 @@ def analyze(entry: dict) -> dict:
     }
     if cf.raw_error:
         return record
-    v = evaluate_company(cf)
+    v = evaluate_company(cf, load_pe_history(data_dir, entry["ticker"]))
     record.update({
         "currency": cf.currency,
         "price": cf.current_price,
@@ -147,6 +158,9 @@ def analyze(entry: dict) -> dict:
         "fair_value_pe": v.fair_value_pe,
         "fair_value_pb": v.fair_value_pb,
         "fair_pe_used": v.fair_pe_used,
+        "fair_value_hist_pe": v.fair_value_hist_pe,
+        "hist_pe_median": v.hist_pe_median,
+        "hist_pe_years": v.hist_pe_years,
         "justified_pb_used": v.justified_pb_used,
         "notes": v.notes,
         "data_source": cf.data_source,
@@ -182,7 +196,8 @@ def refresh_with_price(record: dict, raw_price: float) -> None:
         record["dcf_reliable"] = RELIABLE_RATIO_MIN <= iv / price <= RELIABLE_RATIO_MAX
     # Fiches analysées avant l'arrivée du prix juste : complétées à leur prochaine analyse
     if "fair_value_pe" in record:
-        record.update(blend_fair_value(price, iv, record.get("fair_value_pe"), record.get("fair_value_pb")))
+        record.update(blend_fair_value(price, iv, record.get("fair_value_pe"), record.get("fair_value_pb"),
+                                       record.get("fair_value_hist_pe")))
 
 
 def infer_price_scale(record: dict, raw_price: float | None) -> None:
@@ -245,7 +260,7 @@ def main():
             log.info("budget de temps atteint")
             break
         try:
-            record = analyze(entry)
+            record = analyze(entry, Path(args.data_dir))
         except Exception as e:  # une donnée inattendue sur une action ne doit pas arrêter tout le screener
             log.warning("%s : analyse en erreur (%s)", entry["ticker"], e)
             # L'analyse précédente reste affichée si elle existe ; la date avance pour passer à la suite

@@ -45,6 +45,9 @@ class ValuationResult:
     fair_value_pb: float | None = None  # valeur comptable par action x cours / valeur comptable justifié
     fair_pe_used: float | None = None
     justified_pb_used: float | None = None
+    fair_value_hist_pe: float | None = None  # bénéfice par action x PER médian de l'action sur 10 ans
+    hist_pe_median: float | None = None
+    hist_pe_years: int | None = None
 
 
 # Hypothèses du DCF. La croissance et l'actualisation sont ajustées par entreprise
@@ -256,16 +259,27 @@ def fair_value_verdict(price: float | None, fair_value: float | None) -> str | N
     return VERDICT_FAIR
 
 
+def historical_pe_fair_value(pe_history: dict | None) -> float | None:
+    """Bénéfice par action du dernier exercice x PER médian de l'action sur ses 10 dernières années
+    (screener/financials.py). Corrige l'angle mort du PER du secteur : Air Liquide ou Hermès, que le
+    marché paie durablement plus cher que leur secteur, sont jugées face à leur propre passé."""
+    if not pe_history or not pe_history.get("median") or not pe_history.get("eps"):
+        return None
+    return pe_history["median"] * pe_history["eps"]
+
+
 def blend_fair_value(
     price: float | None,
     dcf_value: float | None,
     pe_value: float | None,
     pb_value: float | None,
+    hist_pe_value: float | None = None,
 ) -> dict:
     """
     Prix juste = moyenne simple des méthodes disponibles. Chaque méthode a ses angles morts :
     le DCF dépend beaucoup des hypothèses de croissance, le PER du secteur ignore la croissance
-    propre à l'entreprise, le cours / valeur comptable ne vaut que pour les banques. Les
+    propre à l'entreprise, le PER historique suppose que le marché la payait au bon prix en moyenne,
+    le cours / valeur comptable ne vaut que pour les banques. Les
     croiser limite l'erreur.
 
     Comme pour le DCF, une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours
@@ -276,7 +290,7 @@ def blend_fair_value(
     les hypothèses DCF personnelles de l'utilisateur.
     """
     methods = [
-        v for v in (dcf_value, pe_value, pb_value)
+        v for v in (dcf_value, pe_value, pb_value, hist_pe_value)
         if v is not None and v > 0 and price and RELIABLE_RATIO_MIN <= v / price <= RELIABLE_RATIO_MAX
     ]
     if not methods:
@@ -294,7 +308,7 @@ def blend_fair_value(
     }
 
 
-def _add_fair_value(result: ValuationResult, cf: CompanyFinancials) -> None:
+def _add_fair_value(result: ValuationResult, cf: CompanyFinancials, pe_history: dict | None = None) -> None:
     profile = score_profile(cf.sector, cf.industry)
     result.fair_value_pe = pe_fair_value(cf, profile)
     if result.fair_value_pe is not None:
@@ -308,12 +322,19 @@ def _add_fair_value(result: ValuationResult, cf: CompanyFinancials) -> None:
             result.fair_value_pb = round(book_value_per_share * pb, 2)
             result.justified_pb_used = round(pb, 2)
 
-    fair = blend_fair_value(cf.current_price, result.intrinsic_value_per_share, result.fair_value_pe, result.fair_value_pb)
+    hist = historical_pe_fair_value(pe_history)
+    if hist is not None:
+        result.fair_value_hist_pe = round(hist, 2)
+        result.hist_pe_median = pe_history["median"]
+        result.hist_pe_years = len(pe_history.get("years") or [])
+
+    fair = blend_fair_value(cf.current_price, result.intrinsic_value_per_share, result.fair_value_pe,
+                            result.fair_value_pb, result.fair_value_hist_pe)
     for key, value in fair.items():
         setattr(result, key, value)
     if result.fair_value is None:
         result.notes.append(
-            "Prix juste non calculé : aucune méthode (DCF, PER du secteur, valeur comptable) "
+            "Prix juste non calculé : aucune méthode (DCF, PER du secteur, PER historique, valeur comptable) "
             "ne donne un résultat exploitable, à moins de 0,4 ou plus de 2,5 fois le cours"
         )
     elif result.fair_value_divergent:
@@ -323,10 +344,11 @@ def _add_fair_value(result: ValuationResult, cf: CompanyFinancials) -> None:
         )
 
 
-def evaluate_company(cf: CompanyFinancials) -> ValuationResult:
+def evaluate_company(cf: CompanyFinancials, pe_history: dict | None = None) -> ValuationResult:
+    """pe_history : PER historique de l'action archivé par screener/financials.py (facultatif)."""
     result = _evaluate_dcf(cf)
     if cf.quote_type != "ETF":
-        _add_fair_value(result, cf)
+        _add_fair_value(result, cf, pe_history)
     return result
 
 

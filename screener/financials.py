@@ -19,11 +19,14 @@ import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import math
+from statistics import median
+
 import requests
 import yfinance as yf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
-from app.data import _number  # noqa: E402
+from app.data import MINOR_CURRENCIES, _number  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 SEC_HEADERS = {"User-Agent": "portfolio-app enzocabos192004@gmail.com", "Accept-Encoding": "gzip, deflate"}
@@ -151,6 +154,76 @@ def with_ratios(values: dict) -> dict:
     return v
 
 
+# PER historique propre à l'action : cours moyen de chaque année / bénéfice par action de l'année
+PE_HISTORY_YEARS = 10
+PE_MIN_YEARS = 3  # en dessous, une médiane ne veut rien dire
+PE_MAX = 100  # au-delà, bénéfice quasi nul (année de crise) : le PER de l'année ne dit rien
+MIN_MONTHS = 6  # cours moyen d'une année calculé sur au moins 6 clôtures mensuelles
+
+
+def adjusted_shares(shares: float, year: int, splits: list[tuple[date, float]], reference: float) -> float:
+    """Nombre d'actions d'un exercice ramené à la base actuelle. Les cours Yahoo sont corrigés des divisions
+    d'actions, mais un ancien rapport donne le nombre d'actions d'avant (Apple, division par 4 en 2020 :
+    ~4,3 milliards d'actions en 2019 dans le 10-K de 2019, ~17 milliards après). Les rapports récents, eux,
+    retraitent les exercices comparés. On essaie donc chaque produit des divisions postérieures à l'exercice
+    et on garde le plus proche du nombre d'actions actuel : un rachat ou une émission ne change le nombre
+    d'actions que de quelques % par an, une division le multiplie d'un coup. Une division en cours d'exercice
+    compte aussi (nombre moyen d'actions de l'année à cheval sur les deux bases)."""
+    later = [ratio for day, ratio in sorted(splits) if day >= date(year, 1, 1) and ratio > 0]
+    candidates = [shares * math.prod(later[k:]) for k in range(len(later) + 1)]
+    return min(candidates, key=lambda c: abs(math.log(c / reference)))
+
+
+def historical_pe(years: list[dict], closes: dict[int, list[float]], splits: list[tuple[date, float]],
+                  shares_now: float | None = None) -> dict | None:
+    """PER de chaque exercice des 10 dernières années (cours moyen de l'année civile / bénéfice net par action
+    ramené à la base actuelle), leur médiane et le bénéfice par action du dernier exercice. Le cours et le
+    bénéfice viennent chacun d'une seule source : un prix juste = médiane x BPA reste dans l'unité du cours.
+    closes : clôtures mensuelles corrigées des divisions, par année civile. shares_now : nombre d'actions
+    actuel (screener) ; le BPA actuel en dépend plutôt que du dernier rapport, parfois faux chez Yahoo
+    (Air Liquide 2025 : 579 millions d'actions au lieu d'environ 699 après l'attribution gratuite de juin)."""
+    usable = [y for y in years if y.get("net_income") is not None and y.get("shares")]
+    if not usable:
+        return None
+    latest = max(usable, key=lambda y: y["year"])
+    reference = shares_now or latest["shares"] * math.prod(r for d, r in splits if d > date(latest["year"], 12, 31) and r > 0)
+    points = []
+    for y in usable:
+        prices = closes.get(y["year"], [])
+        if y["year"] <= latest["year"] - PE_HISTORY_YEARS or len(prices) < MIN_MONTHS:
+            continue
+        eps = y["net_income"] / adjusted_shares(y["shares"], y["year"], splits, reference)
+        pe = (sum(prices) / len(prices)) / eps if eps > 0 else None
+        if pe is not None and 0 < pe <= PE_MAX:
+            points.append({"year": y["year"], "pe": round(pe, 1)})
+    points.sort(key=lambda p: p["year"])
+    eps_now = latest["net_income"] / reference
+    return {"years": points, "median": round(median(p["pe"] for p in points), 1) if len(points) >= PE_MIN_YEARS else None,
+            "eps": round(eps_now, 4) if eps_now > 0 else None, "eps_year": latest["year"]}
+
+
+def fetch_pe_history(ticker: str, years: list[dict], reporting_currency: str | None,
+                     shares_now: float | None = None) -> dict | None:
+    """Clôtures mensuelles sur 11 ans (API chart de Yahoo) et divisions d'actions. Pas de PER historique
+    quand comptes et cotation sont dans deux devises (Shell : dollars / pence) : le change sur 10 ans
+    fausserait les PER passés, même règle que le DCF."""
+    t = yf.Ticker(ticker)
+    history = t.history(period="11y", interval="1mo", auto_adjust=False)
+    if history is None or history.empty:
+        return None
+    currency = (t.history_metadata or {}).get("currency")
+    factor = 1.0
+    if currency in MINOR_CURRENCIES:
+        currency, factor = MINOR_CURRENCIES[currency]
+    if reporting_currency and currency and reporting_currency != currency:
+        return {"skipped": f"comptes en {reporting_currency}, cotation en {currency}"}
+    closes: dict[int, list[float]] = {}
+    for day, close in history["Close"].dropna().items():
+        closes.setdefault(day.year, []).append(float(close) / factor)
+    splits = [(d.date(), float(r)) for d, r in t.splits.items()] if t.splits is not None else []
+    return historical_pe(years, closes, splits, shares_now)
+
+
 def merge(existing: dict | None, fresh: dict) -> dict:
     """Garde les exercices archivés, remplace ceux que la nouvelle source fournit à nouveau."""
     years = {int(y["year"]): {k: val for k, val in y.items() if k != "year"} for y in (existing or {}).get("years", [])}
@@ -193,6 +266,13 @@ def main():
     queue.sort(key=lambda x: x[0])  # jamais faits d'abord, puis les plus anciens
     log.info("historique financier : %d actions à mettre à jour, lot de %d", len(queue), args.max)
 
+    # Nombre d'actions actuel de chaque fiche du screener (lancé juste avant, même dossier)
+    screener_path = Path(args.data_dir) / "screener.json"
+    shares_now = {}
+    if screener_path.exists():
+        stocks = json.loads(screener_path.read_text(encoding="utf-8")).get("stocks", [])
+        shares_now = {st["ticker"]: st["shares"] for st in stocks if st.get("shares")}
+
     ciks = sec_cik_map()
     done = 0
     for _, entry in queue[: args.max]:
@@ -207,7 +287,13 @@ def main():
             if not fresh["years"]:
                 continue
             existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
-            path.write_text(json.dumps({"ticker": ticker, **merge(existing, fresh)}, separators=(",", ":")), encoding="utf-8")
+            merged = merge(existing, fresh)
+            try:
+                merged["pe_history"] = fetch_pe_history(ticker, merged["years"], merged["currency"], shares_now.get(ticker))
+            except Exception as e:  # cours indisponibles : on garde l'ancien PER historique s'il existe
+                log.warning("%s : PER historique en erreur (%s)", ticker, e)
+                merged["pe_history"] = (existing or {}).get("pe_history")
+            path.write_text(json.dumps({"ticker": ticker, **merged}, separators=(",", ":")), encoding="utf-8")
             done += 1
         except Exception as e:
             log.warning("%s : historique en erreur (%s)", ticker, e)
