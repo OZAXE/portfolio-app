@@ -353,6 +353,20 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   financière (seuils 1,5 / 3 : `NET_DEBT_LOW/HIGH`), filtres et tris du screener, lignes de la comparaison, lexique.
   Le score qualité sur 20 n'a pas changé (recalibrer ses paliers serait un autre chantier).
 
+- **Concentration et rééquilibrage (octobre 2026, demande d'Enzo).** Tout dans le front, sans toucher au Sheet.
+  Concentration (`concentrationOf`, carte de l'onglet Répartition, `renderConcentration`) : poids par titre, PEA et
+  CTO additionnés (`holdingsByTitle`) ; plafonds sur l'appareil (`settings.concentration`, 15 % par action, 40 % par
+  secteur) ; un ETF n'est jamais une ligne concentrée ; secteurs avec le contenu des ETF quand il est chargé
+  (`lookthroughRows`) ; entreprise trop lourde en direct + via les ETF (`companyExposure`, extrait de `renderExposure`) ;
+  nombre effectif de lignes = 1 / somme des poids² sur les actions en direct ; `trimSuggestion` (vendre l'excédent
+  réinvesti ailleurs, ou investir ailleurs sans vendre) ; phrase quand le plafond est inatteignable faute de lignes.
+  Alertes sous la cloche (`concentrationAlerts`, regroupées au-delà de 2 lignes) fusionnées avec celles du serveur
+  (`renderAlertsList`, `serverAlerts`). Rééquilibrage (`rebalancePlan`, mode « Rééquilibrer » de l'allocation,
+  `settings.allocMode`) : écart = cible x (valeur des poches ciblées + versement) - valeur ; ventes d'une poche dans
+  l'ordre PEA, CTO en moins-value, CTO du plus petit au plus grand % de plus-value (`sellOrder`) ; impôt = plus-values
+  nettes des ventes du CTO x PFU ; avertissement quand une poche à acheter n'a de lignes que dans une autre enveloppe
+  que les ventes. Poches sans cible exclues. Écart sous 1 % du portefeuille marqué facultatif.
+
 ## Tester le front (banc Playwright)
 
 Le conteneur de dev n'atteint ni Yahoo ni jsDelivr : Chart.js se récupère par `npm pack chart.js@4.4.4`, le
@@ -367,8 +381,8 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
   (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
-  du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, alerte de concentration
-  et suggestions de rééquilibrage, rendement sur PRU et revenu annuel attendu, export CSV / récap fiscal, momentum
+  du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, notification ntfy de
+  concentration (aujourd'hui seulement sous la cloche), rééquilibrage par enveloppe, rendement sur PRU et revenu annuel attendu, export CSV / récap fiscal, momentum
   comme filtre du screener, import des divisions Trade Republic (format du CSV à observer sur un vrai cas).
 - Tracer le prix juste hebdomadaire sur la courbe de cours de la fiche (aujourd'hui seulement le prix juste
   actuel, en ligne horizontale), une fois l'historique assez long pour être utile.

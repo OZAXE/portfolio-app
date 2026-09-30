@@ -465,6 +465,14 @@
     .edit-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* Allocation cible */
+    .conc-limits { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+    .conc-limits .chip { padding: 4px 9px; font-size: 12px; }
+    .bar-row.over .bar-fill { background: var(--accent-neg); }
+    .bar-row .bar-sub.negative { color: var(--accent-neg); margin-top: 6px; line-height: 1.35; }
+    .trade-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .trade-row:first-child { border-top: 0; }
+    .trade-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .trade-row .right { text-align: right; white-space: nowrap; font-weight: 600; }
     .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .alloc-table th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0 6px; }
     .alloc-table th:first-child, .alloc-table td:first-child { text-align: left; }
@@ -746,6 +754,9 @@
             <p class="help" style="margin-top:10px">Tes actions en direct, plus la part de chaque entreprise dans tes ETF. Les 15 plus grosses expositions.</p>
           </div>
         </div>
+
+        <h2><span data-term="Concentration">Concentration</span></h2>
+        <div class="card" id="concentration"></div>
 
         <h2>Allocation cible</h2>
         <div class="card" id="allocation"></div>
@@ -1659,6 +1670,8 @@
       }
       renderSectors();
       renderExposure();
+      renderConcentration();
+      renderAlertsList();
     }
 
     const lookthroughOn = () => document.getElementById("lookthrough").checked;
@@ -1711,8 +1724,24 @@
     // Exposition par entreprise : lignes en direct + part de chaque entreprise dans les ETF reconnus
     function renderExposure() {
       const block = document.getElementById("exposure-block");
-      const etfs = overview.holdings.filter((h) => etfIndex(h));
-      if (!etfs.length) { block.hidden = true; return; }
+      const top = companyExposure().slice(0, 15);
+      if (!top.length) { block.hidden = true; return; }
+      const total = overview.total.value || 1;
+      const max = top[0]?.value || 1;
+      document.getElementById("exposure").innerHTML = top.map((c) => `
+        <div class="bar-row">
+          <div class="bar-label"><span>${escapeHtml(c.name)}</span><span>${eur.format(c.value)} · ${pctPlain(c.value / total)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(c.value / max) * 100}%"></div></div>
+          ${c.direct && c.viaEtf ? `<div class="bar-sub">${eur.format(c.direct)} en direct + ${eur.format(c.viaEtf)} via tes ETF</div>` : c.viaEtf ? `<div class="bar-sub">via tes ETF</div>` : ""}
+        </div>`).join("");
+      block.hidden = false;
+    }
+
+    // Lignes en direct + part de chaque entreprise dans les ETF reconnus, de la plus grosse à la plus petite.
+    // Vide sans ETF reconnu (contenu des ETF pas chargé, ou aucun ETF)
+    function companyExposure() {
+      const etfs = lookthrough ? overview.holdings.filter((h) => etfIndex(h)) : [];
+      if (!etfs.length) return [];
       const companies = {};
       for (const h of etfs) {
         for (const [name, key, w] of lookthrough.indices[etfIndex(h)].holdings) {
@@ -1730,19 +1759,182 @@
         const c = (companies[key] ||= { name: h.name || h.ticker, direct: 0, viaEtf: 0 });
         c.direct += h.value || 0;
       }
-      const total = overview.total.value || 1;
-      const top = Object.values(companies).map((c) => ({ ...c, value: c.direct + c.viaEtf })).sort((a, b) => b.value - a.value).slice(0, 15);
-      const max = top[0]?.value || 1;
-      document.getElementById("exposure").innerHTML = top.map((c) => `
-        <div class="bar-row">
-          <div class="bar-label"><span>${escapeHtml(c.name)}</span><span>${eur.format(c.value)} · ${pctPlain(c.value / total)}</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${(c.value / max) * 100}%"></div></div>
-          ${c.direct && c.viaEtf ? `<div class="bar-sub">${eur.format(c.direct)} en direct + ${eur.format(c.viaEtf)} via tes ETF</div>` : c.viaEtf ? `<div class="bar-sub">via tes ETF</div>` : ""}
-        </div>`).join("");
-      block.hidden = false;
+      return Object.values(companies).map((c) => ({ ...c, value: c.direct + c.viaEtf })).sort((a, b) => b.value - a.value);
     }
 
     document.getElementById("lookthrough").addEventListener("change", renderSectors);
+
+    // --- Concentration : poids de chaque titre (PEA et CTO additionnés), de chaque secteur et de chaque entreprise
+    // (en direct + via les ETF), comparés à des plafonds réglables sur l'appareil. Un ETF n'est pas une ligne
+    // concentrée : il contient déjà des centaines d'entreprises ---
+    const CONCENTRATION_DEFAULTS = { line: 0.15, sector: 0.4 };
+    const concentrationLimits = () => ({ ...CONCENTRATION_DEFAULTS, ...(settings.concentration || {}) });
+
+    // Titres regroupés par ticker : Air Liquide sur le PEA et le CTO = une seule exposition
+    function holdingsByTitle(holdings) {
+      const titles = new Map();
+      for (const h of holdings) {
+        const key = String(h.yahoo_ticker || h.ticker).toUpperCase();
+        const t = titles.get(key) || { key, name: h.name || h.ticker, kind: h.kind, sector: h.sector, value: 0 };
+        t.value += h.value || 0;
+        titles.set(key, t);
+      }
+      return [...titles.values()].sort((a, b) => b.value - a.value);
+    }
+
+    // Nombre effectif de lignes = 1 / somme des poids au carré (indice de Herfindahl inversé) : 4 lignes de 25 %
+    // -> 4 ; une ligne de 70 % et trois de 10 % -> 1 / (0,49 + 3 x 0,01) = 1,9, le portefeuille se comporte comme
+    // s'il n'avait que 2 lignes
+    function effectiveLines(values) {
+      const total = values.reduce((a, b) => a + b, 0);
+      if (!total) return null;
+      return 1 / values.reduce((sum, v) => sum + (v / total) ** 2, 0);
+    }
+
+    // Pour revenir sous le plafond : vendre l'excédent (réinvesti ailleurs, le total ne change pas) ou investir
+    // ailleurs sans rien vendre. Ligne de 3 000 € sur 10 000 €, plafond 15 % : vendre 3 000 - 1 500 = 1 500 €,
+    // ou investir 3 000 / 0,15 - 10 000 = 10 000 € ailleurs
+    function trimSuggestion(value, total, limit) {
+      return { sell: value - limit * total, invest: value / limit - total };
+    }
+
+    function concentrationOf(holdings, total, limits) {
+      const titles = holdingsByTitle(holdings).map((t) => ({ ...t, weight: total ? t.value / total : 0 }));
+      const stocks = titles.filter((t) => t.kind !== "ETF");
+      for (const t of titles) t.over = t.kind !== "ETF" && t.weight > limits.line;
+      const sectorRows = lookthrough && holdings.some((h) => etfIndex(h))
+        ? lookthroughRows("sector")
+        : (overview.breakdowns?.sector || []);
+      const sectors = sectorRows.filter((r) => r.weight > limits.sector && !/^ETF|^Non classé|^Autres/.test(r.label));
+      // Entreprise dépassant le plafond une fois ses parts dans les ETF ajoutées (Apple en direct + dans un MSCI World)
+      const companies = companyExposure().filter((c) => c.viaEtf > 0 && c.value / total > limits.line
+        && !titles.some((t) => t.over && nameKey(t.name) === nameKey(c.name)));
+      return {
+        titles, sectors, companies,
+        top5: titles.slice(0, 5).reduce((sum, t) => sum + t.weight, 0),
+        effective: effectiveLines(stocks.map((t) => t.value)), stockCount: stocks.length,
+      };
+    }
+
+    function renderConcentration() {
+      const el = document.getElementById("concentration");
+      const total = overview.total.value;
+      if (!overview.holdings.length || !total) { el.innerHTML = `<p class="help">Aucune position pour le moment.</p>`; return; }
+      const limits = concentrationLimits();
+      const c = concentrationOf(overview.holdings, total, limits);
+      const max = c.titles[0]?.value || 1;
+      const rows = c.titles.slice(0, 10).map((t) => {
+        const trim = t.over ? trimSuggestion(t.value, total, limits.line) : null;
+        return `<div class="bar-row${t.over ? " over" : ""}">
+            <div class="bar-label"><span>${escapeHtml(t.name)}${t.kind === "ETF" ? ` <span class="muted">· ETF</span>` : ""}</span><span>${eur.format(t.value)} · ${pctPlain(t.weight)}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(t.value / max) * 100}%"></div></div>
+            ${trim ? `<div class="bar-sub negative">Au-dessus de ton plafond de ${pctPlain(limits.line)} : pour y revenir, alléger de ${eur.format(trim.sell)} (réinvestis ailleurs) ou investir ${eur.format(trim.invest)} dans d'autres lignes.</div>` : ""}
+          </div>`;
+      }).join("");
+      const warnings = [
+        ...c.sectors.map((r) => `Le secteur <b>${escapeHtml(r.label)}</b> pèse ${pctPlain(r.weight)} (plafond ${pctPlain(limits.sector)}) : une mauvaise passe du secteur toucherait une grosse partie du portefeuille.`),
+        ...c.companies.map((x) => `<b>${escapeHtml(x.name)}</b> pèse ${pctPlain(x.value / total)} une fois ses parts dans tes ETF ajoutées (${eur.format(x.direct)} en direct, ${eur.format(x.viaEtf)} via tes ETF).`),
+      ];
+      const chip = (kind, v) => `<button class="chip ${Math.abs(limits[kind] - v) < 1e-9 ? "on" : ""}" data-conc="${kind}" data-v="${v}">${pctPlain(v)}</button>`;
+      const effective = c.effective != null && c.stockCount > 1
+        ? ` Tes ${c.stockCount} actions en direct équivalent à <b>${num(c.effective, 1)}</b> <span data-term="Nombre effectif de lignes">lignes de même poids</span>.` : "";
+      // Moins de lignes que 1 / plafond : impossible que toutes passent sous le plafond (3 actions à 15 % = 45 %)
+      const minLines = Math.ceil(1 / limits.line - 1e-9);
+      const tooFew = c.stockCount > 1 && c.stockCount < minLines && c.titles.every((t) => t.kind !== "ETF")
+        ? `<p class="help" style="margin-top:0">Avec ${c.stockCount} actions et sans ETF, chacune pèse en moyenne ${pctPlain(1 / c.stockCount)} : pour rester sous ${pctPlain(limits.line)} par ligne, il faut au moins ${minLines} lignes, ou un ETF pour diversifier.</p>` : "";
+      el.innerHTML = `<p style="margin:0 0 12px;font-size:14px">Tes 5 plus grosses lignes font <b>${pctPlain(c.top5)}</b> du portefeuille.${effective}</p>${tooFew}
+        ${rows}
+        ${warnings.map((w) => `<p class="help negative" style="margin-top:10px">⚠ ${w}</p>`).join("")}
+        ${!c.titles.some((t) => t.over) && !warnings.length ? `<p class="help positive" style="margin-top:10px">Aucune ligne ni aucun secteur au-dessus de tes plafonds.</p>` : ""}
+        <div class="conc-limits">Plafond par action ${[0.1, 0.15, 0.2, 0.25].map((v) => chip("line", v)).join("")}</div>
+        <div class="conc-limits">Plafond par secteur ${[0.3, 0.4, 0.5].map((v) => chip("sector", v)).join("")}</div>
+        <p class="help" style="margin-top:10px">Les ETF ne comptent pas comme une ligne concentrée : ils détiennent déjà des centaines d'entreprises${lookthrough ? ", dont les parts sont ajoutées à tes actions en direct" : ""}. Repères indicatifs, à adapter à tes convictions.</p>`;
+    }
+    document.getElementById("concentration").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-conc]");
+      if (!b) return;
+      settings.concentration = { ...concentrationLimits(), [b.dataset.conc]: Number(b.dataset.v) };
+      saveSettings();
+      renderConcentration();
+      renderAlertsList();
+    });
+    // Alertes sous la cloche : lignes et secteurs au-dessus des plafonds
+    function concentrationAlerts() {
+      if (!overview?.holdings?.length || !overview.total.value) return [];
+      const limits = concentrationLimits();
+      const c = concentrationOf(overview.holdings, overview.total.value, limits);
+      // Au-delà de 2 lignes concernées, une seule alerte qui les cite (sinon une rafale sur un petit portefeuille)
+      const over = c.titles.filter((t) => t.over);
+      const lines = over.length > 2
+        ? [{ icon: "⚖️", text: `${over.length} actions dépassent ton plafond de ${pctPlain(limits.line)} : ${over.map((t) => `${t.name} ${pctPlain(t.weight)}`).join(", ")}`, origin: "concentration" }]
+        : over.map((t) => ({ icon: "⚖️", text: `${t.name} pèse ${pctPlain(t.weight)} de ton portefeuille (plafond ${pctPlain(limits.line)})`, origin: "concentration" }));
+      return [
+        ...lines,
+        ...c.sectors.map((r) => ({ icon: "⚖️", text: `Le secteur ${r.label} pèse ${pctPlain(r.weight)} de ton portefeuille (plafond ${pctPlain(limits.sector)})`, origin: "concentration" })),
+      ];
+    }
+
+    // --- Rééquilibrage : acheter et vendre pour revenir exactement aux cibles des poches (avec un versement
+    // facultatif). Les ventes d'une poche trop lourde commencent par ce qui ne coûte pas d'impôt : PEA d'abord (rien
+    // n'est imposé tant qu'on ne retire pas), puis les lignes du CTO en moins-value, puis celles du CTO les moins en
+    // plus-value. Plus-value d'une vente = montant x plus-value latente / valeur de la ligne (prix moyen pondéré) ---
+    const REBALANCE_MIN_SHARE = 0.01;  // écart sous 1 % du portefeuille : pas la peine de passer un ordre
+    function sellOrder(a, b) {
+      const rank = (h) => (h.envelope === "PEA" ? 0 : (h.gain ?? 0) <= 0 ? 1 : 2);
+      const ratio = (h) => (h.value ? (h.gain ?? 0) / h.value : 0);
+      return rank(a) - rank(b) || ratio(a) - ratio(b);
+    }
+    function rebalancePlan(pockets, holdings, amount, flatTax) {
+      const base = pockets.reduce((sum, p) => sum + p.value, 0) + amount;
+      let taxable = 0;
+      const plan = pockets.map((p) => {
+        const delta = p.target * base - p.value;
+        const lines = holdings.filter((h) => (h.pocket || "") === p.label && h.value > 0);
+        const sells = [];
+        if (delta < 0) {
+          let left = -delta;
+          for (const h of [...lines].sort(sellOrder)) {
+            if (left <= 0.005) break;
+            const sold = Math.min(left, h.value);
+            const gain = h.gain != null && h.value ? sold * h.gain / h.value : 0;
+            if (h.envelope !== "PEA") taxable += gain;
+            sells.push({ name: h.name || h.ticker, envelope: h.envelope, amount: sold, gain });
+            left -= sold;
+          }
+        }
+        return { ...p, delta, small: Math.abs(delta) < REBALANCE_MIN_SHARE * base, sells, lines };
+      });
+      return { plan, tax: Math.max(taxable, 0) * flatTax, taxable };
+    }
+    function renderRebalance(pockets, amount) {
+      const flatTax = new Date().getFullYear() >= 2026 ? 0.314 : 0.3;
+      const { plan, tax, taxable } = rebalancePlan(pockets, overview.holdings, amount, flatTax);
+      const trades = plan.filter((p) => Math.abs(p.delta) >= 0.5);
+      if (!trades.length) return `<p class="help">Tu es déjà sur tes cibles.</p>`;
+      const rows = trades.map((p) => {
+        const buy = p.delta > 0;
+        const detail = buy
+          ? (p.lines.length ? `à répartir entre ${[...new Set(p.lines.map((h) => h.name || h.ticker))].slice(0, 4).map(escapeHtml).join(", ")}` : "aucune ligne dans cette poche : choisis un titre")
+          : p.sells.map((x) => `${escapeHtml(x.name)} (${escapeHtml(x.envelope || "?")}) ${eur.format(x.amount)}`).join(" · ");
+        return `<div class="trade-row"><div><div>${buy ? "Acheter" : "Vendre"} · ${escapeHtml(p.label)}${p.small ? ` <span class="muted">(écart faible, facultatif)</span>` : ""}</div>
+            <div class="who">${detail}</div></div><div class="right ${buy ? "positive" : "negative"}">${buy ? "+" : "−"}${eur.format(Math.abs(p.delta))}</div></div>`;
+      }).join("");
+      const sells = plan.flatMap((p) => p.sells);
+      const sellEnvelopes = new Set(sells.map((x) => x.envelope).filter(Boolean));
+      const cto = sells.some((x) => x.envelope !== "PEA");
+      // Une vente sur le PEA ne peut pas financer un achat sur le CTO (et inversement) : poches à acheter dont
+      // aucune ligne n'est dans l'enveloppe des ventes
+      const stranded = plan.filter((p) => p.delta > 0 && !p.small && p.lines.length && sellEnvelopes.size
+        && !p.lines.some((h) => sellEnvelopes.has(h.envelope)));
+      const taxText = !sells.length ? "" : !cto
+        ? "Aucun impôt : toutes les ventes sont sur le PEA, qui n'est pas imposé tant que tu ne retires rien."
+        : `Impôt estimé sur les ventes du CTO : <b>${eur.format(tax)}</b>${taxable < 0 ? " (elles dégagent une moins-value, déductible des plus-values de l'année)" : tax ? ` (plus-values de ${eur.format(taxable)} au prélèvement forfaitaire de ${pctPlain(flatTax)})` : ""}. Les ventes commencent par le PEA, puis les lignes du CTO en moins-value.`;
+      return rows
+        + (taxText ? `<p class="help" style="margin-top:8px">${taxText}</p>` : "")
+        + stranded.map((p) => `<p class="help negative">⚠ Les ventes sont sur le ${[...sellEnvelopes].join(" et le ")}, mais la poche ${escapeHtml(p.label)} n'a de lignes que sur le ${[...new Set(p.lines.map((h) => h.envelope))].join(" et le ")} : l'argent ne passe pas d'une enveloppe à l'autre. Il faudra y verser de l'argent frais, ou acheter dans l'enveloppe des ventes un titre équivalent (un ETF éligible au PEA pour des actions américaines, par exemple).</p>`).join("")
+        + (sellEnvelopes.size && !stranded.length ? `<p class="help">L'argent d'une vente reste dans son enveloppe : ce qui est vendu sur le ${[...sellEnvelopes].join(" ou le ")} se réinvestit sur la même enveloppe.</p>` : "")
+        + `<p class="help"><span data-term="Rééquilibrage">Rééquilibrer</span> une fois ou deux par an, ou quand une poche s'écarte de plus de 5 points de sa cible, suffit : chaque vente coûte des frais, et de l'impôt sur le CTO. Estimation indicative.</p>`;
+    }
 
     // Répartition d'un nouvel apport : d'abord combler les poches sous leur cible (au prorata des écarts),
     // le reste selon les cibles. Rien n'est vendu.
@@ -1756,6 +1948,8 @@
       return deficits.map((d, i) => d + (rest * pockets[i].target) / targetSum);
     }
 
+    // « Sans vendre » (répartir un versement) ou « Rééquilibrer » (acheter et vendre), mémorisé sur l'appareil
+    const allocMode = () => (settings.allocMode === "rebalance" ? "rebalance" : "add");
     function renderAllocation() {
       const el = document.getElementById("allocation");
       const targets = overview.targets || [];
@@ -1782,18 +1976,33 @@
           ${untargeted.map((r) => `<tr><td>${escapeHtml(r.label)} <span class="muted">(sans cible)</span></td><td>${pctPlain(r.weight)}</td><td>—</td><td></td></tr>`).join("")}
         </table>
         ${Math.abs(sumTargets - 1) > 0.005 ? `<p class="help" style="margin-top:8px">Tes cibles font ${pctPlain(sumTargets)} au total : elles sont ramenées à 100 % pour le calcul.</p>` : ""}
-        <div class="alloc-input">Je vais investir <input id="alloc-amount" type="number" min="0" step="10" inputmode="decimal" placeholder="500" /> €</div>
+        <div class="segmented" id="alloc-mode" style="margin-top:12px">
+          <button data-amode="add" class="${allocMode() === "add" ? "active" : ""}">Sans vendre</button>
+          <button data-amode="rebalance" class="${allocMode() === "rebalance" ? "active" : ""}">Rééquilibrer</button>
+        </div>
+        <div class="alloc-input">${allocMode() === "rebalance" ? "Avec un versement de" : "Je vais investir"} <input id="alloc-amount" type="number" min="0" step="10" inputmode="decimal" placeholder="${allocMode() === "rebalance" ? "0" : "500"}" /> €</div>
         <div id="alloc-split" class="realized-list"></div>
+        ${untargeted.length && allocMode() === "rebalance" ? `<p class="help">Les poches sans cible ne sont ni achetées ni vendues.</p>` : ""}
         <button class="btn" id="alloc-edit">Modifier mes cibles</button>`;
       const input = document.getElementById("alloc-amount");
-      input.addEventListener("input", () => {
+      const update = () => {
         const amount = parseFloat(input.value.replace(",", ".")) || 0;
         const out = document.getElementById("alloc-split");
+        if (allocMode() === "rebalance") { out.innerHTML = renderRebalance(pockets, amount); return; }
         if (!amount) { out.innerHTML = ""; return; }
         const split = splitContribution(pockets, amount);
         out.innerHTML = pockets.map((p, i) => split[i] >= 0.5
           ? `<div class="rank-row"><div>${escapeHtml(p.label)}</div><div class="right">${eur.format(split[i])}</div></div>` : "").join("")
           + `<p class="help" style="margin-top:8px">Pour te rapprocher de tes cibles sans rien vendre.</p>`;
+      };
+      input.addEventListener("input", update);
+      update();
+      document.getElementById("alloc-mode").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-amode]");
+        if (!b || b.dataset.amode === allocMode()) return;
+        settings.allocMode = b.dataset.amode;
+        saveSettings();
+        renderAllocation();
       });
     }
 
@@ -2161,8 +2370,10 @@
       renderChart();
       renderPositions(portfolioAnalyses);
       renderSectors();
+      renderConcentration();
       renderAllocation();
       renderSavings();
+      renderAlertsList();
     }
 
     // --- Variation du jour et effet de change (daily.py) : cours Yahoo, chargés après les positions ---
@@ -3630,21 +3841,26 @@
     // --- Alertes (calculées par l'API sur le screener de la nuit) ---
     const ALERT_ICONS = { "sous-évaluée": "💰", baisse: "📉", score: "⚠️", "super investisseur": "👀", dividende: "✂️" };
 
+    let serverAlerts = [];  // alertes du screener (/alerts), complétées par celles de concentration (calculées ici)
     async function loadAlerts() {
       let data;
       try { data = await api("/alerts"); } catch { return; }
-      const rows = [
+      serverAlerts = [
         ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin })),
         ...data.opportunities
           .filter((o) => !data.events.some((e) => e.ticker === o.ticker && e.type === "sous-évaluée"))
           .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin })),
       ];
-      if (!rows.length) return;
+      renderAlertsList();
+    }
+    const ALERT_ORIGINS = { position: "Position", concentration: "Concentration" };
+    function renderAlertsList() {
+      const rows = [...concentrationAlerts(), ...serverAlerts];
       document.getElementById("alerts").innerHTML = rows.map((r) => `
         <div class="alert-row"><span class="icon">${r.icon}</span>
-          <div><div>${escapeHtml(r.text)}</div><div class="origin">${r.origin === "position" ? "Position" : "Watchlist"}</div></div>
+          <div><div>${escapeHtml(r.text)}</div><div class="origin">${ALERT_ORIGINS[r.origin] || "Watchlist"}</div></div>
         </div>`).join("");
-      document.getElementById("alerts-block").hidden = false;
+      document.getElementById("alerts-block").hidden = !rows.length;
       updateAlertsDot();
     }
 
@@ -5118,6 +5334,9 @@
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
         "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "Concentration": "<p>Part de ton portefeuille placée sur un seul titre ou un seul secteur. Plus elle est forte, plus une mauvaise nouvelle sur une entreprise pèse lourd : une ligne de 30 % qui perd 40 % fait perdre 12 % à tout le portefeuille.</p><p>Repères courants : pas plus de 10 à 15 % sur une action, 30 à 40 % sur un secteur. Les ETF ne comptent pas comme une ligne : ils détiennent déjà des centaines d'entreprises. En revanche, une action détenue en direct et dans tes ETF (Apple dans un MSCI World) est additionnée.</p><p>Les plafonds se règlent sous la carte ; ils ne sont qu'un garde-fou, à adapter à tes convictions.</p>",
+        "Nombre effectif de lignes": "<p>Combien de lignes de même poids auraient la même diversification que ton portefeuille (1 divisé par la somme des poids au carré).</p><p>Exemple : 4 lignes de 25 % → 4. Une ligne de 70 % et trois de 10 % → 1,9 : malgré 4 lignes, le portefeuille se comporte comme s'il n'en avait que 2.</p><p>Calculé sur tes actions en direct seulement, sans les ETF.</p>",
+        "Rééquilibrage": "<p>Acheter ce qui est sous sa cible et vendre ce qui est au-dessus pour revenir à ton allocation. Automatiquement, on vend un peu de ce qui a le plus monté : c'est une discipline, pas une prévision.</p><p>L'appli vend d'abord sur le PEA (pas d'impôt tant que tu ne retires rien), puis les lignes du CTO en moins-value, puis celles du CTO les moins en plus-value, et estime l'impôt. L'argent d'une vente reste dans son enveloppe.</p><p>Une ou deux fois par an, ou quand une poche s'écarte de plus de 5 points de sa cible, suffit. Avec un versement, « Sans vendre » atteint souvent le même but sans frais ni impôt.</p>",
         "ROIC": "<p>Rentabilité du capital investi (return on invested capital) : résultat d'exploitation après impôt, divisé par tout l'argent mis dans l'entreprise, par les actionnaires (fonds propres) et par les prêteurs (dettes), trésorerie déduite.</p><p>Exemple : 7,9 Md€ de résultat après impôt pour 50 Md€ investis = 15,8 %.</p><p>Repères : au-dessus de 15 %, l'entreprise crée beaucoup de valeur (souvent un avantage concurrentiel durable : marque, brevets, réseau) ; sous 8 %, elle rapporte à peine son coût du capital. Plus fiable que le ROE, qu'une entreprise peut gonfler en s'endettant. La médiane sur 5 ans montre si le niveau est durable.</p><p>Calculé sur les comptes annuels archivés (SEC pour les actions américaines, Yahoo ailleurs), pas pour les banques et assurances.</p>",
         "Rendement du cash-flow libre": "<p>Cash-flow libre (l'argent qui reste une fois l'activité et les investissements payés) par action, divisé par le cours : l'équivalent d'un rendement si toute cette trésorerie était distribuée.</p><p>Repères : au-dessus de 5 %, l'action est peu chère au regard de ce qu'elle produit ; sous 2 %, le marché paie surtout la croissance à venir. Négatif : l'entreprise consomme de la trésorerie.</p><p>Dernier chiffre annuel publié : une année de gros investissements le fait baisser.</p>",
         "Dette nette / EBITDA": "<p>Dette moins trésorerie, divisée par le résultat brut d'exploitation (EBITDA) : le nombre d'années qu'il faudrait pour rembourser la dette avec ce que l'activité dégage.</p><p>Repères : sous 1,5, peu endettée ; de 1,5 à 3, modéré ; au-delà de 3, très endettée (un mauvais exercice peut devenir dangereux). Négatif : l'entreprise a plus de trésorerie que de dettes.</p><p>Plus fiable que la dette / fonds propres, qui s'emballe quand les fonds propres sont faibles (rachats d'actions massifs). Non pertinent pour les banques.</p>",
