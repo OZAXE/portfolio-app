@@ -2708,8 +2708,15 @@
         slot.innerHTML = `<div class="hypotheses">Historique en construction : un relevé est ajouté chaque semaine (${points.length} pour l'instant). La courbe apparaîtra à partir de 2 relevés.</div>`;
         return;
       }
+      // Prix juste relevé depuis septembre 2026 (6e valeur) : absent des relevés plus anciens, la courbe démarre plus tard
+      const fair = points.map((x) => x.p[5] ?? null);
+      const fairFrom = points.find((x) => x.p[5] != null);
+      const notes = [`Relevés hebdomadaires, hypothèses DCF standard${customHypotheses() ? " (pas tes hypothèses personnelles)" : ""}`];
+      if (!fairFrom) notes.push("prix juste relevé chaque semaine à partir de la prochaine analyse de nuit de cette action");
+      else if (fairFrom !== points[0]) notes.push(`prix juste relevé depuis le ${dateFmt.format(new Date(fairFrom.d))}`);
+      notes.push(`Score qualité : ${points.map((x) => x.p[3] ?? "—").join(" → ")}`);
       slot.innerHTML = `<div class="history-box"><canvas></canvas></div>
-        <div class="hypotheses">Relevés hebdomadaires. Score qualité : ${points.map((x) => x.p[3] ?? "—").join(" → ")}</div>`;
+        <div class="hypotheses">${notes.join(" · ")}</div>`;
       if (historyCharts[ticker]) historyCharts[ticker].destroy();
       historyCharts[ticker] = new Chart(slot.querySelector("canvas"), {
         type: "line",
@@ -2717,7 +2724,8 @@
           labels: points.map((x) => dateFmt.format(new Date(x.d))),
           datasets: [
             { label: "Cours", data: points.map((x) => x.p[0]), borderColor: cssVar("--series-total"), backgroundColor: cssVar("--series-total"), pointRadius: 2, tension: 0.2 },
-            { label: "Valeur intrinsèque", data: points.map((x) => x.p[1]), borderColor: cssVar("--series-pea"), backgroundColor: cssVar("--series-pea"), borderDash: [5, 4], pointRadius: 2, tension: 0.2 },
+            ...(fairFrom ? [{ label: "Prix juste", data: fair, borderColor: cssVar("--series-pea"), backgroundColor: cssVar("--series-pea"), borderDash: [5, 4], pointRadius: 2, tension: 0.2 }] : []),
+            { label: "Valeur intrinsèque", data: points.map((x) => x.p[1]), borderColor: cssVar("--series-cto"), backgroundColor: cssVar("--series-cto"), borderDash: [2, 3], borderWidth: 1.5, pointRadius: 2, tension: 0.2 },
           ],
         },
         options: {

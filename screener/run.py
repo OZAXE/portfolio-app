@@ -280,8 +280,10 @@ def main():
 
 
 def update_history(path: Path, stocks: dict[str, dict]) -> None:
-    """Relevé hebdomadaire compact : pour chaque action, [cours, valeur intrinsèque, marge, score, DCF fiable].
-    Les séries sont alignées sur la liste des dates (None quand l'action n'avait pas de données)."""
+    """Relevé hebdomadaire compact : pour chaque action, [cours, valeur intrinsèque, marge, score, DCF fiable,
+    prix juste]. Les séries sont alignées sur la liste des dates (None quand l'action n'avait pas de données).
+    Le prix juste (6e valeur) est arrivé en septembre 2026 : les relevés plus anciens n'en ont que 5, et une
+    fiche pas encore réanalysée depuis son arrivée donne None, jamais un faux chiffre."""
     history = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"dates": [], "series": {}}
     today = datetime.now(timezone.utc).date()
     if history["dates"] and (today - datetime.fromisoformat(history["dates"][-1]).date()).days < HISTORY_EVERY_DAYS:
@@ -297,7 +299,7 @@ def update_history(path: Path, stocks: dict[str, dict]) -> None:
             point = None
         else:
             point = [rounded(s.get("price"), 4), rounded(s.get("intrinsic_value"), 2), rounded(s.get("margin_of_safety"), 1),
-                     rounded(s.get("quality_score"), 1), 1 if s.get("dcf_reliable") else 0]
+                     rounded(s.get("quality_score"), 1), 1 if s.get("dcf_reliable") else 0, rounded(s.get("fair_value"), 2)]
         series = history["series"].setdefault(ticker, [None] * n)
         series.extend([None] * (n - len(series)))  # action entrée dans l'univers en cours de route
         series.append(point)
