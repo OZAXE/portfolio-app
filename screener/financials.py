@@ -27,6 +27,7 @@ import yfinance as yf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.data import MINOR_CURRENCIES, _number  # noqa: E402
+from app.metrics import cagr  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 SEC_HEADERS = {"User-Agent": "portfolio-app enzocabos192004@gmail.com", "Accept-Encoding": "gzip, deflate"}
@@ -49,10 +50,17 @@ SEC_CONCEPTS = {
     "equity": ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"],
     "long_term_debt": ["LongTermDebtNoncurrent", "LongTermDebt"],
     "shares": ["WeightedAverageNumberOfDilutedSharesOutstanding"],
+    # Pour le ROIC et la couverture des intérêts (metrics.py, octobre 2026)
+    "short_term_debt": ["DebtCurrent", "LongTermDebtCurrent", "ShortTermBorrowings"],
+    "cash": ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"],
+    "pretax_income": ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+                      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"],
+    "income_tax": ["IncomeTaxExpenseBenefit"],
+    "interest_expense": ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"],
 }
 # Le dividende par action vient de l'historique des versements (Yahoo, dans screener.json) :
 # certaines sociétés déclarent à la SEC un montant trimestriel sous le concept annuel
-INSTANT_METRICS = {"equity", "long_term_debt"}  # valeurs de bilan (à une date), pas des flux sur l'année
+INSTANT_METRICS = {"equity", "long_term_debt", "short_term_debt", "cash"}  # valeurs de bilan (à une date), pas des flux sur l'année
 
 # Lignes Yahoo pour les mêmes indicateurs
 YAHOO_ROWS = {
@@ -65,6 +73,11 @@ YAHOO_ROWS = {
     "capex": ("cashflow", ["Capital Expenditure"]),
     "equity": ("balance_sheet", ["Stockholders Equity", "Common Stock Equity"]),
     "long_term_debt": ("balance_sheet", ["Long Term Debt"]),
+    "short_term_debt": ("balance_sheet", ["Current Debt", "Current Debt And Capital Lease Obligation"]),
+    "cash": ("balance_sheet", ["Cash And Cash Equivalents", "Cash Cash Equivalents And Short Term Investments"]),
+    "pretax_income": ("income_stmt", ["Pretax Income"]),
+    "income_tax": ("income_stmt", ["Tax Provision"]),
+    "interest_expense": ("income_stmt", ["Interest Expense", "Interest Expense Non Operating"]),
 }
 
 
@@ -127,10 +140,11 @@ def from_yahoo(ticker: str) -> dict:
             value = _number(value)
             if value is not None:
                 years.setdefault(column.year, {})[metric] = value
-    # Yahoo compte les investissements en négatif, la SEC en positif : on aligne sur la SEC
+    # Yahoo compte les investissements (et parfois les intérêts) en négatif, la SEC en positif : on aligne sur la SEC
     for values in years.values():
-        if values.get("capex") is not None:
-            values["capex"] = abs(values["capex"])
+        for key in ("capex", "interest_expense"):
+            if values.get(key) is not None:
+                values[key] = abs(values[key])
     try:
         currency = t.info.get("financialCurrency")
     except Exception:
@@ -199,8 +213,12 @@ def historical_pe(years: list[dict], closes: dict[int, list[float]], splits: lis
             points.append({"year": y["year"], "pe": round(pe, 1)})
     points.sort(key=lambda p: p["year"])
     eps_now = latest["net_income"] / reference
+    # Croissance du bénéfice par action, chaque exercice ramené à la base d'actions actuelle (divisions, actions
+    # gratuites) : les rachats d'actions la font monter plus vite que le bénéfice total
+    growth = cagr({y["year"]: y["net_income"] / adjusted_shares(y["shares"], y["year"], splits, reference) for y in usable})
     return {"years": points, "median": round(median(p["pe"] for p in points), 1) if len(points) >= PE_MIN_YEARS else None,
             "eps": round(eps_now, 4) if eps_now > 0 else None, "eps_year": latest["year"],
+            "eps_cagr": round(growth[0], 4) if growth else None, "eps_years": growth[1] if growth else None,
             **shares_trend(usable, splits, reference)}
 
 

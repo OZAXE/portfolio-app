@@ -121,6 +121,7 @@ class CompanyFinancials:
     # Bilan (pour passer de la valeur d'entreprise à la valeur des capitaux propres)
     total_debt: float | None = None
     total_cash: float | None = None
+    ebitda: float | None = None  # résultat brut d'exploitation (12 derniers mois ou dernier exercice) : dette nette / EBITDA
 
     # Dividende (montants par action, en unité principale de la devise de cotation)
     dividend_rate: float | None = None  # dividende annuel attendu
@@ -282,6 +283,7 @@ def _convert_financials_to_quote_currency(result: CompanyFinancials) -> None:
     result.free_cash_flow = convert(result.free_cash_flow)
     result.total_debt = convert(result.total_debt)
     result.total_cash = convert(result.total_cash)
+    result.ebitda = convert(result.ebitda)
     result.converted_from_currency = source
     result.financial_currency = target
 
@@ -336,6 +338,7 @@ def _fill_from_info(result: CompanyFinancials, info: dict) -> None:
 
     result.total_debt = _number(info.get("totalDebt"))
     result.total_cash = _number(info.get("totalCash"))
+    result.ebitda = _number(info.get("ebitda"))
     _fill_consensus(result, info)
 
 
@@ -416,7 +419,7 @@ def _fill_from_statements(result: CompanyFinancials, t: yf.Ticker) -> bool:
 
     revenue = _latest(income, "Total Revenue", "Operating Revenue")
     net_income = _latest(income, "Net Income")
-    ebitda = _latest(income, "EBITDA", "Normalized EBITDA")
+    ebitda = result.ebitda = _latest(income, "EBITDA", "Normalized EBITDA")
 
     if result.shares_outstanding:
         result.market_cap = result.current_price * result.shares_outstanding

@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from app.data import SOURCE_UNAVAILABLE_ERROR, fetch_company_financials  # noqa: E402
 from app.sectors import normalize_sector  # noqa: E402
 from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, blend_fair_value, evaluate_company  # noqa: E402
+from app.metrics import fcf_yield  # noqa: E402
 from translate_profiles import keep_translation  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
@@ -92,15 +93,21 @@ def fetch_prices(tickers: list[str]) -> dict[str, float]:
     return prices
 
 
-def load_pe_history(data_dir: Path | None, ticker: str) -> dict | None:
-    """PER historique archivé par screener/financials.py (absent tant que l'action n'y est pas passée)."""
+def load_archive(data_dir: Path | None, ticker: str) -> dict:
+    """Comptes annuels et PER historique archivés par screener/financials.py (vide tant que l'action n'y est pas
+    passée)."""
     path = data_dir / "financials" / f"{ticker}.json" if data_dir else None
     if not path or not path.exists():
-        return None
+        return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8")).get("pe_history")
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return None
+        return {}
+
+
+def load_pe_history(data_dir: Path | None, ticker: str) -> dict | None:
+    """PER historique archivé par screener/financials.py (absent tant que l'action n'y est pas passée)."""
+    return load_archive(data_dir, ticker).get("pe_history")
 
 
 def analyze(entry: dict, data_dir: Path | None = None) -> dict:
@@ -119,7 +126,8 @@ def analyze(entry: dict, data_dir: Path | None = None) -> dict:
     }
     if cf.raw_error:
         return record
-    v = evaluate_company(cf, load_pe_history(data_dir, entry["ticker"]))
+    archive = load_archive(data_dir, entry["ticker"])
+    v = evaluate_company(cf, archive.get("pe_history"), archive.get("years"))
     record.update({
         "currency": cf.currency,
         "price": cf.current_price,
@@ -170,6 +178,17 @@ def analyze(entry: dict, data_dir: Path | None = None) -> dict:
         "hist_pe_years": v.hist_pe_years,
         "shares_cagr": v.shares_cagr,
         "shares_years": v.shares_years,
+        "fcf_per_share": v.fcf_per_share,
+        "fcf_yield": v.fcf_yield,
+        "net_debt_ebitda": v.net_debt_ebitda,
+        "roic": v.roic,
+        "roic_median": v.roic_median,
+        "roic_years": v.roic_years,
+        "interest_coverage": v.interest_coverage,
+        "revenue_cagr": v.revenue_cagr,
+        "revenue_years": v.revenue_years,
+        "eps_cagr": v.eps_cagr,
+        "eps_years": v.eps_years,
         "justified_pb_used": v.justified_pb_used,
         "notes": v.notes,
         "data_source": cf.data_source,
@@ -209,6 +228,8 @@ def refresh_with_price(record: dict, raw_price: float) -> None:
     if iv and price:
         record["margin_of_safety"] = round((iv - price) / iv * 100, 1)
         record["dcf_reliable"] = RELIABLE_RATIO_MIN <= iv / price <= RELIABLE_RATIO_MAX
+    if record.get("fcf_per_share") is not None:
+        record["fcf_yield"] = fcf_yield(record["fcf_per_share"], price)
     # Fiches analysées avant l'arrivée du prix juste : complétées à leur prochaine analyse
     if "fair_value_pe" in record:
         record.update(blend_fair_value(price, iv, record.get("fair_value_pe"), record.get("fair_value_pb"),

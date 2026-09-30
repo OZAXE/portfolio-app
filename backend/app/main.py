@@ -132,7 +132,8 @@ def get_analysis(ticker: str):
         raise HTTPException(status_code=503, detail=SOURCE_UNAVAILABLE_ERROR)
     if cf.raw_error:
         raise HTTPException(status_code=502, detail=f"Erreur de récupération des données : {cf.raw_error}")
-    result = evaluate_company(cf, _pe_history(ticker))
+    archive = _archive(ticker)
+    result = evaluate_company(cf, archive.get("pe_history"), archive.get("years"))
     return {
         "financials": cf.__dict__,
         "valuation": result.__dict__,
@@ -145,10 +146,10 @@ def get_portfolio_analysis(user: User = Depends(require_access)):
     positions = [p for p in _load_positions(user) if not re.fullmatch(r"[A-Z0-9]{2,10}-(EUR|USD)", p.ticker.upper())]
     with ThreadPoolExecutor(max_workers=ANALYSIS_WORKERS) as pool:
         financials = list(pool.map(cached_financials, [pos.ticker for pos in positions]))
-        pe_histories = list(pool.map(_pe_history, [pos.ticker for pos in positions]))
+        archives = list(pool.map(_archive, [pos.ticker for pos in positions]))
     output = []
-    for pos, cf, pe_history in zip(positions, financials, pe_histories):
-        result = evaluate_company(cf, pe_history)
+    for pos, cf, archive in zip(positions, financials, archives):
+        result = evaluate_company(cf, archive.get("pe_history"), archive.get("years"))
         output.append(
             {
                 "ticker": pos.ticker,
@@ -322,10 +323,10 @@ def _screener_data(name: str) -> dict | None:
     return data
 
 
-def _pe_history(ticker: str) -> dict | None:
-    """PER historique archivé chaque semaine par screener/financials.py (actions du screener seulement)."""
-    data = _screener_data(f"financials/{ticker.strip().upper()}.json")
-    return (data or {}).get("pe_history")
+def _archive(ticker: str) -> dict:
+    """Comptes annuels et PER historique archivés chaque semaine par screener/financials.py (actions du screener
+    seulement) : PER historique, ROIC, croissance et couverture des intérêts des analyses en direct."""
+    return _screener_data(f"financials/{ticker.strip().upper()}.json") or {}
 
 
 @app.get("/alerts")
