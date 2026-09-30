@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .sheets import UNFORMATTED, _find_worksheet, _open_sheet, _worksheet
-from .workbook import OPERATION_TYPES, ORDER_TYPES, operation_row
+from .workbook import CASH_TYPES, OPERATION_TYPES, ORDER_TYPES, cash_row, ensure_operation_types, operation_row
 
 # Suffixe Yahoo -> préfixe de place GOOGLEFINANCE
 YAHOO_TO_GOOGLE_EXCHANGE = {
@@ -120,18 +120,15 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     account = payload.get("account")
     if account not in accounts:
         raise OperationError("Compte inconnu : ajoute-le d'abord dans l'onglet Comptes du Sheet")
+    if kind in CASH_TYPES:
+        return _add_cash(sheet, payload, kind, account)
     order_type = payload.get("order_type") or "Ordre"
     if order_type not in ORDER_TYPES:
         raise OperationError("Type d'ordre invalide")
     ticker = str(payload.get("ticker") or "").strip().upper()
     if not ticker:
         raise OperationError("Ticker manquant")
-    try:
-        when = date.fromisoformat(payload.get("date") or date.today().isoformat())
-    except ValueError:
-        raise OperationError("Date invalide (format AAAA-MM-JJ)")
-    if when > date.today():
-        raise OperationError("La date ne peut pas être dans le futur")
+    when = _operation_date(payload)
 
     quantity = _positive(payload.get("quantity"), "Quantité")
     price = _positive(payload.get("price"), "Prix unitaire")
@@ -165,6 +162,28 @@ def add_operation(sheet_id: str, payload: dict, sector: str = "", zone: str = ""
     }
     ops.update(range_name=f"A{row}", values=[operation_row(op, row)], value_input_option="USER_ENTERED")
     return {"row": row, "gross_eur": round(quantity * price * fx, 2), "new_ticker": ticker not in known}
+
+
+def _operation_date(payload: dict) -> date:
+    try:
+        when = date.fromisoformat(payload.get("date") or date.today().isoformat())
+    except ValueError:
+        raise OperationError("Date invalide (format AAAA-MM-JJ)")
+    if when > date.today():
+        raise OperationError("La date ne peut pas être dans le futur")
+    return when
+
+
+def _add_cash(sheet, payload: dict, kind: str, account: str) -> dict:
+    """Versement, retrait ou intérêts : seulement une date, un compte et un montant en euros."""
+    when = _operation_date(payload)
+    amount = _positive(payload.get("amount") or payload.get("price"), "Montant")
+    ensure_operation_types(sheet)
+    ops = _worksheet(sheet, "Opérations")
+    row = len(ops.col_values(1)) + 1
+    ops.update(range_name=f"A{row}", values=[cash_row(when, account, kind, amount, payload.get("note") or "", row)],
+               value_input_option="USER_ENTERED")
+    return {"row": row, "gross_eur": round(amount, 2), "new_ticker": False}
 
 
 def _held_quantity(sheet, ticker: str) -> float:

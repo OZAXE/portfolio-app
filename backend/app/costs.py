@@ -30,7 +30,10 @@ def _add_years(day: date, years: int) -> date:
         return day.replace(year=day.year + years, day=28)
 
 
-def pea_ceiling(operations: list[Operation], envelopes: dict[str, str], today: date) -> dict | None:
+def pea_ceiling(operations: list[Operation], envelopes: dict[str, str], today: date,
+                deposits: float | None = None) -> dict | None:
+    """deposits : versements réels sur le PEA quand ils sont saisis (cash.pea_deposits). Sinon, estimation :
+    le plus haut montant net investi (achats - ventes - dividendes), le minimum qu'il a fallu verser."""
     pea_ops = sorted((op for op in operations if envelopes.get(op.account) == "PEA"), key=lambda o: o.day)
     if not pea_ops:
         return None
@@ -38,6 +41,8 @@ def pea_ceiling(operations: list[Operation], envelopes: dict[str, str], today: d
     for op in pea_ops:
         running += op.net if op.kind == "Achat" else -op.net
         peak = max(peak, running)
+    estimated = deposits is None
+    peak = peak if estimated else deposits
     first = pea_ops[0].day
     five_years = _add_years(first, 5)
     return {
@@ -48,6 +53,7 @@ def pea_ceiling(operations: list[Operation], envelopes: dict[str, str], today: d
         "first_operation": first.isoformat(),
         "five_years": five_years.isoformat(),
         "five_years_reached": today >= five_years,
+        "estimated": estimated,
     }
 
 

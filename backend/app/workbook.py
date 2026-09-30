@@ -26,7 +26,11 @@ OPERATIONS_HEADERS = [
     "Date", "Compte", "Type", "Ticker", "Quantité", "Prix unitaire", "Devise", "Taux de change",
     "Montant brut €", "Frais €", "Taxes €", "Montant net €", "Type d'ordre", "Pourquoi", "Terme", "Note",
 ]
-OPERATION_TYPES = ["Achat", "Vente", "Dividende"]
+TRADE_TYPES = ("Achat", "Vente", "Dividende")
+# Mouvements d'espèces d'un compte (septembre 2026) : sans titre, montant en « Prix unitaire » (quantité 1).
+# Intérêts : rémunération des espèces (Trade Republic), comptés comme de l'argent qui entre sur le compte
+CASH_TYPES = ("Versement", "Retrait", "Intérêts")
+OPERATION_TYPES = [*TRADE_TYPES, *CASH_TYPES]
 ORDER_TYPES = ["Ordre", "Plan d'investissement"]
 TITRES_HEADERS = ["Ticker", "Ticker Google", "Nom", "Secteur", "Zone", "Devise", "Type", "Poche", "Frais courants %"]
 ALLOCATION_HEADERS = ["Poche", "Cible %"]
@@ -285,6 +289,28 @@ def parse_v1_movements(rows: list[list]) -> list[dict]:
                 "note": "" if when else "Date à préciser (achat antérieur au suivi)",
             })
     return operations
+
+
+def cash_row(day: date, account: str, kind: str, amount: float, note: str, row: int) -> list:
+    """Versement, retrait ou intérêts : quantité 1 et montant en prix unitaire, pour que les colonnes Montant
+    brut et Montant net gardent leurs formules (et restent modifiables à la main)."""
+    return operation_row({"date": day, "account": account, "type": kind, "ticker": "", "quantity": 1,
+                          "price": round(amount, 2), "currency": "EUR", "fx": 1, "order_type": "", "why": "",
+                          "term": "", "note": note}, row)
+
+
+_types_checked: set[str] = set()
+
+
+def ensure_operation_types(sheet: gspread.Spreadsheet) -> None:
+    """Les Sheets créés avant l'arrivée des espèces limitent la colonne Type à Achat / Vente / Dividende
+    (liste stricte) : la liste est complétée avant d'écrire un premier versement. Une fois par Sheet et par
+    démarrage de l'API, comme ensure_position_formulas."""
+    if sheet.id in _types_checked:
+        return
+    rule = next(r for r in _validation_requests(sheet) if r["setDataValidation"]["range"]["startColumnIndex"] == _col_index("C"))
+    sheet.batch_update({"requests": [rule]})
+    _types_checked.add(sheet.id)
 
 
 def operation_row(op: dict, row: int) -> list:

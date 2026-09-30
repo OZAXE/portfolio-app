@@ -46,7 +46,8 @@ Code ISIN : FR0000120271 Cours exécuté : 76,48 EUR
 
 
 def test_trade_republic_csv_keeps_trades_and_dividends():
-    ops = [o for o in parse_trade_republic_csv(TR_CSV, "tr.csv") if not o.ticker]  # crypto : test suivant
+    # crypto : test suivant ; espèces : test_trade_republic_csv_regroupe_les_especes
+    ops = [o for o in parse_trade_republic_csv(TR_CSV, "tr.csv") if not o.ticker and o.isin]
     assert [(o.type, o.isin) for o in ops] == [("Dividende", "US92826C8394"), ("Achat", "US67066G1040"), ("Vente", "US92826C8394")]
     dividend, plan, sale = ops
     assert dividend.price == pytest.approx(0.6) and dividend.taxes == 0.12 and dividend.order_type == ""
@@ -92,6 +93,7 @@ def test_boursorama_inconsistent_amounts_rejected():
 def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
     existing = [Operation(date(2026, 8, 24), "CTO Trade Republic", "Achat", "NVDA", 0.005567, 1.0, 0, 0, 1.0)]
     monkeypatch.setattr(imports, "read_operations", lambda sheet_id: (existing, {}, {}))
+    monkeypatch.setattr(imports, "read_cash", lambda sheet_id: [])
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: {"US67066G1040": "NVDA"}.get(isin))
     monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": [{"name": "CTO Trade Republic", "envelope": "CTO", "broker": "Trade Republic"}]})
     files = [{"name": "tr.csv", "content": base64.b64encode(TR_CSV.encode()).decode()}]
@@ -100,7 +102,8 @@ def test_preview_flags_duplicates_and_missing_tickers(monkeypatch):
     assert statuses[("Achat", "US67066G1040")] == "duplicate"  # déjà saisi à la main
     assert statuses[("Dividende", "US92826C8394")] == "no_ticker"
     assert statuses[("Achat", "BTC")] == "new"  # crypto : ticker BTC-EUR sans recherche
-    assert result["counts"] == {"new": 1, "duplicate": 1, "no_ticker": 2, "no_account": 0}
+    # new : le bitcoin, plus les espèces (intérêts du 01/06 et carte du 18/08), qui n'ont pas besoin de ticker
+    assert result["counts"] == {"new": 3, "duplicate": 1, "no_ticker": 2, "no_account": 0}
 
 
 # Extrait de l'export d'Evan : Air Liquide acheté sur le PEA, Rolls-Royce vendu sur le CTO (DEFAULT),
@@ -126,6 +129,7 @@ def test_preview_csv_range_pea_et_cto_dans_leurs_comptes(monkeypatch):
     accounts = [{"name": "PEA Trade Republic", "envelope": "PEA", "broker": "Trade Republic"},
                 {"name": "CTO Trade Republic", "envelope": "CTO", "broker": "Trade Republic"}]
     monkeypatch.setattr(imports, "read_operations", lambda sheet_id: ([], {}, {}))
+    monkeypatch.setattr(imports, "read_cash", lambda sheet_id: [])
     monkeypatch.setattr(imports, "find_ticker", lambda isin, known: isin[-4:])
     monkeypatch.setattr("app.operations.read_settings", lambda sheet_id: {"accounts": accounts})
     content = base64.b64encode(TR_CSV_PEA_CTO.encode()).decode()
