@@ -72,7 +72,7 @@
     .negative { color: var(--accent-neg); }
     .muted { color: var(--muted); }
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
-    .stale { font-size: 12px; color: var(--muted); margin: -4px 0 10px; display: flex; align-items: center; gap: 6px; }
+    .stale { font-size: 13px; color: var(--muted); margin: -4px 0 10px; display: flex; align-items: center; gap: 6px; }
     .stale .spin { width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -93,7 +93,7 @@
     [data-term] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
     .envelopes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     .envelope { background: var(--card-2); border-radius: 10px; padding: 10px 12px; }
-    .envelope .name { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .envelope .name { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
     .envelope .amount { font-size: 17px; font-weight: 600; margin-top: 2px; }
     .envelope .perf { font-size: 13px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -102,11 +102,11 @@
     .segmented { display: inline-flex; background: var(--card-2); border-radius: 8px; padding: 2px; }
     .segmented button {
       border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px;
-      padding: 6px 12px; border-radius: 6px; cursor: pointer;
+      min-height: 36px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
     }
     .segmented button.active { background: var(--line); color: var(--text); }
     .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+    .legend { display: flex; gap: 12px; font-size: 13px; color: var(--muted); }
     .legend span { display: inline-flex; align-items: center; gap: 5px; }
     .chart-box { position: relative; height: 220px; margin-top: 12px; }
 
@@ -123,7 +123,7 @@
     .position summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
     .position summary::-webkit-details-marker { display: none; }
     .position .title { font-weight: 600; font-size: 15px; }
-    .position .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .position .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .position .right { text-align: right; white-space: nowrap; }
     .position .right .amount { font-weight: 600; }
     .position .right .perf { font-size: 13px; }
@@ -145,7 +145,7 @@
     .lexicon summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     .lexicon p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
     .analysis .unreliable { color: var(--muted) !important; font-style: italic; }
-    .analysis .hypotheses { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .analysis .hypotheses { margin-top: 8px; font-size: 13px; color: var(--muted); }
     .analysis ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
     .analysis li { margin-top: 4px; }
 
@@ -153,11 +153,11 @@
     .saving { display: flex; justify-content: space-between; font-size: 14px; margin-top: 8px; }
     .saving:first-child { margin-top: 0; }
     .saving.total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; font-weight: 600; }
-    .saving .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .saving-type { font-size: 12px; color: var(--muted); margin: 14px 0 0; text-transform: uppercase; letter-spacing: 0.4px; }
+    .saving .who { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .saving-type { font-size: 13px; color: var(--muted); margin: 14px 0 0; text-transform: uppercase; letter-spacing: 0.4px; }
     .saving-type:first-child { margin-top: 0; }
     .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .proj-grid label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    .proj-grid label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
     .proj-grid input, .proj-grid select { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; font-size: 15px; padding: 8px; width: 100%; min-width: 0; }
     .proj-result { font-size: 28px; font-weight: 700; margin-top: 14px; }
     .proj-box { position: relative; height: 200px; margin-top: 10px; }
@@ -179,16 +179,16 @@
       padding: 6px 10px; border-radius: 999px; cursor: pointer;
     }
     .chip.active { background: var(--card-2); color: var(--text); border-color: var(--muted); }
-    .result-count { font-size: 12px; color: var(--muted); margin: 12px 0 8px; }
+    .result-count { font-size: 13px; color: var(--muted); margin: 12px 0 8px; }
     .stock { background: var(--card); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
     .stock summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .stock summary::-webkit-details-marker { display: none; }
     .stock .title { font-weight: 600; font-size: 15px; }
-    .stock .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stock .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .stock .right { text-align: right; white-space: nowrap; font-size: 13px; }
-    .badge { display: inline-block; font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--card-2); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
+    .badge { display: inline-block; font-size: 12px; padding: 2px 6px; border-radius: 6px; background: var(--card-2); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
     .badge.owned { color: var(--accent); }
-    .verdict { white-space: nowrap; font-size: 12px; }
+    .verdict { white-space: nowrap; font-size: 13px; }
     .verdict.divergent { font-style: italic; opacity: 0.75; }
     .analysis ul.caveats { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
     .analysis ul.caveats li::marker { content: "⚠️ "; }
@@ -197,7 +197,7 @@
     .metrics .row { margin-top: 2px; }
     .btn {
       border: 1px solid var(--line); background: var(--card-2); color: var(--text); font: inherit; font-size: 13px;
-      padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px;
+      min-height: 40px; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 10px;
     }
     .more { display: block; width: 100%; margin: 4px 0 0; padding: 12px; }
 
@@ -206,13 +206,13 @@
     .searchrow .search { margin-top: 0; flex: 1; min-width: 0; }
     .filterbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
       color: var(--text); font: inherit; font-size: 14px; padding: 0 14px; cursor: pointer; }
-    .filterbtn .count { background: var(--accent); color: var(--bg); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 6px; }
+    .filterbtn .count { background: var(--accent); color: var(--bg); border-radius: 999px; font-size: 12px; font-weight: 700; padding: 1px 6px; }
     .title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .density { font-size: 12px; }
+    .density { font-size: 13px; }
     .msection { margin-top: 20px; }
     .msection-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
     .msection-head h2 { margin: 0; color: var(--text); font-size: 16px; }
-    .msection-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    .msection-head p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
     .see-all { background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; padding: 0; }
     .mlist { background: var(--card); border-radius: 14px; overflow: hidden; }
     .mrow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; padding: 11px 14px;
@@ -220,7 +220,7 @@
     .mrow:first-child { border-top: 0; }
     .mrow:hover { background: var(--card-2); }
     .mrow .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mrow .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .mrow .sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
     .mrow .right { display: grid; justify-items: end; gap: 4px; text-align: right; }
     .mrow .price { font-weight: 600; font-size: 14px; white-space: nowrap; }
     .avatar { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; overflow: hidden; }
@@ -230,14 +230,14 @@
     img.avatar.wide { padding: 5px; }
     /* Logo clair sur fond transparent (pomme blanche d'Apple, texte blanc d'Amazon) : fond sombre sinon invisible */
     img.avatar.light { background: #1e293b; }
-    .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
     .pill.good { color: var(--positive); background: color-mix(in srgb, var(--positive) 15%, transparent); }
     .pill.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
     .pill.bad { color: var(--accent-neg); background: color-mix(in srgb, var(--accent-neg) 14%, transparent); }
     .pill.na { color: var(--muted); background: var(--card-2); }
     .pill.divergent { font-style: italic; }
     .mbar:not([hidden]) { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-    .mbar .back, .stock-top .back { background: none; border: 0; color: var(--text); font-size: 26px; line-height: 1; padding: 0 6px 2px 0; cursor: pointer; }
+    .mbar .back, .stock-top .back { background: none; border: 0; color: var(--text); font-size: 26px; line-height: 1; min-width: 44px; min-height: 44px; padding: 0 6px 2px 0; cursor: pointer; }
     .chip.on { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
     .chip.removable::after { content: " ×"; }
     /* Panneau des filtres (bas de l'écran) */
@@ -245,7 +245,7 @@
     .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh; overflow: auto; background: var(--bg); border-top: 1px solid var(--line);
       border-radius: 18px 18px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin: 0 auto; }
     .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 10px; }
-    .sheet h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+    .sheet h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
     .sheet .filters { margin-top: 0; }
     .sheet .apply { width: 100%; margin-top: 18px; background: var(--accent); color: var(--bg); border: 0; font: inherit; font-weight: 700; padding: 13px; border-radius: 12px; cursor: pointer; }
     .sheet .reset { width: 100%; margin-top: 8px; padding: 10px; background: none; border: 0; color: var(--muted); font: inherit; cursor: pointer; }
@@ -260,7 +260,7 @@
     .cmp-table th, .cmp-table td { padding: 8px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; vertical-align: top; }
     .cmp-table th:first-child, .cmp-table td:first-child { text-align: left; color: var(--muted); position: sticky; left: 0; background: var(--bg); padding-left: 0; white-space: normal; min-width: 92px; }
     .cmp-table thead th { border-top: 0; font-weight: 600; color: var(--text); max-width: 110px; white-space: normal; }
-    .cmp-table thead th button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 0 0; }
+    .cmp-table thead th button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 0 0; }
     .cmp-table td.best { color: var(--accent); font-weight: 700; }
     .stock-head { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
     .stock-head h1 { font-size: 22px; margin: 0; line-height: 1.2; }
@@ -275,10 +275,10 @@
     .price-status[hidden] { display: none; }
     .price-card .segmented { display: flex; margin-top: 8px; }
     .price-card .segmented button { flex: 1; }
-    .price-card .hypotheses { margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .price-card .hypotheses { margin-top: 6px; font-size: 13px; color: var(--muted); }
     /* Puces des graphiques de la fiche : allumée = courbe affichée, grisée = impossible à tracer */
     .line-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .line-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; }
+    .line-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 10px; }
     .line-chip.on-line { color: var(--text); border-color: var(--muted); background: var(--card-2); }
     .line-chip:not(.on-line) .dot { opacity: 0.35; }
     .line-chip:disabled { opacity: 0.45; cursor: default; }
@@ -290,8 +290,8 @@
     .about-original .about-text { color: var(--muted); }
     .news-item { display: block; padding: 9px 0; border-top: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.35; }
     .news-item:first-child { border-top: 0; padding-top: 2px; }
-    .news-item .who { font-size: 12px; color: var(--muted); margin-top: 3px; }
-    .about-missing, .about-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .news-item .who { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .about-missing, .about-note { margin-top: 10px; font-size: 13px; color: var(--muted); }
     .pillar.about .psum { font-weight: 400; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .pillar.about[open] .psum { display: none; }
     .pillar.about .pbody { padding-left: 14px; }
@@ -311,25 +311,25 @@
       background: linear-gradient(90deg, var(--positive) 0 38%, var(--warn) 38% 62%, var(--accent-neg) 62% 100%); }
     .gauge .mark { position: absolute; top: 9px; width: 3px; height: 20px; border-radius: 2px; background: var(--text); transform: translateX(-50%); }
     .gauge .mark.fair { opacity: 0.55; }
-    .gauge .mark span { position: absolute; left: 50%; transform: translateX(-50%); font-size: 11px; white-space: nowrap; color: var(--text); }
+    .gauge .mark span { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; white-space: nowrap; color: var(--text); }
     .gauge .mark.fair span { top: -17px; } .gauge .mark.now span { top: 22px; }
-    .gauge .ends { position: absolute; top: 42px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    .gauge .ends { position: absolute; top: 42px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
     .caveat { margin-top: 8px; font-size: 13px; color: var(--muted); display: flex; gap: 6px; }
     .caveat.warn { color: var(--warn); }
-    .vfoot { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .vfoot { margin-top: 8px; font-size: 13px; color: var(--muted); }
     .vfoot [data-term] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
     .pillars { display: grid; gap: 8px; margin-top: 12px; }
     .pillar { background: var(--card); border-radius: 14px; }
     .pillar > summary { list-style: none; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 13px 14px; cursor: pointer; }
     .pillar > summary::-webkit-details-marker { display: none; }
-    .pillar .ptitle { display: block; font-size: 12px; color: var(--muted); }
+    .pillar .ptitle { display: block; font-size: 13px; color: var(--muted); }
     .pillar .psum { display: block; font-weight: 600; color: var(--text); }
     .pillar .chev { color: var(--muted); transition: transform 0.15s; }
     .pillar[open] .chev { transform: rotate(90deg); }
     .pillar .pbody { padding: 0 14px 12px 36px; }
     .pillar .pbody .row { margin-top: 0; padding-top: 8px; border-top: 1px solid var(--line); }
     .pillar .pbody .row:first-child { border-top: 0; padding-top: 0; }
-    .pillar .why { font-size: 12px; color: var(--muted); margin: 2px 0 8px; }
+    .pillar .why { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
     .pillar .pbody .metrics { grid-template-columns: 1fr; gap: 0; }
     .fiche-actions { display: flex; flex-wrap: wrap; gap: 0 8px; }
     .fiche .holders { margin-top: 12px; }
@@ -337,48 +337,42 @@
 
     /* Portefeuille : icônes d'en-tête, boutons d'action, sous-onglets, carte « Ta position » */
     .head-icons { display: flex; gap: 8px; }
-    #alerts-panel { margin-bottom: 12px; }
-    .iconbtn { position: relative; width: 40px; height: 40px; border-radius: 12px; background: var(--card); border: 0; color: var(--text); display: grid; place-items: center; cursor: pointer; }
+    .iconbtn { position: relative; width: 44px; height: 44px; border-radius: 12px; background: var(--card); border: 0; color: var(--text); display: grid; place-items: center; cursor: pointer; }
     .iconbtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-    .bell-dot { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-neg); }
-    .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
-    .quick button { background: var(--card); border: 0; border-radius: 14px; padding: 10px 6px; display: grid; justify-items: center; gap: 4px;
-      color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .quick svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     button.envelope { border: 1px solid transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
     button.envelope.on { border-color: var(--accent); }
-    .seg { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--card); border-radius: 12px; padding: 3px; margin-top: 18px;
+    .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); background: var(--card); border-radius: 12px; padding: 3px; margin-top: 18px;
       position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; box-shadow: 0 6px 12px -8px rgba(2, 6, 23, 0.6); }
-    .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; padding: 8px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; border-radius: 9px; cursor: pointer; }
+    .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; min-height: 40px; padding: 8px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; border-radius: 9px; cursor: pointer; }
     .seg button.active { background: var(--card-2); color: var(--text); font-weight: 600; }
     /* Performance et risque */
     .perf-table td b { font-weight: 600; }
     .perf-table .bench { color: var(--muted); }
     .contrib-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
     .contrib-row:first-child { border-top: 0; }
-    .contrib-row .who { font-size: 12px; color: var(--muted); }
+    .contrib-row .who { font-size: 13px; color: var(--muted); }
     .contrib-row .right { text-align: right; white-space: nowrap; }
     .contrib-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--card-2); overflow: hidden; }
     .contrib-bar i { display: block; height: 100%; border-radius: 2px; }
     .ptools { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 12px 0 8px; }
-    .pill-gain { font-size: 12px; font-weight: 600; }
+    .pill-gain { font-size: 13px; font-weight: 600; }
     .poscard { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 12px; }
     .poscard h3 { font-size: 15px; margin: 0 0 8px; }
     .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat > div { background: var(--card-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
-    .stat .k { font-size: 12px; color: var(--muted); }
+    .stat .k { font-size: 13px; color: var(--muted); }
     .stat .v { font-size: 16px; font-weight: 700; margin-top: 2px; }
     .stat .v.positive { color: var(--positive); } .stat .v.negative { color: var(--accent-neg); }
 
     /* Réglages : groupes de rubriques, chacune ouvre sa page */
-    .group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 20px 4px 6px; font-weight: 600; }
+    .group-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 20px 4px 6px; font-weight: 600; }
     .group { background: var(--card); border-radius: 14px; overflow: hidden; }
     .setting { width: 100%; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px;
       background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
     .setting:first-child { border-top: 0; }
     .setting .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; }
     .setting .ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .setting .t { display: block; font-weight: 500; } .setting .d { display: block; font-size: 12px; color: var(--muted); }
+    .setting .t { display: block; font-weight: 500; } .setting .d { display: block; font-size: 13px; color: var(--muted); }
     .setting .chev { color: var(--muted); font-size: 18px; }
     .spage-title { font-size: 18px; }
     .spage > .card:first-of-type { margin-top: 8px; }
@@ -393,9 +387,9 @@
     /* Super investisseurs */
     .rank-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
     .rank-row:first-child { border-top: 0; padding-top: 0; }
-    .rank-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .rank-row .who { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .rank-row .right { text-align: right; white-space: nowrap; }
-    .move { font-size: 11px; padding: 1px 6px; border-radius: 6px; background: var(--card-2); }
+    .move { font-size: 12px; padding: 1px 6px; border-radius: 6px; background: var(--card-2); }
     .move.nouvelle, .move.renforcée { color: var(--accent); }
     .move.allégée, .move.vendue { color: var(--accent-neg); }
     .holders { margin-top: 8px; font-size: 13px; color: var(--muted); }
@@ -403,13 +397,13 @@
 
     /* Formulaire d'opération */
     .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+    .op-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
     .op-grid .wide { grid-column: 1 / -1; }
     /* Transactions : lignes de l'onglet Opérations, formulaire de correction sous la ligne touchée */
     .tx-edit { padding: 12px 14px 14px; border-top: 1px solid var(--line); background: var(--card-2); }
     .tx-edit .op-grid input, .tx-edit .op-grid select { background: var(--card); }
     .tx-edit .danger { color: var(--accent-neg); }
-    .tx-tag { font-size: 11px; color: var(--muted); }
+    .tx-tag { font-size: 12px; color: var(--muted); }
     /* Journal de trading : carte de la fiche et formulaire */
     .journal-card .thesis { white-space: pre-wrap; font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
     .journal-card textarea, .journal-card .op-grid input, .journal-card .op-grid select { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px;
@@ -431,14 +425,14 @@
     .op-actions .btn.more { flex: 1; }
     .imp-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
     .imp-row input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
-    .imp-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .imp-row .who { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .imp-row .right { text-align: right; white-space: nowrap; }
     .imp-row.skip { opacity: 0.55; }
     .imp-ticker { background: var(--card-2); border: 1px solid var(--accent-neg); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; padding: 4px 6px; width: 110px; margin-top: 4px; }
 
     /* Apparence */
     .appearance-row { margin-top: 12px; }
-    .appearance-row > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .appearance-row > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
     .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
     .swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset; }
@@ -457,7 +451,7 @@
     }
     .edit-row .pct { text-align: right; }
     .icon-btn { border: 0; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0; }
-    .edit-sub { font-size: 12px; color: var(--muted); margin: 16px 0 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .edit-sub { font-size: 13px; color: var(--muted); margin: 16px 0 2px; text-transform: uppercase; letter-spacing: 0.4px; }
     .fee-block { border-top: 1px solid var(--line); padding: 10px 0 2px; margin-top: 8px; }
     .fee-block .op-grid { grid-template-columns: 1fr 1fr 1fr; }
     .fee-head { display: grid; grid-template-columns: 1fr 1fr 28px; gap: 8px; align-items: center; margin-bottom: 8px; }
@@ -466,12 +460,12 @@
 
     /* Allocation cible */
     .conc-limits { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; color: var(--muted); }
-    .conc-limits .chip { padding: 4px 9px; font-size: 12px; }
+    .conc-limits .chip { padding: 4px 9px; font-size: 13px; }
     .bar-row.over .bar-fill { background: var(--accent-neg); }
     .bar-row .bar-sub.negative { color: var(--accent-neg); margin-top: 6px; line-height: 1.35; }
     .trade-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
     .trade-row:first-child { border-top: 0; }
-    .trade-row .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .trade-row .who { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .trade-row .right { text-align: right; white-space: nowrap; font-weight: 600; }
     .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .alloc-table th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0 6px; }
@@ -490,12 +484,12 @@
     .alert-row:first-child { border-top: 0; padding-top: 0; }
     .alert-row .icon { flex: none; width: 20px; text-align: center; }
     .alert-row .grow { flex: 1; min-width: 0; }
-    .alert-row .btn { padding: 4px 8px; font-size: 12px; margin: 0 0 0 4px; }
+    .alert-row .btn { padding: 4px 8px; font-size: 13px; margin: 0 0 0 4px; }
     .pa-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; }
     .pa-form select, .pa-form input { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font: inherit; font-size: 14px; padding: 6px 8px; }
     .pa-form input[type=number] { width: 110px; }
     .pa-form input.pa-note { flex: 1; min-width: 120px; }
-    .alert-row .origin { font-size: 12px; color: var(--muted); }
+    .alert-row .origin { font-size: 13px; color: var(--muted); }
     .star { color: var(--series-cto); }
     .star.off { color: var(--muted); }
     .history-box { position: relative; height: 180px; margin-top: 10px; }
@@ -505,33 +499,33 @@
     .div-title { margin-top: 12px; font-weight: 600; color: var(--text); font-size: 13px; }
     .div-bars { display: flex; align-items: flex-end; gap: 3px; height: 60px; margin-top: 8px; }
     .div-bars span { flex: 1; background: var(--series-cto); border-radius: 2px 2px 0 0; min-height: 1px; }
-    .div-years { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .div-years { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 3px; }
     .cal-total { font-size: 22px; font-weight: 700; }
     .pea-track { height: 10px; background: var(--card-2); border-radius: 5px; overflow: hidden; margin: 8px 0 6px; }
     .pea-fill { height: 100%; background: var(--series-pea); border-radius: 5px; min-width: 2px; }
     .fees-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-    .fees-table th { text-align: right; color: var(--muted); font-weight: 500; font-size: 12px; padding: 4px 0 6px 6px; }
+    .fees-table th { text-align: right; color: var(--muted); font-weight: 500; font-size: 13px; padding: 4px 0 6px 6px; }
     .fees-table th:first-child, .fees-table td:first-child { text-align: left; padding-left: 0; }
     .fees-table td { text-align: right; padding: 6px 0 6px 6px; border-top: 1px solid var(--line); white-space: nowrap; }
     .lt-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 12px; cursor: pointer; }
     .lt-toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
-    .bar-sub { font-size: 11px; color: var(--muted); margin-top: -2px; margin-bottom: 4px; }
+    .bar-sub { font-size: 12px; color: var(--muted); margin-top: -2px; margin-bottom: 4px; }
     .cal-bars, .cal-months { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
     .cal-bars { align-items: end; height: 80px; margin-top: 14px; }
     .cal-bars .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; cursor: pointer; }
     .cal-bars .bar { background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; }
     .cal-bars .col.selected .bar { background: var(--series-pea); }
-    .cal-months { font-size: 10px; color: var(--muted); text-align: center; margin-top: 3px; }
+    .cal-months { font-size: 12px; color: var(--muted); text-align: center; margin-top: 3px; }
     #cal-detail { min-height: 1.4em; margin: 8px 0 4px; }
 
     /* Briefs */
     .brief-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; cursor: pointer; border: 0; width: 100%; text-align: left; color: var(--text); font: inherit; }
     .brief-item .bdate { background: var(--card-2); border-radius: 10px; text-align: center; padding: 6px 0; line-height: 1.1; }
     .brief-item .bdate b { display: block; font-size: 18px; }
-    .brief-item .bdate span { font-size: 11px; color: var(--muted); text-transform: uppercase; }
-    .brief-item .new { font-size: 11px; font-weight: 700; color: var(--bg); background: var(--accent); border-radius: 999px; padding: 2px 8px; }
+    .brief-item .bdate span { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+    .brief-item .new { font-size: 12px; font-weight: 700; color: var(--bg); background: var(--accent); border-radius: 999px; padding: 2px 8px; }
     .brief-item .title { font-weight: 600; font-size: 15px; }
-    .brief-item .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .brief-item .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .brief-item .chev { color: var(--muted); font-size: 20px; }
     .reader-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 0; }
     .reader-head .btn { margin-top: 0; }
@@ -560,14 +554,64 @@
       padding-bottom: env(safe-area-inset-bottom, 0px);
       background: var(--tabbar-bg); border-top: 1px solid var(--line);
       display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+      z-index: 20;  /* au-dessus des sous-onglets collants (.seg, z-index 5) quand ils passent en bas de l'écran */
     }
     nav.tabbar button[hidden] { display: none; }
     nav.tabbar button {
-      border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11px;
+      border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; min-width: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer;
     }
     nav.tabbar button.active { color: var(--accent); }
     nav.tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Accueil : date, salutation, valeur du jour, mini-courbe, « À regarder », tuiles */
+    .home-date { font-size: 14px; color: var(--muted); }
+    .home-date::first-letter { text-transform: uppercase; }
+    #home-hello { font-size: 24px; margin-top: 2px; }
+    .hero-home .day { font-size: 16px; margin-top: 6px; }
+    .hero-home .spark { display: block; width: 100%; height: 56px; margin: 10px 0 4px; overflow: visible; }
+    .hero-home .spark[hidden] { display: none; }
+    .hero-home .gain { font-size: 14px; }
+    .link-btn { background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; min-height: 36px; padding: 0 0 0 12px; cursor: pointer; }
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 10px; }
+    .section-head h2 { margin: 0; color: var(--text); font-size: 18px; }
+    .watch-card { padding: 4px 16px; }
+    .watch-card .help { padding: 12px 0; }
+    .watch-row { width: 100%; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 64px; padding: 10px 0;
+      background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .watch-row:first-child { border-top: 0; }
+    .watch-row .wic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: var(--card-2); }
+    .watch-row .wic.warn { background: rgba(245, 158, 11, 0.16); }
+    .watch-row .wic.good { background: rgba(34, 197, 94, 0.14); }
+    .watch-row .wic.info { background: rgba(56, 189, 248, 0.14); }
+    .watch-row .t { display: block; font-size: 15px; font-weight: 600; }
+    .watch-row .d { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .watch-row .chev { color: var(--muted); font-size: 18px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .tile { background: var(--card); border: 0; border-radius: 14px; padding: 14px; text-align: left; color: var(--text); font: inherit; cursor: pointer; min-height: 88px; }
+    .tile .k { font-size: 13px; color: var(--muted); }
+    .tile .v { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .tile .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    /* En-têtes des onglets : bouton d'action à droite (+ Opération, Importer) */
+    .head-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line);
+      background: transparent; color: var(--text); font: inherit; font-size: 15px; cursor: pointer; }
+    .head-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .head-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
+    #view-portfolio .envelope { background: var(--card); }
+    #suivi-tabs { margin: 8px 0 12px; }
+    /* Plus : carte Affichage (Essentiel / Complet, taille du texte) */
+    .display-card { margin-top: 4px; }
+    .display-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+    .seg.seg-flat { position: static; margin-top: 0; box-shadow: none; background: var(--bg); }
+    .size-btns { display: flex; gap: 6px; }
+    .display-card .appearance-row { display: flex; justify-content: space-between; align-items: center; }
+    .display-card .appearance-row > span { margin: 0; font-size: 15px; color: var(--text); }
+    #view-portfolio #cash-line { margin: 10px 2px 0; }
+    .size-btns button { width: 48px; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+    .size-btns button:disabled { opacity: 0.4; cursor: default; }
+    .setting { min-height: 56px; }
+    /* Mode Essentiel : les écrans gardent l'essentiel (valeur, positions, alertes, revenus) */
+    html[data-detail="essentiel"] .adv { display: none !important; }
   </style>
   <script>
     const APP_ICONS = [["barres", "Barres"], ["courbe", "Courbe"], ["anneau", "Anneau"], ["euro", "Euro"], ["clair", "Clair"], ["violet", "Violet"]];
@@ -591,60 +635,48 @@
 </head>
 <body>
   <main>
-    <!-- Portefeuille -->
-    <section class="view" id="view-portfolio">
-      <header><div class="title-row"><h1>Mon portefeuille</h1><div class="head-icons">
+    <!-- Accueil : valeur, variation du jour et tout ce qui demande ton attention -->
+    <section class="view" id="view-home">
+      <header><div class="title-row"><div><div class="home-date" id="home-date"></div><h1 id="home-hello">Bonjour</h1></div><div class="head-icons">
         <button class="iconbtn" id="privacy-toggle" aria-label="Masquer les montants" title="Masquer les montants"></button>
-        <button class="iconbtn" id="alerts-toggle" aria-label="Alertes" title="Alertes" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="bell-dot" id="alerts-dot" hidden></span></button>
       </div></div></header>
+      <div class="status" id="home-status">Chargement…</div>
+      <div id="home-content" hidden>
+        <div class="stale" id="portfolio-stale" hidden></div>
+        <div class="card hero hero-home">
+          <div class="label"><span>Valeur des placements</span><button class="link-btn" data-goto="portfolio">Détail ›</button></div>
+          <div class="value" id="total-value"></div>
+          <div class="day" id="day-change" hidden></div>
+          <svg class="spark" id="home-spark" viewBox="0 0 300 56" preserveAspectRatio="none" aria-hidden="true" hidden></svg>
+          <div class="gain" id="total-gain"></div>
+          <div class="returns" id="total-returns" hidden></div>
+        </div>
+        <div class="section-head"><h2>À regarder</h2><span class="muted" id="watch-count"></span></div>
+        <div class="card watch-card">
+          <div id="alerts"></div>
+          <p class="help" id="alerts-empty" style="margin:0">Rien à signaler pour le moment. Ici apparaissent les alertes de la nuit (sous-évaluée, dividende réduit), une ligne trop lourde, une thèse à relire et les résultats de la semaine.</p>
+        </div>
+        <div class="tiles" id="home-tiles"></div>
+        <div id="price-alerts-block" hidden>
+          <h2>Mes alertes de prix</h2>
+          <div class="card">
+            <div id="price-alerts"></div>
+            <p class="help" style="margin-top:10px" id="price-alerts-note"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portefeuille -->
+    <section class="view" id="view-portfolio" hidden>
+      <header><div class="title-row"><h1>Portefeuille</h1>
+        <button class="head-btn primary" id="op-open"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Opération</button>
+      </div></header>
       <div class="status" id="portfolio-status">Chargement…</div>
       <div id="portfolio-content" hidden>
-        <div class="stale" id="portfolio-stale" hidden></div>
-        <div id="alerts-panel" hidden>
-          <div id="alerts-empty" class="card help" style="margin:0 0 12px">Aucune alerte pour le moment : elles apparaissent ici quand une de tes actions ou de ta watchlist change de statut (sous-évaluée, dividende réduit, prix atteint).</div>
-          <div id="alerts-block" hidden>
-            <h2 style="margin-top:0">Alertes</h2>
-            <div class="card" id="alerts"></div>
-          </div>
-          <div id="price-alerts-block" hidden>
-            <h2>Mes alertes de prix</h2>
-            <div class="card">
-              <div id="price-alerts"></div>
-              <p class="help" style="margin-top:10px" id="price-alerts-note"></p>
-            </div>
-          </div>
-        </div>
-        <div class="card hero">
-          <div class="label"><span>Valeur des placements</span></div>
-          <div class="value" id="total-value"></div>
-          <div class="gain" id="total-gain"></div>
-          <div class="returns" id="day-change" hidden></div>
-          <div class="returns" id="total-returns" hidden></div>
-          <div class="envelopes" id="envelopes"></div>
-          <div class="returns" id="cash-line" hidden></div>
-        </div>
+        <div class="envelopes" id="envelopes"></div>
+        <div class="returns" id="cash-line" hidden></div>
 
-        <div class="quick">
-          <button id="op-open"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Opération</button>
-          <button id="imp-open"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>Importer</button>
-          <button id="tx-open"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Transactions</button>
-          <button id="goals-open"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Objectifs</button>
-        </div>
-        <div class="card" id="imp-panel" hidden>
-          <p class="help" style="margin-top:0"><b>Trade Republic</b> : le relevé de compte PDF (Profil &gt; Documents, ou le relevé envoyé chaque mois), qui contient aussi ton PEA, ou l'export CSV des transactions (qui apporte aussi tes versements, retraits et paiements par carte, et intérêts, regroupés par jour). <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
-          <div class="op-grid">
-            <label class="wide">Compte<select id="imp-account"></select></label>
-            <label class="wide">Fichiers (CSV ou PDF)<input id="imp-files" type="file" accept=".csv,.pdf,text/csv,application/pdf" multiple /></label>
-          </div>
-          <div style="margin-top:10px">
-            <button class="btn" id="imp-preview">Analyser</button>
-            <button class="btn" id="imp-cancel">Fermer</button>
-            <p class="help" style="margin-top:8px">Tes opérations sont emmêlées ? <a href="#" id="imp-reset-link" style="color:var(--accent)">Tout effacer et réimporter</a> (Réglages &gt; Opérations avancées, avec sauvegarde).</p>
-          </div>
-          <p class="help" id="imp-status"></p>
-          <div id="imp-list"></div>
-          <button class="btn" id="imp-submit" hidden></button>
-        </div>
         <div class="card" id="op-form" hidden>
           <div class="op-grid">
             <label>Type<select id="op-type"></select></label>
@@ -671,6 +703,7 @@
           <p class="help" id="op-status"></p>
         </div>
 
+
         <h2>Évolution</h2>
         <div class="card">
           <div class="chart-head">
@@ -693,10 +726,8 @@
 
         <div class="seg" id="portfolio-tabs" role="tablist">
           <button role="tab" data-ptab="positions" class="active">Positions</button>
-          <button role="tab" data-ptab="performance">Perf.</button>
+          <button role="tab" data-ptab="performance" class="adv">Perf.</button>
           <button role="tab" data-ptab="repartition">Répartition</button>
-          <button role="tab" data-ptab="revenus">Revenus</button>
-          <button role="tab" data-ptab="fiscalite">Fiscalité</button>
         </div>
 
         <div class="ptab" data-pane="positions">
@@ -747,7 +778,7 @@
           <p class="help" id="breakdown-note" style="margin-top:10px"></p>
         </div>
 
-        <div id="exposure-block" hidden>
+        <div id="exposure-block" class="adv" hidden>
           <h2>Exposition par entreprise</h2>
           <div class="card">
             <div id="exposure"></div>
@@ -758,55 +789,13 @@
         <h2><span data-term="Concentration">Concentration</span></h2>
         <div class="card" id="concentration"></div>
 
-        <h2>Allocation cible</h2>
-        <div class="card" id="allocation"></div>
 
         <h2><span data-term="Espèces">Espèces</span></h2>
         <div class="card" id="cash-card"><div class="help">Chargement…</div></div>
 
-        <h2>Épargne et patrimoine</h2>
-        <div class="card" id="savings"></div>
-
-        <h2><span data-term="Projection">Projection</span></h2>
-        <div class="card" id="projection"></div>
-        </div>
-
-        <div class="ptab" data-pane="revenus" hidden>
-        <h2 style="margin-top:16px">Dividendes à venir</h2>
-        <div class="card" id="dividends-card">
-          <div id="dividends-body" class="help">Chargement…</div>
-        </div>
-
-        <div id="yield-block" hidden>
-          <h2><span data-term="Rendement sur PRU">Rendement de tes lignes</span></h2>
-          <div class="card" id="yield-card"></div>
-        </div>
-
-        <div id="income-block" hidden>
-          <h2><span data-term="Revenu annuel">Revenu annuel</span></h2>
-          <div class="card" id="income-card"></div>
-        </div>
-
-        <h2><span data-term="Résultats">Résultats à venir</span></h2>
-        <div class="card" id="earnings-card"><div class="help">Chargement du screener…</div></div>
 
         </div>
 
-        <div class="ptab" data-pane="fiscalite" hidden>
-        <h2 style="margin-top:16px">Plus-values réalisées et dividendes</h2>
-        <div class="card" id="realized">
-          <div class="chart-head">
-            <select class="fin-select" id="realized-year" aria-label="Année" style="margin-top:0" hidden></select>
-          </div>
-          <div id="realized-body" class="help">Chargement…</div>
-        </div>
-
-        <h2>Plafond PEA et frais</h2>
-        <div class="card" id="costs-card">
-          <div id="costs-body" class="help">Chargement…</div>
-        </div>
-
-        </div>
       </div>
     </section>
 
@@ -868,17 +857,33 @@
       <div id="compare-body"></div>
     </section>
 
-    <section class="view" id="view-transactions" hidden>
-      <div class="stock-top"><button class="back" id="tx-back" aria-label="Retour">‹</button><strong>Transactions</strong></div>
-      <div class="seg" id="tx-tabs" role="tablist" style="margin:8px 0 12px;grid-template-columns:1fr 1fr">
-        <button role="tab" data-txtab="ops" class="active">Opérations</button>
-        <button role="tab" data-txtab="journal">Journal</button>
+    <!-- Suivi : tes décisions passées (opérations, journal) et ce qu'elles rapportent (revenus, impôts) -->
+    <section class="view" id="view-suivi" hidden>
+      <header><div class="title-row"><h1>Suivi</h1>
+        <button class="head-btn" id="imp-open"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Importer</button>
+      </div></header>
+      <div class="card" id="imp-panel" hidden>
+        <p class="help" style="margin-top:0"><b>Trade Republic</b> : le relevé de compte PDF (Profil &gt; Documents, ou le relevé envoyé chaque mois), qui contient aussi ton PEA, ou l'export CSV des transactions (qui apporte aussi tes versements, retraits et paiements par carte, et intérêts, regroupés par jour). <b>Boursorama</b> : les avis d'opéré PDF (Espace client &gt; Documents), un par ordre, tu peux tous les sélectionner d'un coup.</p>
+        <div class="op-grid">
+          <label class="wide">Compte<select id="imp-account"></select></label>
+          <label class="wide">Fichiers (CSV ou PDF)<input id="imp-files" type="file" accept=".csv,.pdf,text/csv,application/pdf" multiple /></label>
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn" id="imp-preview">Analyser</button>
+          <button class="btn" id="imp-cancel">Fermer</button>
+          <p class="help" style="margin-top:8px">Tes opérations sont emmêlées ? <a href="#" id="imp-reset-link" style="color:var(--accent)">Tout effacer et réimporter</a> (Plus &gt; Opérations avancées, avec sauvegarde).</p>
+        </div>
+        <p class="help" id="imp-status"></p>
+        <div id="imp-list"></div>
+        <button class="btn" id="imp-submit" hidden></button>
       </div>
-      <div id="tx-journal" hidden>
-        <p class="help">Tes thèses d'investissement : pourquoi tu as acheté, où tu comptes vendre, où tu t'arrêtes. Écris-les depuis la fiche d'une action (rubrique « Ton journal »), relis-les ici.</p>
-        <div id="journal-list"></div>
+      <div class="seg" id="suivi-tabs" role="tablist">
+        <button role="tab" data-stab="ops" class="active">Opérations</button>
+        <button role="tab" data-stab="journal">Journal</button>
+        <button role="tab" data-stab="revenus">Revenus</button>
+        <button role="tab" data-stab="fiscalite">Fiscalité</button>
       </div>
-      <div id="tx-ops">
+      <div class="stab" data-spane="ops" id="tx-ops">
       <input class="search" id="tx-search" type="search" placeholder="Rechercher (titre, ticker, note)" autocomplete="off" />
       <div class="filters" id="tx-kinds"></div>
       <div class="filters"><select id="tx-account" aria-label="Compte"></select><button class="btn" id="tx-export" style="margin-top:0">⬇ Exporter en CSV</button></div>
@@ -886,12 +891,51 @@
       <div id="tx-list"></div>
       <p class="help">Touche une ligne pour la corriger ou la supprimer : l'onglet Opérations du Sheet est modifié, puis ton portefeuille et ta courbe sont recalculés.</p>
       </div>
-    </section>
+      <div class="stab" data-spane="journal" id="tx-journal" hidden>
+        <p class="help">Tes thèses d'investissement : pourquoi tu as acheté, où tu comptes vendre, où tu t'arrêtes. Écris-les depuis la fiche d'une action (rubrique « Ton journal »), relis-les ici.</p>
+        <div id="journal-list"></div>
+      </div>
+      <div class="stab" data-spane="revenus" hidden>
+        <h2 style="margin-top:16px">Dividendes à venir</h2>
+        <div class="card" id="dividends-card">
+          <div id="dividends-body" class="help">Chargement…</div>
+        </div>
+
+        <div id="yield-block" hidden>
+          <h2><span data-term="Rendement sur PRU">Rendement de tes lignes</span></h2>
+          <div class="card" id="yield-card"></div>
+        </div>
+
+        <div id="income-block" hidden>
+          <h2><span data-term="Revenu annuel">Revenu annuel</span></h2>
+          <div class="card" id="income-card"></div>
+        </div>
+
+        <h2><span data-term="Résultats">Résultats à venir</span></h2>
+        <div class="card" id="earnings-card"><div class="help">Chargement du screener…</div></div>
+
+      </div>
+      <div class="stab" data-spane="fiscalite" hidden>
+        <h2 style="margin-top:16px">Plus-values réalisées et dividendes</h2>
+        <div class="card" id="realized">
+          <div class="chart-head">
+      <select class="fin-select" id="realized-year" aria-label="Année" style="margin-top:0" hidden></select>
+          </div>
+          <div id="realized-body" class="help">Chargement…</div>
+        </div>
+
+        <h2>Plafond PEA et frais</h2>
+        <div class="card" id="costs-card">
+          <div id="costs-body" class="help">Chargement…</div>
+        </div>
+
+      </div>
+          </section>
 
     <!-- Briefs -->
     <section class="view" id="view-briefs" hidden>
       <div id="briefs-list-view">
-        <header><h1>Briefs hebdo</h1></header>
+        <div class="stock-top"><button class="back" data-goto="settings" aria-label="Retour">‹</button><strong>Briefs hebdo</strong></div>
         <div class="status" id="briefs-status">Chargement…</div>
         <div class="positions" id="briefs-list"></div>
       </div>
@@ -906,38 +950,67 @@
 
     <!-- Réglages -->
     <section class="view" id="view-settings" hidden>
-      <header><h1>Réglages</h1></header>
+      <header><h1>Plus</h1></header>
       <div id="settings-home">
-      <div class="group-title">Mes placements</div><div class="group">
+      <div class="card display-card">
+        <div class="display-title">Affichage</div>
+        <div class="seg seg-flat" id="detail-mode" role="radiogroup" aria-label="Niveau de détail">
+          <button role="radio" data-detail="essentiel">Essentiel</button>
+          <button role="radio" data-detail="complet">Complet</button>
+        </div>
+        <p class="help" id="detail-text" style="margin:8px 0 0"></p>
+        <div class="appearance-row"><span>Taille du texte</span>
+          <div class="size-btns"><button id="text-smaller" aria-label="Texte plus petit">A−</button><button id="text-bigger" aria-label="Texte plus grand" style="font-size:18px">A+</button></div>
+        </div>
+      </div>
+      <div class="group-title">Mon patrimoine</div><div class="group">
+        <button class="setting" data-spage="patrimoine"><span class="ic" style="background:#0d9488"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5"/></svg></span><span style="min-width:0"><span class="t">Épargne et patrimoine</span><span class="d">Livrets, assurance-vie, PER : ton patrimoine financier</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="projection"><span class="ic" style="background:#7c3aed"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-5 3 3 6-7"/></svg></span><span style="min-width:0"><span class="t">Projection</span><span class="d">Ce que pourrait devenir ton épargne</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="goals"><span class="ic" style="background:#22c55e"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></span><span style="min-width:0"><span class="t">Objectifs et rééquilibrage</span><span class="d">Poches, allocation cible et ordres pour y revenir</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div id="briefs-entry" hidden>
+      <div class="group-title">À lire</div><div class="group">
+        <button class="setting" data-goto="briefs"><span class="ic" style="background:#b45309"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg></span><span style="min-width:0"><span class="t">Briefs hebdo</span><span class="d">Le point marchés de la semaine</span></span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      </div>
+      <div class="group-title">Réglages</div><div class="group">
         <button class="setting" data-spage="accounts"><span class="ic" style="background:#0ea5e9"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></span><span style="min-width:0"><span class="t">Comptes et courtiers</span><span class="d">PEA, CTO et grilles de frais de tes courtiers</span></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="setting" data-spage="goals"><span class="ic" style="background:#22c55e"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></span><span style="min-width:0"><span class="t">Allocation cible</span><span class="d">Poches et objectifs de répartition</span></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="setting" data-spage="advanced"><span class="ic" style="background:#64748b"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><span style="min-width:0"><span class="t">Opérations avancées</span><span class="d">Doublons, repartir de zéro, reconstituer l'historique</span></span><span class="chev" aria-hidden="true">›</span></button>
-      </div>
-      <div class="group-title">Notifications</div><div class="group">
         <button class="setting" data-spage="notifications"><span class="ic" style="background:#ef4444"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span style="min-width:0"><span class="t">Notifications ntfy</span><span class="d">Tes alertes de la nuit sur ton téléphone</span></span><span class="chev" aria-hidden="true">›</span></button>
-      </div>
-      <div class="group-title">Apparence</div><div class="group">
         <button class="setting" data-spage="appearance"><span class="ic" style="background:#334155"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span style="min-width:0"><span class="t">Apparence et affichage</span><span class="d">Thème, couleur, taille du texte, mode Simple ou Détaillé</span></span><span class="chev" aria-hidden="true">›</span></button>
-      </div>
-      <div class="group-title">Analyse (avancé)</div><div class="group">
         <button class="setting" data-spage="dcf"><span class="ic" style="background:#0f766e"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg></span><span style="min-width:0"><span class="t">Hypothèses du DCF</span><span class="d">Croissance, actualisation, croissance à long terme</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="advanced"><span class="ic" style="background:#64748b"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><span style="min-width:0"><span class="t">Opérations avancées</span><span class="d">Doublons, repartir de zéro, reconstituer l'historique</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       <div class="group-title">Compte</div><div class="group">
         <button class="setting" data-spage="token"><span class="ic" style="background:#475569"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span style="min-width:0"><span class="t">Code d'accès</span><span class="d">Un code = un Google Sheet, mémorisé sur cet appareil</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="signup"><span class="ic" style="background:#8b5cf6"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span style="min-width:0"><span class="t">Créer un compte</span><span class="d">Gratuit, avec ton propre Google Sheet</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       <div class="group-title">Aide</div><div class="group">
-        <button class="setting" data-spage="lexicon"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></span><span style="min-width:0"><span class="t">Lexique des indicateurs</span><span class="d">PER, ROE, prix juste... expliqués simplement</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="help"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg></span><span style="min-width:0"><span class="t">Guide d'utilisation</span><span class="d">Comment tout marche, étape par étape</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="lexicon"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></span><span style="min-width:0"><span class="t">Lexique des indicateurs</span><span class="d">PER, ROE, prix juste... expliqués simplement</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
+      </div>
+      <div class="spage" data-page="patrimoine" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Épargne et patrimoine</strong></div>
+        <p class="help needs-portfolio" hidden>Ton portefeuille n'est pas encore chargé : saisis ton code d'accès (Plus &gt; Code d'accès) ou attends la fin du chargement.</p>
+        <div class="card" id="savings"></div>
+      </div>
+      <div class="spage" data-page="projection" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Projection</strong></div>
+        <p class="help needs-portfolio" hidden>Ton portefeuille n'est pas encore chargé : saisis ton code d'accès (Plus &gt; Code d'accès) ou attends la fin du chargement.</p>
+        <div class="card" id="projection"></div>
+      </div>
+      <div class="spage" data-page="goals" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Objectifs et rééquilibrage</strong></div>
+        <p class="help needs-portfolio" hidden>Ton portefeuille n'est pas encore chargé : saisis ton code d'accès (Plus &gt; Code d'accès) ou attends la fin du chargement.</p>
+        <div class="card" id="allocation"></div>
       </div>
       <div class="spage" data-page="accounts" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Comptes et courtiers</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Comptes et courtiers</strong></div>
       <div class="card" id="accounts-editor"><p class="help">Saisis ton code d'accès pour gérer tes comptes.</p></div>
 
       </div>
       <div class="spage" data-page="advanced" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Opérations avancées</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Opérations avancées</strong></div>
       <div class="card">
         <div class="edit-sub" style="margin-top:0">Historique de la courbe</div>
         <p class="help">Recalcule la courbe d'évolution jour par jour depuis tes opérations et les cours de clôture, par exemple après avoir importé d'anciens relevés.</p>
@@ -965,7 +1038,7 @@
       </div>
       </div>
       <div class="spage" data-page="notifications" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Notifications</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Notifications</strong></div>
       <div class="card">
         <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
         <input class="search" id="ntfy-topic" placeholder="Sujet ntfy, ex. portfolio-k3x9q2m1p8" autocomplete="off" />
@@ -979,7 +1052,7 @@
 
       </div>
       <div class="spage" data-page="appearance" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Apparence et affichage</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Apparence et affichage</strong></div>
       <div class="card" id="appearance">
         <div class="appearance-row" style="margin-top:0"><span>Thème</span>
           <div class="segmented" data-pref="theme">
@@ -1015,7 +1088,7 @@
       </div>
       </div>
       <div class="spage" data-page="dcf" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Hypothèses du DCF</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Hypothèses du DCF</strong></div>
       <div class="card">
         <p class="help">Laisse un champ vide pour garder le calcul automatique : croissance tirée de l'historique de cash-flow de chaque entreprise, actualisation selon son bêta. Une valeur saisie s'applique à toutes les actions, dans le portefeuille comme dans le screener.</p>
         <label class="field"><span>Croissance initiale du cash-flow (% par an)</span><input id="hyp-growth" type="number" step="0.5" min="-10" max="30" placeholder="auto (0 à 12 %)" inputmode="decimal" /></label>
@@ -1029,7 +1102,7 @@
 
       </div>
       <div class="spage" data-page="token" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Code d'accès</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Code d'accès</strong></div>
       <div class="card">
         <p class="help">Protège tes positions et tes montants. À saisir une fois par appareil, il reste mémorisé sur celui-ci.</p>
         <input class="search" id="settings-token" type="password" placeholder="Code d'accès" autocomplete="current-password" />
@@ -1039,7 +1112,7 @@
 
       </div>
       <div class="spage" data-page="signup" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Créer un compte</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Créer un compte</strong></div>
       <div class="card" id="signup">
         <p class="help">Gratuit, en 5 minutes. Tes données restent dans <b>ton</b> Google Sheet, que l'appli lit et complète. L'administrateur de l'appli gère le robot Google qui y accède : il a donc techniquement accès à ton Sheet.</p>
         <ol>
@@ -1060,14 +1133,14 @@
 
       </div>
       <div class="spage" data-page="lexicon" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Lexique des indicateurs</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Lexique des indicateurs</strong></div>
       <div class="card">
         <p class="help">Dans les fiches, touche un libellé souligné (PER, ROE…) pour afficher son explication.</p>
         <div class="lexicon" id="lexicon"></div>
       </div>
       </div>
       <div class="spage" data-page="help" hidden>
-        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour aux réglages">‹</button><strong class="spage-title">Guide d'utilisation</strong></div>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Guide d'utilisation</strong></div>
       <div class="card">
         <p class="help" style="margin:0">Comment tout marche, étape par étape : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/guide-utilisation.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'utilisation</a> · pour installer l'appli et créer un compte : <a href="https://github.com/OZAXE/portfolio-app/blob/main/docs/tutoriel-amis.md" target="_blank" rel="noopener" style="color:var(--accent)">guide d'installation</a>. Les mots soulignés en pointillés s'expliquent quand tu les touches.</p>
       </div>
@@ -1084,18 +1157,21 @@
     </div>
   </dialog>
 
-  <nav class="tabbar" id="tabbar">
-    <button data-view="portfolio" class="active">
+  <nav class="tabbar" id="tabbar" aria-label="Navigation principale">
+    <button data-view="home" class="active">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil
+    </button>
+    <button data-view="portfolio">
       <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Portefeuille
     </button>
     <button data-view="market">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Marché
     </button>
-    <button data-view="briefs" hidden>
-      <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Briefs
+    <button data-view="suivi">
+      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Suivi
     </button>
     <button data-view="settings">
-      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages
+      <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Plus
     </button>
   </nav>
 
@@ -1126,7 +1202,7 @@
     async function api(path) {
       const headers = settings.token ? { "X-Access-Token": settings.token } : {};
       const res = await fetch(`${API_BASE_URL}${path}`, { headers });
-      if (res.status === 401) throw Object.assign(new Error("code d'accès requis : saisis-le dans l'onglet Réglages, ou crée ton compte gratuit au même endroit"), { status: 401 });
+      if (res.status === 401) throw Object.assign(new Error("code d'accès requis : saisis-le dans l'onglet Plus (Code d'accès), ou crée ton compte gratuit au même endroit"), { status: 401 });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Erreur API : ${res.status}`);
@@ -1247,20 +1323,42 @@
       };
     }
 
-    // --- Onglets (l'onglet courant est gardé dans l'URL : #market, #briefs...) ---
+    // --- Onglets (l'onglet courant est gardé dans l'URL : #portfolio, #market, #suivi...) ---
+    // Les Briefs n'ont plus de bouton dans la barre : ils s'ouvrent depuis Plus, qui reste allumé
+    const VIEW_TAB = { briefs: "settings" };
+    const TAB_VIEWS = ["home", "portfolio", "market", "suivi", "settings", "briefs"];
     function showView(view) {
-      const btn = document.querySelector(`#tabbar button[data-view="${view}"]`);
-      if (!btn) return;
-      document.querySelectorAll("#tabbar button").forEach((b) => b.classList.toggle("active", b === btn));
+      if (view === "transactions") view = "suivi";  // ancien écran Transactions, devenu l'onglet Suivi
+      if (!TAB_VIEWS.includes(view)) return;
+      const tab = VIEW_TAB[view] || view;
+      document.querySelectorAll("#tabbar button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.view === tab);
+        if (b.dataset.view === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+      });
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== `view-${view}`));
       window.scrollTo(0, 0);
-      history.replaceState(null, "", view === "portfolio" ? location.pathname : `#${view}`);
+      history.replaceState(null, "", view === "home" ? location.pathname : `#${view}`);
+      if (view === "portfolio" && overview) {
+        renderChart();  // dessinée pendant que l'onglet était caché : sans taille
+        if (!document.querySelector('#portfolio-content .ptab[data-pane="repartition"]').hidden) renderChartsAfterShow();
+      }
       if (view === "market") { loadMarket(); loadInvestors(); }
-      if (view === "settings") { loadAccountsEditor(); if (settingsPage) closeSettingsPage(); }
+      if (view === "suivi") showSuiviTab(suiviTab);
+      if (view === "settings") { loadAccountsEditor(); syncDetailButtons(); if (settingsPage) closeSettingsPage(); }
     }
     document.getElementById("tabbar").addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-view]");
       if (btn) showView(btn.dataset.view);
+    });
+    // Raccourcis entre onglets (carte de l'Accueil, tuiles, entrée Briefs de Plus) : data-goto="vue" ou "vue:sous-onglet"
+    document.addEventListener("click", (e) => {
+      const link = e.target.closest("[data-goto]");
+      if (!link || e.target.closest("[data-term]")) return;
+      const [view, sub] = link.dataset.goto.split(":");
+      if (view === "settings" && settingsPage) closeSettingsPage();
+      showView(view);
+      if (view === "portfolio" && sub) showPortfolioTab(sub);
+      if (view === "suivi" && sub) showSuiviTab(sub);
     });
 
     // --- Mode discret : des points à la place des montants (pour montrer l'appli sans dévoiler son capital) ---
@@ -1609,7 +1707,6 @@
       document.querySelectorAll("#portfolio-content .ptab").forEach((p) => (p.hidden = p.dataset.pane !== tab));
       if (tab === "repartition" && overview) renderChartsAfterShow();
       if (tab === "performance" && overview) loadStats();
-      if (tab === "revenus" && dividendCalendar) renderYieldCard();  // croissance des dividendes : screener chargé entre-temps
     }
     // Les graphiques dessinés dans un volet caché n'ont pas de taille : on les redessine à l'affichage
     function renderChartsAfterShow() { renderSectors(); renderExposure(); renderProjection(); }
@@ -1617,21 +1714,23 @@
       const b = e.target.closest("[data-ptab]");
       if (b) showPortfolioTab(b.dataset.ptab);
     });
-    document.getElementById("goals-open").addEventListener("click", () => {
-      showPortfolioTab("repartition");
-      document.getElementById("allocation").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    // Cloche : alertes de la nuit et alertes de prix, repliées par défaut ; point rouge s'il y en a
-    function updateAlertsDot() {
-      const any = !document.getElementById("alerts-block").hidden || !document.getElementById("price-alerts-block").hidden;
-      document.getElementById("alerts-empty").hidden = any;
-      document.getElementById("alerts-dot").hidden = !(!document.getElementById("alerts-block").hidden || priceAlerts.some((a) => a.triggered));
+
+    // --- Suivi : opérations, journal, revenus et fiscalité ---
+    let suiviTab = "ops";
+    function showSuiviTab(tab) {
+      suiviTab = tab;
+      document.querySelectorAll("#suivi-tabs button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.stab === tab);
+        b.setAttribute("aria-selected", String(b.dataset.stab === tab));
+      });
+      document.querySelectorAll("#view-suivi .stab").forEach((p) => (p.hidden = p.dataset.spane !== tab));
+      if (tab === "ops" && !transactions) { txOpen = null; loadTransactions(); }
+      if (tab === "journal") renderJournalList();
+      if (tab === "revenus" && dividendCalendar) renderYieldCard();  // croissance des dividendes : screener chargé entre-temps
     }
-    document.getElementById("alerts-toggle").addEventListener("click", (e) => {
-      const panel = document.getElementById("alerts-panel");
-      panel.hidden = !panel.hidden;
-      e.currentTarget.setAttribute("aria-expanded", String(!panel.hidden));
-      updateAlertsDot();
+    document.getElementById("suivi-tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-stab]");
+      if (b) showSuiviTab(b.dataset.stab);
     });
 
     let breakdownDim = "sector";
@@ -1869,7 +1968,7 @@
       renderConcentration();
       renderAlertsList();
     });
-    // Alertes sous la cloche : lignes et secteurs au-dessus des plafonds
+    // Alertes de l'Accueil (« À regarder ») : lignes et secteurs au-dessus des plafonds
     function concentrationAlerts() {
       if (!overview?.holdings?.length || !overview.total.value) return [];
       const limits = concentrationLimits();
@@ -2385,6 +2484,8 @@
       renderAllocation();
       renderSavings();
       renderAlertsList();
+      renderSpark();
+      renderHomeTiles();
     }
 
     // --- Variation du jour et effet de change (daily.py) : cours Yahoo, chargés après les positions ---
@@ -2424,7 +2525,7 @@
       }).sort((a, b) => a.effect - b.effect);
       document.getElementById("fx-effect").innerHTML = `
         <div class="stat">${fx.by_currency.map((c) => `<div><div class="k">${escapeHtml(c.currency)}</div><div class="v ${signClass(c.effect)}">${signedEur(c.effect)}</div>
-          <div class="help" style="margin:2px 0 0;font-size:12px">sur ${eur.format(c.value)} de titres</div></div>`).join("")}</div>
+          <div class="help" style="margin:2px 0 0;font-size:13px">sur ${eur.format(c.value)} de titres</div></div>`).join("")}</div>
         <div style="margin-top:10px">${lines.map((l) => `<div class="fx-row"><span>${escapeHtml(l.name)} <span class="muted">· ${escapeHtml(l.envelope)}</span></span>
             <span><span class="${signClass(l.effect)}">${signedEur(l.effect)}</span> <span class="muted">change</span>${l.stock_effect != null ? ` · <span class="${signClass(l.stock_effect)}">${signedEur(l.stock_effect)}</span> <span class="muted">action</span>` : ""}</span></div>`).join("")}</div>
         <p class="help" style="margin-top:10px">Part de ta plus-value latente due au taux de change : ${fx.total < 0 ? "la baisse" : "la hausse"} des devises face à l'euro depuis tes achats ${fx.total < 0 ? "t'a coûté" : "t'a rapporté"} ${hideable(eurFmt.format(Math.abs(fx.total)), "•••• €")}. Seule la devise de cotation compte : un ETF coté en euros n'en a pas, même s'il détient des actions américaines.</p>`;
@@ -2442,16 +2543,23 @@
       renderPositions(portfolioAnalyses);
     }
 
+    // L'Accueil et le Portefeuille montrent les mêmes données : même message d'attente, affichés ensemble
+    function setPortfolioStatus(text) {
+      for (const id of ["portfolio", "home"]) {
+        document.getElementById(`${id}-status`).hidden = !text;
+        if (text) document.getElementById(`${id}-status`).textContent = text;
+        document.getElementById(`${id}-content`).hidden = !!text;
+      }
+    }
     async function loadPortfolio() {
-      const statusEl = document.getElementById("portfolio-status");
+      if (document.getElementById("view-suivi").hidden) transactions = null;  // relues à la prochaine visite du Suivi
       const snap = overview ? null : readSnapshot();
       const since = snap ? `Valeurs du ${snapshotTime.format(new Date(snap.at))}` : "";
       if (snap) {
         overview = snap.overview;
         returns = snap.returns;
         portfolioAnalyses = snap.analyses || {};
-        statusEl.hidden = true;
-        document.getElementById("portfolio-content").hidden = false;
+        setPortfolioStatus("");
         try {
           renderPortfolioSections();
           if (returns) renderReturns();
@@ -2463,14 +2571,11 @@
       } catch (e) {
         if (snap && e.status !== 401) { showStale(`${since} · ${navigator.onLine ? `serveur injoignable (${e.message})` : "hors ligne"}`, false); return; }
         overview = null;
-        document.getElementById("portfolio-content").hidden = true;
-        statusEl.hidden = false;
-        statusEl.textContent = "Erreur de chargement : " + e.message;
+        setPortfolioStatus("Erreur de chargement : " + e.message);
         return;
       }
       showStale("");
-      statusEl.hidden = true;
-      document.getElementById("portfolio-content").hidden = false;
+      setPortfolioStatus("");
       renderPortfolioSections();
       renderMarket();  // sections Tes actions du Marché, si le screener est déjà chargé
       saveSnapshot();
@@ -3230,6 +3335,7 @@
       try { journal = await api("/journal"); } catch { return; }
       if (openedStock) renderJournalCard(openedStock);
       if (!document.getElementById("tx-journal").hidden) renderJournalList();
+      renderAlertsList();
     }
     const journalOf = (ticker) => (journal || []).find((e) => e.ticker === String(ticker).toUpperCase());
     const journalTicker = (s) => String(s.yahoo_ticker || s.ticker).toUpperCase();
@@ -3245,7 +3351,7 @@
       const cur = s.currency || closeCurrencies[ticker] || "";
       const now = s.price ?? lastCloses[ticker];
       if (journalEditing === ticker) { el.innerHTML = journalForm(s, e, cur); return; }
-      const cell = (k, v, sub = "", cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      const cell = (k, v, sub = "", cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:13px">${sub}</div>` : ""}</div>`;
       const pct = (x) => (x == null ? "" : `${x >= 0 ? "+" : ""}${num(x * 100)} % du cours`);
       const why = journalMotives(ticker);
       if (!e) {
@@ -3330,7 +3436,7 @@
       if (e.target.closest("[data-journal-cancel]")) { journalEditing = null; renderJournalCard(s); return; }
       const form = e.target.closest("[data-journal-form]");
       if (form && e.target.closest("[data-journal-save]")) saveJournal(form, s);
-      if (form && e.target.closest("[data-journal-delete]") && confirm("Supprimer ta thèse sur ce titre ? (les alertes de prix restent, à retirer sous la cloche)")) {
+      if (form && e.target.closest("[data-journal-delete]") && confirm("Supprimer ta thèse sur ce titre ? (les alertes de prix restent, à retirer depuis l'Accueil)")) {
         try { journal = await apiSend("DELETE", `/journal/${encodeURIComponent(journalTicker(s))}`); } catch (err) { form.querySelector("[data-journal-status]").textContent = err.message; return; }
         journalEditing = null;
         renderJournalCard(s);
@@ -3359,7 +3465,7 @@
           : sold ? `<span class="price ${signClass(gain)}">${signedEur(gain)}</span><span class="sub">vendu</span>` : `<span class="sub">idée</span>`;
         return `<button class="mrow" data-journal-open="${escapeHtml(e.ticker)}" data-envelope="${escapeHtml(h?.envelope || "")}">
             ${avatar({ ticker: e.ticker, name: stock?.name || h?.name || e.ticker })}
-            <div style="min-width:0"><div class="name">${escapeHtml(stock?.name || h?.name || e.ticker)}${reviewDue(e) ? ` <span class="negative" style="font-size:12px">· à revoir</span>` : ""}</div>
+            <div style="min-width:0"><div class="name">${escapeHtml(stock?.name || h?.name || e.ticker)}${reviewDue(e) ? ` <span class="negative" style="font-size:13px">· à revoir</span>` : ""}</div>
               <div class="sub">${parts.join(" · ") || "pas d'objectif ni de stop"}</div>
               <div class="sub">${escapeHtml(e.outcome || e.thesis || "")}</div></div>
             <div class="right">${right}</div></button>`;
@@ -3371,14 +3477,6 @@
       const ticker = row.dataset.journalOpen;
       if (overview?.holdings?.some((h) => h.ticker === ticker && (h.envelope || "") === row.dataset.envelope)) openPosition(ticker, row.dataset.envelope);
       else openStockByTicker(ticker);
-    });
-    document.getElementById("tx-tabs").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-txtab]");
-      if (!b) return;
-      document.querySelectorAll("#tx-tabs button").forEach((x) => x.classList.toggle("active", x === b));
-      document.getElementById("tx-journal").hidden = b.dataset.txtab !== "journal";
-      document.getElementById("tx-ops").hidden = b.dataset.txtab === "journal";
-      if (b.dataset.txtab === "journal") renderJournalList();
     });
 
     document.getElementById("view-stock").addEventListener("click", (e) => {
@@ -3495,7 +3593,7 @@
         ${s.minimal ? "" : `<div class="bigprice">${money(s.price, s.currency)}</div>`}
         <div id="compare-open-slot"></div>
         ${priceChartBlock()}
-        <div class="analysis fiche" id="stock-tech"></div>
+        <div class="analysis fiche adv" id="stock-tech"></div>
         <div id="stock-journal"></div>
         <div id="stock-about"></div>
         <div id="stock-news"></div>
@@ -3857,22 +3955,108 @@
       let data;
       try { data = await api("/alerts"); } catch { return; }
       serverAlerts = [
-        ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin })),
+        ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin, ticker: e.ticker })),
         ...data.opportunities
           .filter((o) => !data.events.some((e) => e.ticker === o.ticker && e.type === "sous-évaluée"))
-          .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin })),
+          .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin, ticker: o.ticker })),
       ];
       renderAlertsList();
     }
-    const ALERT_ORIGINS = { position: "Position", concentration: "Concentration" };
+    // --- Accueil, « À regarder » : tout ce qui demande ton attention (remplace la cloche) ---
+    // Lignes trop lourdes, alertes de la nuit, thèses à relire (date de revue du journal passée) et résultats
+    // publiés dans les 7 jours par tes actions. Chaque ligne mène où agir : la concentration ou la fiche.
+    const ALERT_ORIGINS = { position: "En portefeuille", concentration: "Voir la concentration" };
+    const WATCH_EARNINGS_DAYS = 7;
+    function watchItems() {
+      const items = [
+        ...concentrationAlerts().map((r) => ({ ...r, tone: "warn", go: "concentration" })),
+        ...serverAlerts.map((r) => ({ ...r, tone: r.icon === "💰" ? "good" : "warn" })),
+      ];
+      for (const e of journal || []) {
+        if (!reviewDue(e)) continue;
+        const name = market?.stocks?.find((st) => st.ticker === e.ticker)?.name
+          || overview?.holdings?.find((h) => journalTicker(h) === e.ticker)?.name || e.ticker;
+        items.push({ icon: "📝", tone: "good", ticker: e.ticker, text: `Relire ta thèse sur ${shortName(name) || name}`,
+          sub: `Revue prévue le ${dayFmt.format(new Date(e.review + "T12:00:00"))}` });
+      }
+      const held = new Set((overview?.holdings || []).map((h) => (h.yahoo_ticker || "").toUpperCase()));
+      for (const st of market?.stocks || []) {
+        if (!held.has(st.ticker)) continue;
+        const e = earningsText(st.earnings_date);
+        if (!e?.upcoming || e.days > WATCH_EARNINGS_DAYS) continue;
+        const day = e.days === 0 ? "aujourd'hui" : new Date(st.earnings_date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        items.push({ icon: "📅", tone: "info", ticker: st.ticker, text: `${shortName(st.name) || st.ticker} publie ses résultats ${e.days === 0 ? day : `le ${day}`}`,
+          sub: "Le cours bouge souvent fort ce jour-là" });
+      }
+      return items;
+    }
     function renderAlertsList() {
-      const rows = [...concentrationAlerts(), ...serverAlerts];
+      const rows = watchItems();
       document.getElementById("alerts").innerHTML = rows.map((r) => `
-        <div class="alert-row"><span class="icon">${r.icon}</span>
-          <div><div>${escapeHtml(r.text)}</div><div class="origin">${ALERT_ORIGINS[r.origin] || "Watchlist"}</div></div>
-        </div>`).join("");
-      document.getElementById("alerts-block").hidden = !rows.length;
-      updateAlertsDot();
+        <button class="watch-row" ${r.go ? `data-watch-go="${r.go}"` : r.ticker ? `data-watch-stock="${escapeHtml(r.ticker)}"` : ""}>
+          <span class="wic ${r.tone || ""}" aria-hidden="true">${r.icon}</span>
+          <span style="min-width:0"><span class="t">${escapeHtml(r.text)}</span><span class="d">${escapeHtml(r.sub || ALERT_ORIGINS[r.origin] || "Watchlist")}</span></span>
+          ${r.go || r.ticker ? '<span class="chev" aria-hidden="true">›</span>' : "<span></span>"}
+        </button>`).join("");
+      document.getElementById("alerts-empty").hidden = rows.length > 0;
+      document.getElementById("watch-count").textContent = rows.length || "";
+    }
+    document.getElementById("alerts").addEventListener("click", (e) => {
+      const row = e.target.closest(".watch-row");
+      if (!row) return;
+      if (row.dataset.watchGo === "concentration") {
+        showView("portfolio");
+        showPortfolioTab("repartition");
+        document.getElementById("concentration").scrollIntoView({ block: "start" });
+      } else if (row.dataset.watchStock) {
+        const ticker = row.dataset.watchStock;
+        const h = overview?.holdings?.find((x) => String(x.yahoo_ticker || x.ticker).toUpperCase() === ticker.toUpperCase());
+        if (h) openPosition(h.ticker, h.envelope || ""); else openStockByTicker(ticker);
+      }
+    });
+
+    // Mini-courbe de l'Accueil : valeur totale sur un an (onglet Historique + point du jour), verte si elle monte
+    function renderSpark() {
+      const el = document.getElementById("home-spark");
+      const since = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+      const pts = withLivePoint(overview.history || []).filter((p) => p.date >= since && p.total_value != null);
+      if (pts.length < 2) { el.hidden = true; return; }
+      const values = pts.map((p) => p.total_value);
+      const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
+      const coords = values.map((v, k) => `${(k / (values.length - 1) * 300).toFixed(1)},${(52 - (v - lo) / span * 48).toFixed(1)}`).join(" ");
+      const color = values[values.length - 1] >= values[0] ? "var(--accent)" : "var(--accent-neg)";
+      el.innerHTML = `<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+      el.hidden = false;
+    }
+
+    // Tuiles de l'Accueil : prochain dividende attendu (estimé d'après les versements passés) et revenu sur 12 mois
+    function renderHomeTiles() {
+      const el = document.getElementById("home-tiles");
+      const c = dividendCalendar;
+      if (!c || !overview?.total) { el.innerHTML = ""; return; }
+      const today = new Date().toISOString().slice(0, 10);
+      const next = (c.events || []).find((ev) => ev.date >= today);
+      const invested = overview.total.invested;
+      el.innerHTML = `
+        <button class="tile" data-goto="suivi:revenus"><div class="k">Prochain dividende</div>
+          ${next ? `<div class="v">${eur.format(next.gross)}</div><div class="s">${escapeHtml(shortName(next.name) || next.ticker)} · ${escapeHtml(eventDate.format(new Date(next.date + "T12:00:00")))} (estimé)</div>`
+            : `<div class="v">Aucun</div><div class="s">prévu sur 12 mois</div>`}</button>
+        <button class="tile" data-goto="suivi:revenus"><div class="k">Revenu sur 12 mois</div>
+          <div class="v">${eur.format(c.annual_gross || 0)}</div><div class="s">${invested && c.annual_gross ? `${pctPlain(c.annual_gross / invested)} sur ton PRU` : "dividendes attendus"}</div></button>`;
+    }
+
+    // Salutation de l'Accueil : moment de la journée et prénom du compte (/me)
+    const homeDay = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    let userName = "";
+    function renderGreeting() {
+      document.getElementById("home-date").textContent = homeDay.format(new Date());
+      const hello = new Date().getHours() >= 18 ? "Bonsoir" : "Bonjour";
+      document.getElementById("home-hello").textContent = userName ? `${hello} ${userName}` : hello;
+    }
+    async function loadMe() {
+      renderGreeting();
+      try { userName = (await api("/me")).name || ""; } catch { return; }
+      renderGreeting();
     }
 
     // --- Historique hebdomadaire du screener (cours, prix juste et valeur intrinsèque) ---
@@ -4212,11 +4396,11 @@
       el.className = "";
       const bench = stats.benchmark;
       const rows = periods.filter((p) => p.available).map((p) => {
-        const ann = p.annualized != null ? `<div class="who muted" style="font-size:11px">${pctFmt.format(p.annualized)} /an</div>` : "";
+        const ann = p.annualized != null ? `<div class="who muted" style="font-size:12px">${pctFmt.format(p.annualized)} /an</div>` : "";
         const diff = p.benchmark != null ? p.twr - p.benchmark : null;
         return `<tr><td>${p.label}</td>
           <td><b class="${signClass(p.twr)}">${pctFmt.format(p.twr)}</b>${ann}</td>
-          ${bench ? `<td class="bench">${p.benchmark != null ? pctFmt.format(p.benchmark) : "—"}${diff != null ? `<div style="font-size:11px" class="${signClass(diff)}">${pctFmt.format(Math.abs(diff)).replace("+", "").replace("%", "pt")} ${diff >= 0 ? "devant" : "derrière"}</div>` : ""}</td>` : ""}
+          ${bench ? `<td class="bench">${p.benchmark != null ? pctFmt.format(p.benchmark) : "—"}${diff != null ? `<div style="font-size:12px" class="${signClass(diff)}">${pctFmt.format(Math.abs(diff)).replace("+", "").replace("%", "pt")} ${diff >= 0 ? "devant" : "derrière"}</div>` : ""}</td>` : ""}
           <td class="${signClass(p.gain)}">${signedEur(p.gain)}</td></tr>`;
       }).join("");
       const missing = periods.filter((p) => !p.available).map((p) => p.label.toLowerCase());
@@ -4226,7 +4410,7 @@
     }
 
     function riskCell(term, value, sub = "", cls = "") {
-      return `<div><div class="k"><span data-term="${term}">${term}</span></div><div class="v ${cls}">${value}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      return `<div><div class="k"><span data-term="${term}">${term}</span></div><div class="v ${cls}">${value}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:13px">${sub}</div>` : ""}</div>`;
     }
 
     function renderStatsRisk(r) {
@@ -4364,7 +4548,7 @@
         notificationSettings = n;
         document.getElementById("price-alerts-note").textContent = n.topic || n.admin
           ? "Vérifiées chaque nuit sur le dernier cours de clôture, dans la devise de cotation. Une alerte déclenchée t'est notifiée une fois, puis reste ici jusqu'à ce que tu la réactives ou la supprimes."
-          : "Pour recevoir une notification quand une alerte se déclenche, choisis ton sujet ntfy dans Réglages > Notifications.";
+          : "Pour recevoir une notification quand une alerte se déclenche, choisis ton sujet ntfy dans Plus > Notifications.";
         renderNotificationSettings();
       } catch { /* réglages indisponibles : la liste reste utilisable */ }
     }
@@ -4372,7 +4556,6 @@
     function renderPriceAlerts() {
       const block = document.getElementById("price-alerts-block");
       block.hidden = !priceAlerts.length;
-      updateAlertsDot();
       const names = Object.fromEntries((overview?.holdings || []).map((h) => [String(h.ticker).toUpperCase(), h.name]));
       for (const st of market?.stocks || []) names[st.ticker] ||= st.name;
       document.getElementById("price-alerts").innerHTML = priceAlerts.map((a) => `
@@ -4755,7 +4938,7 @@
 
     // --- Import de relevés (Trade Republic CSV, avis d'opéré Boursorama PDF) : aperçu, puis écriture ---
     let importPreview = null;
-    const IMPORT_STATUS = { new: "", duplicate: "déjà dans le Sheet", no_ticker: "ticker introuvable", no_account: "aucun compte de cette enveloppe : ajoute-le dans Réglages" };
+    const IMPORT_STATUS = { new: "", duplicate: "déjà dans le Sheet", no_ticker: "ticker introuvable", no_account: "aucun compte de cette enveloppe : ajoute-le dans Plus > Comptes" };
 
     async function openImport() {
       opEl("imp-panel").hidden = false;
@@ -4824,7 +5007,7 @@
       const needsTicker = (o) => !o.ticker && !CASH_TYPES.includes(o.type);
       btn.disabled = !selected.length || selected.some((o) => needsTicker(o) || o.status === "no_account");
       btn.textContent = selected.some((o) => o.status === "no_account")
-        ? "Ajoute le compte manquant dans Réglages ou décoche ces lignes"
+        ? "Ajoute le compte manquant dans Plus > Comptes ou décoche ces lignes"
         : selected.some(needsTicker)
         ? "Complète les tickers manquants ou décoche ces lignes"
         : `Importer ${selected.length} opération${selected.length > 1 ? "s" : ""} dans ${accounts.map((a) => `« ${a} »`).join(" et ")}`;
@@ -4923,29 +5106,11 @@
 
     // --- Transactions : toutes les lignes de l'onglet Opérations, à corriger ou supprimer (transactions.py) ---
     // Chaque ligne garde son numéro et son empreinte (key) : le serveur refuse d'écrire si le Sheet a bougé
-    let transactions = null, txReturn = null, txOpen = null;
+    let transactions = null, txOpen = null;
     const txFilter = { kind: "", account: "", query: "" };
     const TX_KINDS = [["", "Tout"], ["trade", "Achats et ventes"], ["Dividende", "Dividendes"], ["cash", "Espèces"], ["share", "Divisions"]];
     const txMonth = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
     const txDay = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-
-    async function openTransactions() {
-      const current = [...document.querySelectorAll(".view")].find((v) => !v.hidden);
-      txReturn = { view: current?.id, scroll: window.scrollY };
-      history.pushState({ transactions: true }, "", location.hash || location.pathname);
-      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-transactions"));
-      window.scrollTo(0, 0);
-      txOpen = null;
-      await loadTransactions();
-    }
-    function closeTransactions() {
-      const { view, scroll } = txReturn;
-      txReturn = null;
-      document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
-      window.scrollTo(0, scroll);
-    }
-    // Retour depuis une fiche ouverte dans le journal : on retombe sur l'entrée { transactions }, qui reste ouverte
-    window.addEventListener("popstate", (e) => { if (txReturn && !e.state?.transactions && !stockReturn && !compareReturn) closeTransactions(); });
 
     async function loadTransactions() {
       const status = document.getElementById("tx-status");
@@ -5105,8 +5270,6 @@
       if (rebuild && since && since < new Date().toISOString().slice(0, 10)) rebuildHistory(since);
     }
 
-    document.getElementById("tx-open").addEventListener("click", openTransactions);
-    document.getElementById("tx-back").addEventListener("click", () => history.back());
     document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
     document.getElementById("tx-account").addEventListener("change", (e) => { txFilter.account = e.target.value; renderTransactions(); });
     document.getElementById("tx-export").addEventListener("click", exportTransactions);
@@ -5156,6 +5319,7 @@
       renderDividends();
       renderYieldCard();
       renderIncomeCard();
+      renderHomeTiles();
     }
 
     // --- Rendement sur PRU : dividendes des 12 prochains mois (projection) rapportés au prix payé. Air Liquide achetée
@@ -5188,7 +5352,7 @@
       const payingInvested = rows.reduce((sum, r) => sum + (r.invested || 0), 0);
       const known = rows.filter((r) => dividendGrowthOf(r.ticker) != null).length;
       const in5 = futureIncome(c.lines, 5);
-      const cell = (k, v, sub = "") => `<div><div class="k">${k}</div><div class="v">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      const cell = (k, v, sub = "") => `<div><div class="k">${k}</div><div class="v">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:13px">${sub}</div>` : ""}</div>`;
       document.getElementById("yield-card").innerHTML = `
         <div class="stat">
           ${cell(`<span data-term="Rendement sur PRU">Sur ton prix de revient</span>`, total.invested ? pctPlain(c.annual_gross / total.invested) : "N/A", payingInvested && payingInvested < total.invested * 0.99 ? `${pctPlain(c.annual_gross / payingInvested)} sur les seules lignes qui versent` : "")}
@@ -5380,24 +5544,26 @@
 
     // --- Réglages : l'accueil liste les rubriques, chacune s'ouvre sur sa page ---
     let settingsPage = null;
+    const PORTFOLIO_PAGES = ["patrimoine", "projection", "goals"];  // pages de Plus qui lisent le portefeuille
     function openSettingsPage(name) {
-      if (name === "goals") {  // l'allocation cible se règle dans le Portefeuille, rubrique Répartition
-        showView("portfolio");
-        showPortfolioTab("repartition");
-        document.getElementById("allocation").scrollIntoView({ block: "start" });
-        return;
-      }
       if (!settingsPage) history.pushState({ settings: name }, "", location.hash || location.pathname);
       settingsPage = name;
       document.getElementById("settings-home").hidden = true;
+      document.querySelector("#view-settings > header").hidden = true;  // la page a son propre titre
       document.querySelectorAll("#view-settings .spage").forEach((pg) => (pg.hidden = pg.dataset.page !== name));
       window.scrollTo(0, 0);
       if (name === "advanced") prepareAdvancedTools();
       if (name === "appearance") syncDensityButtons();
+      if (PORTFOLIO_PAGES.includes(name)) {
+        document.querySelector(`#view-settings .spage[data-page="${name}"] .needs-portfolio`).hidden = !!overview;
+        if (overview && name === "projection") renderProjection();  // graphique dessiné page cachée : sans taille
+        if (overview && name === "goals") renderAllocation();
+      }
     }
     function closeSettingsPage() {
       settingsPage = null;
       document.getElementById("settings-home").hidden = false;
+      document.querySelector("#view-settings > header").hidden = false;
       document.querySelectorAll("#view-settings .spage").forEach((pg) => (pg.hidden = true));
       window.scrollTo(0, 0);
     }
@@ -5431,7 +5597,7 @@
     // Chargés au démarrage : l'onglet Briefs n'apparaît que s'il y a quelque chose à lire
     // (masqué pour un utilisateur sans dossier de briefs ou avec un dossier vide)
     async function loadBriefs() {
-      const tab = document.querySelector('#tabbar button[data-view="briefs"]');
+      const tab = document.getElementById("briefs-entry");
       const status = document.getElementById("briefs-status");
       briefs = null;
       try {
@@ -5443,7 +5609,7 @@
         return;
       }
       tab.hidden = !briefs.length;
-      if (tab.hidden && location.hash === "#briefs") showView("portfolio");
+      if (tab.hidden && location.hash === "#briefs") showView("home");
       status.hidden = true;
       document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => {
         const day = new Date(b.date + "T12:00:00");
@@ -5565,7 +5731,7 @@
         "Potentiel": "<p>(prix juste ÷ cours − 1) : ce que l'action gagnerait si elle rejoignait son prix juste. Négatif : elle devrait baisser pour y revenir.</p>",
         "Fourchette": "<p>De la méthode la plus prudente à la plus optimiste parmi celles qui composent le prix juste. Plus elle est large, plus l'estimation est incertaine.</p>",
         "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",
-        "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Réglages.</p>",
+        "Hypothèses DCF": "<p><b>Croissance</b> : hausse annuelle du cash-flow la première année, tirée de l'historique de l'entreprise (entre 0 et 12 %), qui diminue chaque année jusqu'à la <b>croissance à long terme</b> (2 %).</p><p><b>Actualisation</b> : le rendement que tu exiges (7 à 11 %, plus élevé pour une action risquée). Plus il est haut, plus la valeur intrinsèque baisse. Tout est modifiable dans Plus > Hypothèses du DCF.</p>",
       }],
       ["Qualité de l'entreprise", {
         "Moyenne 200 jours": "<p>La moyenne des cours de clôture des 200 dernières séances de bourse (environ 10 mois), tracée en gris sur la courbe de la fiche (la puce « Moyenne 200 j » l'affiche ou la masque). Elle lisse les à-coups du quotidien et montre la tendance de fond.</p><p>Cours au-dessus de sa moyenne : tendance haussière ; en dessous : baissière. C'est un repère très suivi par les investisseurs, pas une prévision : une action peut rester longtemps sous sa moyenne, et une bonne affaire se trouve souvent quand le marché la délaisse.</p>",
@@ -5649,6 +5815,50 @@
     });
     renderAppearance();
 
+    // --- Plus > Affichage : niveau de détail de toute l'appli et taille du texte en deux boutons ---
+    // Essentiel masque ce qui sert surtout aux habitués (onglet Perf., exposition par entreprise, analyse technique)
+    // et passe le Marché en Simple ; Complet affiche tout. Par défaut Complet : rien ne disparaît sans le demander.
+    const DETAIL_TEXT = {
+      essentiel: "Les écrans gardent l'essentiel : valeur, positions, alertes et revenus. Idéal pour débuter.",
+      complet: "Tout est affiché : performance et risque, effet du change, exposition par entreprise, analyse technique, ratios détaillés.",
+    };
+    const TEXT_SIZES = ["normal", "grand", "tres-grand"];
+    const detailMode = () => (settings.detail === "essentiel" ? "essentiel" : "complet");
+    function applyDetail() { document.documentElement.dataset.detail = detailMode(); }
+    function syncDetailButtons() {
+      document.querySelectorAll("#detail-mode [data-detail]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.detail === detailMode());
+        b.setAttribute("aria-checked", String(b.dataset.detail === detailMode()));
+      });
+      document.getElementById("detail-text").textContent = DETAIL_TEXT[detailMode()];
+      const k = TEXT_SIZES.indexOf(settings.textSize || PREF_DEFAULTS.textSize);
+      document.getElementById("text-smaller").disabled = k <= 0;
+      document.getElementById("text-bigger").disabled = k >= TEXT_SIZES.length - 1;
+    }
+    document.getElementById("detail-mode").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-detail]");
+      if (!b) return;
+      settings.detail = b.dataset.detail;
+      settings.marketDensity = b.dataset.detail === "essentiel" ? "simple" : "detailed";
+      saveSettings();
+      applyDetail();
+      syncDetailButtons();
+      renderMarket();
+      if (detailMode() === "essentiel" && !document.querySelector('#portfolio-content .ptab[data-pane="performance"]').hidden) showPortfolioTab("positions");
+    });
+    function stepTextSize(delta) {
+      const k = TEXT_SIZES.indexOf(settings.textSize || PREF_DEFAULTS.textSize);
+      settings.textSize = TEXT_SIZES[Math.max(0, Math.min(TEXT_SIZES.length - 1, k + delta))];
+      saveSettings();
+      applyAppearance(settings);
+      renderAppearance();
+      syncDetailButtons();
+    }
+    document.getElementById("text-smaller").addEventListener("click", () => stepTextSize(-1));
+    document.getElementById("text-bigger").addEventListener("click", () => stepTextSize(1));
+    applyDetail();
+    syncDetailButtons();
+
     // --- Réglages ---
     const tokenInput = document.getElementById("settings-token");
     const hypInputs = { growth: "hyp-growth", discount: "hyp-discount", terminal: "hyp-terminal" };
@@ -5666,10 +5876,10 @@
         await api("/portfolio");
         status.textContent = "Code valide, enregistré sur cet appareil.";
         overview = null;
-        document.getElementById("portfolio-status").hidden = false;
-        document.getElementById("portfolio-status").textContent = "Chargement…";
+        setPortfolioStatus("Chargement…");
         loadPortfolio();
         loadBriefs();
+        loadMe();
       } catch (e) {
         status.textContent = e.message;
       }
@@ -5711,9 +5921,9 @@
         signupEl("signup-step2").hidden = true;
         status.innerHTML = `Bienvenue ${escapeHtml(r.name)} ! Ton code d'accès, enregistré sur cet appareil :<div class="signup-code">${escapeHtml(r.token)}</div>Note-le pour tes autres appareils. Perdu ? Refais l'inscription avec le même Sheet.`;
         overview = null;
-        signupEl("portfolio-status").hidden = false;
-        signupEl("portfolio-status").textContent = "Chargement…";
+        setPortfolioStatus("Chargement…");
         loadPortfolio();
+        loadMe();
       } catch (e) { status.textContent = e.message; }
     });
 
@@ -5863,6 +6073,7 @@
 
     loadPortfolio();
     loadBriefs();
+    loadMe();
     if (location.hash) showView(location.hash.slice(1));
   </script>
 </body>

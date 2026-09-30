@@ -173,9 +173,8 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     verdict en une phrase + jauge (`fairSummary`), puis 5 rubriques colorées (`pillar` : Valorisation, Qualité,
     Rentabilité, Santé financière, Dividende ; seuils dans le lexique). Depuis une position, carte « Ta position »
     en tête (`positionCard`) ; ETF et crypto ont une fiche réduite (`minimal`) ;
-  - Portefeuille : cloche des alertes, 3 boutons d'action, courbe, puis sous-onglets Positions / Répartition /
-    Revenus / Fiscalité (`showPortfolioTab`) ; cartes PEA / CTO = filtre des positions ;
-  - Réglages : rubriques groupées ouvrant chacune leur page (`openSettingsPage`) ; outils rares (doublons,
+  - Portefeuille : voir « Navigation en 5 onglets » (octobre 2026) plus bas, qui remplace l'ancienne organisation ;
+  - Réglages (onglet Plus) : rubriques groupées ouvrant chacune leur page (`openSettingsPage`) ; outils rares (doublons,
     repartir de zéro, reconstituer l'historique) dans « Opérations avancées » ;
   - logos (`logoUrls`) : dépôt nvstly/icons via jsDelivr pour les tickers américains, les cryptos et les ADR
     vérifiés (`ADR_LOGOS`), puis Financial Modeling Prep (couvre aussi Paris : Air Liquide, LVMH vérifiés
@@ -383,6 +382,30 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   2DC, 2AB, 2CK, 2TR. Carte « Pour ta déclaration N+1 » sous l'année (`taxRecap`). Cases indicatives : l'IFU fait foi ;
   prélèvements retenus sur les intérêts non ventilés (pas dans 2CK) ; moins-values antérieures non déduites ;
   mention prudente du formulaire 3916 (compte à l'étranger) sans affirmer le cas de chaque courtier.
+
+- **Navigation en 5 onglets (octobre 2026, maquette validée par Enzo).** Barre du bas : Accueil (`view-home`, s'ouvre
+  en premier, URL sans `#`), Portefeuille (`#portfolio`), Marché, Suivi (`#suivi`), Plus (`view-settings`, `#settings`).
+  `showView` accepte aussi `briefs` (sans bouton : Plus reste allumé) et `transactions` (ancien lien -> Suivi) ; les
+  raccourcis entre onglets passent par `data-goto="vue:sous-onglet"`. Blocs déplacés en gardant leurs IDs (le rendu par
+  ID continue de marcher) :
+  - Accueil : `#privacy-toggle`, carte valeur (`#total-value`, `#day-change`, mini-courbe `renderSpark` sur un an,
+    `#total-gain`, `#total-returns`), « À regarder » (`renderAlertsList` / `watchItems` : concentration, alertes du
+    serveur, thèses dont la revue est passée, résultats à 7 jours de titres détenus ; remplace la cloche et
+    `updateAlertsDot`), tuiles `renderHomeTiles` (prochain dividende estimé, revenu 12 mois et % sur PRU), alertes de prix.
+    Salutation Bonjour / Bonsoir + nom de `/me` (`loadMe`). Accueil et Portefeuille chargent ensemble (`setPortfolioStatus`).
+  - Portefeuille : enveloppes, espèces, « + Opération », courbe, sous-onglets Positions / Perf. / Répartition. Revenus et
+    Fiscalité -> Suivi ; épargne, projection et allocation -> pages de Plus (`patrimoine`, `projection`, `goals`, message
+    `needs-portfolio` sans portefeuille chargé). La courbe est redessinée à l'ouverture de l'onglet (dessinée cachée).
+  - Suivi : bouton Importer (`#imp-panel`), sous-onglets Opérations (`#tx-ops`, chargées à la première visite, relues après
+    un `loadPortfolio`), Journal, Revenus, Fiscalité (`showSuiviTab`). L'écran Transactions plein écran n'existe plus.
+  - Plus : carte Affichage (`settings.detail` Essentiel / Complet -> `html[data-detail]`, les éléments `.adv` sont masqués
+    en Essentiel : onglet Perf., `#exposure-block`, `#stock-tech` ; Essentiel met aussi le Marché en Simple ; Complet par
+    défaut) et A− / A+ qui parcourent `textSize`. Groupes Mon patrimoine, À lire (Briefs, `#briefs-entry` affiché s'il y
+    a des briefs), Réglages, Compte, Aide. Le titre « Plus » est masqué sur une page.
+  - Accessibilité : texte courant d'au moins 13 px (petites étiquettes 12 px), zones à toucher de 44 px (onglets, en-têtes,
+    retour), `aria-current` sur l'onglet actif. `nav.tabbar` en `z-index: 20` : les sous-onglets collants (`.seg`,
+    z-index 5) passaient par-dessus la barre du bas quand ils arrivaient en bas de l'écran.
+  Tout texte qui renvoie à un réglage dit « Plus > … » (plus « Réglages », qui désigne aussi l'onglet du Sheet).
 
 ## Tester le front (banc Playwright)
 
