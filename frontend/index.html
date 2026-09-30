@@ -621,11 +621,7 @@
               <option value="cac40">Comparer au CAC 40</option>
             </select>
           </div>
-          <div class="legend" id="chart-legend" style="margin-top:10px">
-            <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
-            <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
-            <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>
-          </div>
+          <div class="line-chips" id="chart-legend" style="margin-top:10px"></div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
           <p class="help" id="bench-summary" style="margin-top:8px"></p>
           <p class="help" id="history-auto-status" style="margin-top:6px"></p>
@@ -1211,13 +1207,14 @@
       if (!pts.length) { summary.textContent = "Aucune opération datée à comparer."; return; }
       const pct = chartMode === "pct";
       const series = [
-        ["Mon portefeuille", (p) => (pct ? p.value / p.invested - 1 : p.value), "--series-total", []],
-        [`Même argent dans : ${data.benchmark}`, (p) => (p.benchmark == null ? null : pct ? p.benchmark / p.invested - 1 : p.benchmark), "--series-cto", []],
+        ["p-total", "Mon portefeuille", (p) => (pct ? p.value / p.invested - 1 : p.value), "--series-total", []],
+        ["p-bench", `Même argent dans : ${data.benchmark}`, (p) => (p.benchmark == null ? null : pct ? p.benchmark / p.invested - 1 : p.benchmark), "--series-cto", []],
+        ["p-invested", "Montant investi", (p) => p.invested, "--muted", [4, 4]],
       ];
-      if (!pct) series.push(["Montant investi", (p) => p.invested, "--muted", [4, 4]]);
-      document.getElementById("chart-legend").innerHTML = series
-        .map(([label, , color]) => `<span><i class="dot" style="background:var(${color})"></i>${escapeHtml(label)}</span>`).join("");
-      drawLineChart(series.map(([label, get, color, dash]) => ({
+      document.getElementById("chart-legend").innerHTML = series.map(([key, label, , color]) =>
+        lineChip(key, escapeHtml(label), cssVar(color), key === "p-invested" && pct ? "Seulement en mode Valeur" : "")).join("");
+      const drawn = series.filter(([key]) => lineShown(key) && !(key === "p-invested" && pct)).map(([, ...rest]) => rest);
+      drawLineChart(drawn.map(([label, get, color, dash]) => ({
         label, data: pts.map((p) => ({ x: new Date(p.date).getTime(), y: get(p) })), color, dash, width: label === "Mon portefeuille" ? 2.5 : 1.8, points: 0,
       })), pct);
       const s = data.summary;
@@ -1233,6 +1230,8 @@
       const fmt = pct ? (v) => pctFmt.format(v) : chartAmount;
       const xs = datasets.flatMap((d) => d.data.map((p) => p.x));
       if (chart) chart.destroy();
+      chart = null;
+      if (!xs.length) return;  // toutes les courbes éteintes
       chart = new Chart(document.getElementById("history-chart"), {
         type: "line",
         data: {
@@ -1268,6 +1267,7 @@
         date: today, live: true,
         total_value: t.value, pea_value: pea.value, cto_value: cto.value,
         total_pct: t.gain_pct, pea_pct: pea.invested ? pea.gain_pct : null, cto_pct: cto.invested ? cto.gain_pct : null,
+        total_invested: t.invested, pea_invested: pea.invested, cto_invested: cto.invested,
       }];
     }
 
@@ -1276,30 +1276,37 @@
     function renderChart() {
       if (benchmarkKey) { renderBenchmarkChart(); return; }
       document.getElementById("bench-summary").textContent = "";
-      document.getElementById("chart-legend").innerHTML = `
-        <span><i class="dot" style="background:var(--series-total)"></i>Total</span>
-        <span><i class="dot" style="background:var(--series-pea)"></i>PEA</span>
-        <span><i class="dot" style="background:var(--series-cto)"></i>CTO</span>`;
       const points = withLivePoint(overview.history);
+      // Montant investi (prix payé pour les titres détenus ce jour-là, frais compris) : une courbe en pointillés
+      // par enveloppe affichée, de sa couleur ; l'écart avec la valeur est la plus-value latente.
+      // Absent des historiques à l'ancien format (sans colonnes « investi ») et sans objet en Performance
+      const value = chartMode === "value";
+      const hasInvested = points.some((p) => p.total_invested != null);
+      const envelopes = [["p-total", "Total", "total", "--series-total"], ["p-pea", "PEA", "pea", "--series-pea"], ["p-cto", "CTO", "cto", "--series-cto"]];
+      document.getElementById("chart-legend").innerHTML = envelopes.map(([key, label, , color]) => lineChip(key, label, cssVar(color))).join("")
+        + lineChip("p-invested", "Investi", cssVar("--muted"), !value ? "Seulement en mode Valeur" : hasInvested ? "" : "Pas enregistré dans ton historique");
+      const withInvested = value && hasInvested && lineShown("p-invested");
       if (!points.length) {  // nouveau compte : premier relevé la nuit suivant un jour de bourse
         if (chart) { chart.destroy(); chart = null; }
         document.getElementById("bench-summary").textContent = "La courbe se remplira toute seule : un relevé est ajouté chaque nuit après un jour de bourse.";
         return;
       }
+      if (withInvested) document.getElementById("bench-summary").innerHTML = `Pointillés : <span data-term="Investi">montant investi</span> dans les titres détenus ce jour-là. L'écart avec la valeur est ta plus-value latente.`;
       const x = (p) => new Date(p.date).getTime();
-      const series = chartMode === "value"
-        ? [["Total", "total_value", "--series-total"], ["PEA", "pea_value", "--series-pea"], ["CTO", "cto_value", "--series-cto"]]
-        : [["Total", "total_pct", "--series-total"], ["PEA", "pea_pct", "--series-pea"], ["CTO", "cto_pct", "--series-cto"]];
-      const datasets = series.map(([label, key, color]) => ({
+      const line = (label, key, color, extra) => ({
         label,
         data: points.filter((p) => p[key] != null).map((p) => ({ x: x(p), y: p[key] })),
         borderColor: cssVar(color),
         backgroundColor: cssVar(color),
-        borderWidth: label === "Total" ? 2.5 : 1.8,
         pointRadius: points.length > 60 ? 0 : 2.5,
         pointHoverRadius: 5,
         tension: 0.25,
-      }));
+        ...extra,
+      });
+      const datasets = envelopes.filter(([key]) => lineShown(key)).flatMap(([, label, prefix, color]) => [
+        line(label, `${prefix}_${value ? "value" : "pct"}`, color, { borderWidth: label === "Total" ? 2.5 : 1.8 }),
+        ...(withInvested ? [line(`Investi ${label}`, `${prefix}_invested`, color, { borderWidth: 1.2, borderDash: [4, 4], pointRadius: 0 })] : []),
+      ]);
       const fmt = chartMode === "value" ? chartAmount : (v) => pctFmt.format(v);
 
       if (chart) chart.destroy();
@@ -1340,6 +1347,13 @@
         },
       });
     }
+
+    document.getElementById("chart-legend").addEventListener("click", (e) => {
+      const chip = e.target.closest("button[data-line]");
+      if (!chip) return;
+      toggleLine(chip.dataset.line);
+      renderChart();
+    });
 
     document.getElementById("bench-select").addEventListener("change", (e) => {
       benchmarkKey = e.target.value;
@@ -2290,8 +2304,9 @@
     let openedStock = null;
     let priceChart = null;
 
-    // Puces des graphiques de la fiche : une courbe éteinte le reste sur toutes les fiches (settings.hiddenLines)
-    const lineShown = (key) => !(settings.hiddenLines || []).includes(key);
+    // Puces des graphiques (fiche et portefeuille) : une courbe éteinte le reste partout (settings.hiddenLines)
+    // Déclaration de fonction (et non const) : le graphique du portefeuille s'en sert, plus haut dans le fichier
+    function lineShown(key) { return !(settings.hiddenLines || []).includes(key); }
     function lineChip(key, label, color, disabledWhy = "") {
       const on = lineShown(key) && !disabledWhy;
       return `<button class="chip line-chip${on ? " on-line" : ""}" data-line="${key}" aria-pressed="${on}"${disabledWhy ? ` disabled title="${escapeHtml(disabledWhy)}"` : ""}>`
