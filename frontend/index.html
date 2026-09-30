@@ -410,6 +410,15 @@
     .tx-edit .op-grid input, .tx-edit .op-grid select { background: var(--card); }
     .tx-edit .danger { color: var(--accent-neg); }
     .tx-tag { font-size: 11px; color: var(--muted); }
+    /* Journal de trading : carte de la fiche et formulaire */
+    .journal-card .thesis { white-space: pre-wrap; font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+    .journal-card textarea, .journal-card .op-grid input, .journal-card .op-grid select { background: var(--card-2); border: 1px solid var(--line); border-radius: 8px;
+      color: var(--text); font: inherit; font-size: 15px; padding: 8px; width: 100%; min-width: 0; box-sizing: border-box; }
+    .journal-card textarea { min-height: 84px; resize: vertical; }
+    .journal-card label.check { flex-direction: row; align-items: center; gap: 8px; }
+    .journal-card label.check input { width: auto; accent-color: var(--accent); }
+    .journal-why { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .journal-why li { margin-top: 3px; }
     .fx-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
     .fx-row > span:last-child { text-align: right; white-space: nowrap; }
     .op-ratio { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; color: var(--text); }
@@ -840,12 +849,22 @@
 
     <section class="view" id="view-transactions" hidden>
       <div class="stock-top"><button class="back" id="tx-back" aria-label="Retour">‹</button><strong>Transactions</strong></div>
+      <div class="seg" id="tx-tabs" role="tablist" style="margin:8px 0 12px;grid-template-columns:1fr 1fr">
+        <button role="tab" data-txtab="ops" class="active">Opérations</button>
+        <button role="tab" data-txtab="journal">Journal</button>
+      </div>
+      <div id="tx-journal" hidden>
+        <p class="help">Tes thèses d'investissement : pourquoi tu as acheté, où tu comptes vendre, où tu t'arrêtes. Écris-les depuis la fiche d'une action (rubrique « Ton journal »), relis-les ici.</p>
+        <div id="journal-list"></div>
+      </div>
+      <div id="tx-ops">
       <input class="search" id="tx-search" type="search" placeholder="Rechercher (titre, ticker, note)" autocomplete="off" />
       <div class="filters" id="tx-kinds"></div>
       <div class="filters"><select id="tx-account" aria-label="Compte"></select></div>
       <div class="status" id="tx-status"></div>
       <div id="tx-list"></div>
       <p class="help">Touche une ligne pour la corriger ou la supprimer : l'onglet Opérations du Sheet est modifié, puis ton portefeuille et ta courbe sont recalculés.</p>
+      </div>
     </section>
 
     <!-- Briefs -->
@@ -2234,6 +2253,7 @@
 
       loadReturns();
       loadDaily();
+      loadJournal();
       loadCash();
       loadDividends();
       loadPriceAlerts();
@@ -2783,6 +2803,7 @@
       const all = data.points;
       const closes = all.map((p) => p[1]);
       const ma = movingAverage(closes, MA_DAYS);
+      const ma50 = movingAverage(closes, MA_SHORT_DAYS);
       const start = new Date(all[all.length - 1][0]);
       start.setMonth(start.getMonth() - months);
       const from = Math.max(0, all.findIndex((p) => p[0] >= start.toISOString().slice(0, 10)));
@@ -2808,12 +2829,16 @@
       // Une action cotée depuis moins de 200 séances n'en a pas du tout : pas de puce
       const maAvailable = ma[ma.length - 1] != null;
       const withMa = maAvailable && lineShown("ma");
-      document.getElementById("price-lines").innerHTML = (maAvailable ? lineChip("ma", "Moyenne 200 j", cssVar("--muted")) : "")
+      const ma50Available = ma50[ma50.length - 1] != null;
+      const withMa50 = ma50Available && lineShown("ma50");
+      document.getElementById("price-lines").innerHTML = (ma50Available ? lineChip("ma50", "Moyenne 50 j", cssVar("--warn")) : "")
+        + (maAvailable ? lineChip("ma", "Moyenne 200 j", cssVar("--muted")) : "")
         + (f ? lineChip("fair", "Prix juste", cssVar("--series-pea"), fairFits ? "" : "Trop loin de la courbe sur cette période") : "");
 
       const color = change >= 0 ? cssVar("--positive") : cssVar("--accent-neg");
       const datasets = [{ label: "Cours", data: idx.map((i) => closes[i]), borderColor: color, borderWidth: 1.8, pointRadius: 0, tension: 0.1,
         fill: true, backgroundColor: color + "22" }];
+      if (withMa50) datasets.push({ label: "Moyenne 50 jours", data: idx.map((i) => ma50[i]), borderColor: cssVar("--warn"), borderWidth: 1.2, pointRadius: 0, tension: 0.1 });
       if (withMa) datasets.push({ label: "Moyenne 200 jours", data: idx.map((i) => ma[i]), borderColor: cssVar("--muted"), borderWidth: 1.2, pointRadius: 0, tension: 0.1 });
       if (fairOnChart) datasets.push({ label: "Prix juste actuel", data: idx.map(() => f.value), borderColor: cssVar("--series-pea"), borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0 });
 
@@ -2851,7 +2876,239 @@
       if (f && !fairFits) legend.push(`Prix juste actuel ${money(f.value, cur)}, trop loin de la courbe sur cette période pour y figurer.`);
       else if (fairOnChart) legend.push(`Pointillés bleus : prix juste actuel (${money(f.value, cur)}), estimation d'aujourd'hui et non historique.`);
       document.getElementById("price-legend").innerHTML = legend.join(" ");
+      // Indicateurs : sur toutes les clôtures, quelle que soit la période affichée (calculés une fois par fiche)
+      lastCloses[s.yahoo_ticker || s.ticker] = last;
+      closeCurrencies[s.yahoo_ticker || s.ticker] = cur;
+      if (techFor !== s) {
+        techFor = s;
+        document.getElementById("stock-tech").innerHTML = techBlock(technicals(all), cur);
+        if (s.minimal || s.price == null || !s.currency) renderJournalCard(s);  // cours et devise de la courbe
+      }
     }
+
+    // --- Analyse technique : indicateurs usuels calculés sur les clôtures quotidiennes de la courbe ---
+    // Indicatifs : ils décrivent le passé récent du cours, ils ne prédisent rien
+    const MA_SHORT_DAYS = 50;
+    const SESSIONS_YEAR = 252;
+    let techFor = null;
+    const lastCloses = {}, closeCurrencies = {};
+
+    // RSI de Wilder : moyenne des hausses / moyenne des baisses sur 14 séances, lissée ; 100 - 100 / (1 + rapport).
+    // 14 hausses de 1 et aucune baisse -> 100 ; autant de hausses que de baisses de même taille -> 50
+    function rsi(closes, days = 14) {
+      if (closes.length <= days) return null;
+      let gain = 0, loss = 0;
+      for (let i = 1; i <= days; i++) {
+        const d = closes[i] - closes[i - 1];
+        if (d > 0) gain += d; else loss -= d;
+      }
+      gain /= days; loss /= days;
+      for (let i = days + 1; i < closes.length; i++) {
+        const d = closes[i] - closes[i - 1];
+        gain = (gain * (days - 1) + Math.max(d, 0)) / days;
+        loss = (loss * (days - 1) + Math.max(-d, 0)) / days;
+      }
+      return loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+    }
+    // Dernier croisement des moyennes 50 et 200 jours sur l'année écoulée : { index, up } ou null
+    function lastCross(fast, slow, lookback = SESSIONS_YEAR) {
+      for (let i = fast.length - 1; i > Math.max(0, fast.length - lookback); i--) {
+        if ([fast[i], slow[i], fast[i - 1], slow[i - 1]].some((v) => v == null)) return null;
+        const now = fast[i] > slow[i], before = fast[i - 1] > slow[i - 1];
+        if (now !== before) return { index: i, up: now };
+      }
+      return null;
+    }
+    function technicals(points) {
+      const closes = points.map((p) => p[1]);
+      const n = closes.length, last = closes[n - 1];
+      const ma50 = movingAverage(closes, MA_SHORT_DAYS), ma200 = movingAverage(closes, MA_DAYS);
+      const year = closes.slice(-SESSIONS_YEAR);
+      const back = (sessions) => (n > sessions ? last / closes[n - 1 - sessions] - 1 : null);
+      const cross = lastCross(ma50, ma200);
+      return {
+        last, rsi: rsi(closes.slice(-SESSIONS_YEAR * 2)), ma50: ma50[n - 1], ma200: ma200[n - 1],
+        cross: cross ? { date: points[cross.index][0], up: cross.up } : null,
+        high: Math.max(...year), low: Math.min(...year), yearDays: year.length,
+        perf: [["1 mois", back(21)], ["3 mois", back(63)], ["6 mois", back(126)], ["1 an", back(SESSIONS_YEAR)]],
+      };
+    }
+    function techBlock(t, cur) {
+      const gap = (x) => (x ? `${last(x) >= 0 ? "+" : ""}${num(last(x) * 100)} %` : "");
+      const last = (x) => t.last / x - 1;
+      const rsiState = t.rsi == null ? null : t.rsi >= 70 ? ["surachat", "bad"] : t.rsi <= 30 ? ["survente", "good"] : ["zone neutre", "na"];
+      const trendUp = t.ma200 ? last(t.ma200) > 0.02 : null, trendDown = t.ma200 ? last(t.ma200) < -0.02 : null;
+      const color = t.ma200 == null ? "na" : trendUp ? "good" : trendDown ? "bad" : "warn";
+      const summary = [t.ma200 == null ? "Historique trop court" : trendUp ? "Tendance haussière" : trendDown ? "Tendance baissière" : "Sans tendance nette",
+        t.rsi != null ? `RSI ${num(t.rsi, 0)}` : ""].filter(Boolean).join(" · ");
+      const perf = t.perf.filter(([, v]) => v != null).map(([k, v]) => `${k} <span class="${signClass(v)}">${v >= 0 ? "+" : ""}${num(v * 100)} %</span>`).join(" · ");
+      const rows = (t.rsi != null ? fRow("RSI (14 jours)", `${num(t.rsi, 0)} · ${rsiState[0]}`, "Vitesse des dernières hausses face aux baisses, de 0 à 100 : au-dessus de 70 le cours a beaucoup monté très vite, sous 30 il a beaucoup baissé.") : "")
+        + (t.ma50 != null ? fRow("Moyenne 50 jours", `${money(t.ma50, cur)} <span class="muted">(cours ${gap(t.ma50)})</span>`, "Tendance des 2-3 derniers mois.") : "")
+        + (t.ma200 != null ? fRow("Moyenne 200 jours", `${money(t.ma200, cur)} <span class="muted">(cours ${gap(t.ma200)})</span>`, "Tendance de fond, sur environ 10 mois.") : "")
+        + (t.ma200 != null ? fRow("Croisement 50 / 200 jours", t.cross ? `<span class="${t.cross.up ? "positive" : "negative"}">${t.cross.up ? "haussier" : "baissier"}</span> le ${dayFmt.format(new Date(t.cross.date))}` : "aucun sur un an", "La moyenne courte qui passe au-dessus de la longue signale un changement de tendance (après coup).") : "")
+        + fRow("Plus haut sur 1 an", `${money(t.high, cur)} <span class="muted">(cours ${gap(t.high)})</span>`)
+        + fRow("Plus bas sur 1 an", `${money(t.low, cur)} <span class="muted">(cours ${gap(t.low)})</span>`)
+        + (perf ? fRow("Momentum", perf, "Variation du cours sur plusieurs durées : ce qui monte a tendance à continuer quelques mois, sans garantie.") : "");
+      return pillar("Analyse technique", color, summary, rows
+        + `<div class="hypotheses">Calculée sur les cours de clôture${t.yearDays < SESSIONS_YEAR ? " (moins d'un an de cotation)" : ""}. Ces indicateurs décrivent le passé récent du cours, pas la valeur de l'entreprise : à croiser avec le prix juste, jamais un signal d'achat ou de vente à eux seuls.</div>`);
+    }
+
+    // --- Journal de trading (journal.py) : une thèse par titre, objectif et stop dans la devise de cotation ---
+    let journal = null, journalEditing = null;
+    async function loadJournal() {
+      try { journal = await api("/journal"); } catch { return; }
+      if (openedStock) renderJournalCard(openedStock);
+      if (!document.getElementById("tx-journal").hidden) renderJournalList();
+    }
+    const journalOf = (ticker) => (journal || []).find((e) => e.ticker === String(ticker).toUpperCase());
+    const journalTicker = (s) => String(s.yahoo_ticker || s.ticker).toUpperCase();
+    // Écart du cours à un prix visé : objectif à 260 $ pour un cours de 230 $ -> +13 %
+    const distance = (price, now) => (price && now ? price / now - 1 : null);
+    const reviewDue = (e) => e.review && e.review <= new Date().toISOString().slice(0, 10);
+
+    function renderJournalCard(s) {
+      const el = document.getElementById("stock-journal");
+      if (!el || openedStock !== s) return;
+      const ticker = journalTicker(s);
+      const e = journalOf(ticker);
+      const cur = s.currency || closeCurrencies[ticker] || "";
+      const now = s.price ?? lastCloses[ticker];
+      if (journalEditing === ticker) { el.innerHTML = journalForm(s, e, cur); return; }
+      const cell = (k, v, sub = "", cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+      const pct = (x) => (x == null ? "" : `${x >= 0 ? "+" : ""}${num(x * 100)} % du cours`);
+      const why = journalMotives(ticker);
+      if (!e) {
+        el.innerHTML = `<div class="poscard journal-card"><h3>Ton journal</h3>
+            <p class="help" style="margin-top:0">Note pourquoi tu t'intéresses à ce titre, à quel cours tu vendrais et à quel cours tu reconnaîtrais t'être trompé. Relire ses thèses est ce qui fait le plus progresser.</p>
+            ${why}<button class="btn" data-journal-edit>✍️ Écrire ta thèse</button></div>`;
+        return;
+      }
+      const target = distance(e.target, now), stop = distance(e.stop, now);
+      el.innerHTML = `<div class="poscard journal-card"><h3>Ton journal</h3>
+          ${e.thesis ? `<p class="thesis">${escapeHtml(e.thesis)}</p>` : ""}
+          <div class="stat">
+            ${e.target ? cell("Objectif", money(e.target, cur), pct(target), target != null && target <= 0 ? "positive" : "") : ""}
+            ${e.stop ? cell("Stop", money(e.stop, cur), pct(stop), stop != null && stop >= 0 ? "negative" : "") : ""}
+            ${e.horizon ? cell("Horizon", escapeHtml(e.horizon)) : ""}
+            ${e.review ? cell("Revoir le", dayFmt.format(new Date(e.review + "T12:00:00")), reviewDue(e) ? "c'est le moment de relire ta thèse" : "", reviewDue(e) ? "negative" : "") : ""}
+          </div>
+          ${target != null && target <= 0 ? `<p class="help">Objectif atteint : la thèse tient-elle toujours, ou est-ce le moment de vendre comme prévu ?</p>` : ""}
+          ${stop != null && stop >= 0 ? `<p class="help">Cours sous ton stop : qu'est-ce qui a changé depuis ton achat ?</p>` : ""}
+          ${e.outcome ? `<p class="help"><b>Bilan</b> : ${escapeHtml(e.outcome)}</p>` : ""}
+          ${why}
+          <button class="btn" data-journal-edit>Modifier</button>
+          <p class="help" style="margin-bottom:0">Mis à jour le ${e.updated ? dayFmt.format(new Date(e.updated + "T12:00:00")) : "?"}.</p></div>`;
+    }
+    // Motifs saisis à chaque opération (colonnes Pourquoi et Terme), si la liste des transactions est chargée
+    let motivesLoading = false;
+    function journalMotives(ticker) {
+      if (!transactions && !motivesLoading) {  // liste chargée une fois, puis la carte est redessinée
+        motivesLoading = true;
+        api("/transactions").then((r) => { transactions ??= r.transactions; if (openedStock) renderJournalCard(openedStock); }).catch(() => {});
+      }
+      const ops = (transactions || []).filter((t) => t.ticker === ticker && ["Achat", "Vente"].includes(t.type) && (t.why || t.term));
+      if (!ops.length) return "";
+      return `<div class="journal-why">Tes motifs :<ul>${ops.slice(0, 6).map((t) => `<li>${escapeHtml(t.type)} du ${dayFmt.format(new Date(t.date + "T12:00:00"))} : ${escapeHtml([t.why, t.term ? `terme ${t.term.toLowerCase()}` : ""].filter(Boolean).join(", "))}</li>`).join("")}</ul></div>`;
+    }
+    function journalForm(s, e, cur) {
+      const opt = (values, current) => values.map((v) => `<option ${v === current ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+      return `<div class="poscard journal-card" data-journal-form>
+          <h3>Ton journal</h3>
+          <div class="op-grid">
+            <label class="wide">Ta thèse : pourquoi ce titre ?<textarea name="thesis" maxlength="2000" placeholder="Ce que tu crois que le marché n'a pas encore vu, ce qui te ferait changer d'avis…">${escapeHtml(e?.thesis || "")}</textarea></label>
+            <label>Objectif de vente${cur ? ` (${escapeHtml(cur)})` : ""}<input name="target" type="number" step="any" min="0" inputmode="decimal" value="${e?.target ?? ""}" /></label>
+            <label>Stop${cur ? ` (${escapeHtml(cur)})` : ""}<input name="stop" type="number" step="any" min="0" inputmode="decimal" value="${e?.stop ?? ""}" /></label>
+            <label>Horizon<select name="horizon">${opt(["", "Court", "Moyen", "Long"], e?.horizon || "")}</select></label>
+            <label>Revoir le<input name="review" type="date" value="${escapeHtml(e?.review || "")}" /></label>
+            <label class="wide">Bilan (après la vente : qu'est-ce qui s'est passé comme prévu, ou pas ?)<textarea name="outcome" maxlength="2000">${escapeHtml(e?.outcome || "")}</textarea></label>
+            <label class="wide check"><input type="checkbox" name="alerts" checked />Me prévenir quand le cours atteint l'objectif ou le stop (alertes de prix)</label>
+          </div>
+          <button class="btn" data-journal-save>Enregistrer</button>
+          ${e ? `<button class="btn danger" data-journal-delete>Supprimer</button>` : ""}
+          <button class="btn" data-journal-cancel>Annuler</button>
+          <p class="help" data-journal-status></p></div>`;
+    }
+    async function saveJournal(form, s) {
+      const status = form.querySelector("[data-journal-status]");
+      const value = (name) => form.querySelector(`[name=${name}]`).value;
+      const ticker = journalTicker(s);
+      const entry = { ticker, thesis: value("thesis"), target: value("target"), stop: value("stop"), horizon: value("horizon"),
+        review: value("review"), outcome: value("outcome") };
+      status.textContent = "Enregistrement…";
+      try {
+        journal = await postJson("/journal", entry);
+      } catch (err) { status.textContent = err.message; return; }
+      if (form.querySelector("[name=alerts]").checked) await journalAlerts(ticker, journalOf(ticker));
+      journalEditing = null;
+      renderJournalCard(s);
+    }
+    // Alertes de prix sur l'objectif (au-dessus) et le stop (en dessous), sans doublon d'une alerte active identique
+    async function journalAlerts(ticker, e) {
+      const wanted = [["Au-dessus", e?.target, "Journal : objectif"], ["Sous", e?.stop, "Journal : stop"]].filter(([, price]) => price);
+      for (const [direction, price, note] of wanted) {
+        const exists = priceAlerts.some((a) => a.ticker === ticker && a.direction === direction && Math.abs(a.price - price) < 1e-9 && !a.triggered);
+        if (exists) continue;
+        try { priceAlerts = await apiSend("POST", "/price-alerts", { ticker, direction, price, note }); } catch { /* le journal reste enregistré */ }
+      }
+      renderPriceAlerts();
+    }
+    document.getElementById("stock-body").addEventListener("click", async (e) => {
+      const s = openedStock;
+      if (!s) return;
+      if (e.target.closest("[data-journal-edit]")) { journalEditing = journalTicker(s); renderJournalCard(s); return; }
+      if (e.target.closest("[data-journal-cancel]")) { journalEditing = null; renderJournalCard(s); return; }
+      const form = e.target.closest("[data-journal-form]");
+      if (form && e.target.closest("[data-journal-save]")) saveJournal(form, s);
+      if (form && e.target.closest("[data-journal-delete]") && confirm("Supprimer ta thèse sur ce titre ? (les alertes de prix restent, à retirer sous la cloche)")) {
+        try { journal = await apiSend("DELETE", `/journal/${encodeURIComponent(journalTicker(s))}`); } catch (err) { form.querySelector("[data-journal-status]").textContent = err.message; return; }
+        journalEditing = null;
+        renderJournalCard(s);
+      }
+    });
+
+    // Onglet Journal de l'écran Transactions : toutes les thèses, écart du cours à l'objectif et au stop,
+    // et pour un titre vendu, ce que ses ventes ont rapporté (plus-values réalisées)
+    function renderJournalList() {
+      const el = document.getElementById("journal-list");
+      if (!journal) { el.innerHTML = `<p class="help">Chargement…</p>`; loadJournal(); return; }
+      if (!journal.length) { el.innerHTML = `<p class="help">Aucune thèse pour le moment.</p>`; return; }
+      const held = new Map((overview?.holdings || []).map((h) => [String(h.yahoo_ticker || h.ticker).toUpperCase(), h]));
+      const sales = (realized?.years || []).flatMap((y) => y.sales);
+      el.innerHTML = `<div class="mlist">${journal.map((e) => {
+        const stock = market?.stocks?.find((x) => x.ticker === e.ticker);
+        const h = held.get(e.ticker);
+        const now = stock?.price ?? lastCloses[e.ticker];
+        const cur = stock?.currency || closeCurrencies[e.ticker] || "";
+        const parts = [e.horizon ? `terme ${e.horizon.toLowerCase()}` : "",
+          e.target ? `objectif ${money(e.target, cur)}${now ? ` (${pctFmt.format(distance(e.target, now))})` : ""}` : "",
+          e.stop ? `stop ${money(e.stop, cur)}${now ? ` (${pctFmt.format(distance(e.stop, now))})` : ""}` : ""].filter(Boolean);
+        const gain = sales.filter((x) => x.ticker === e.ticker).reduce((a, x) => a + x.gain, 0);
+        const sold = !h && sales.some((x) => x.ticker === e.ticker);
+        const right = h ? `<span class="price">${h.gain_pct != null ? `<span class="${signClass(h.gain)}">${pctFmt.format(h.gain_pct)}</span>` : ""}</span><span class="sub">en portefeuille</span>`
+          : sold ? `<span class="price ${signClass(gain)}">${signedEur(gain)}</span><span class="sub">vendu</span>` : `<span class="sub">idée</span>`;
+        return `<button class="mrow" data-journal-open="${escapeHtml(e.ticker)}" data-envelope="${escapeHtml(h?.envelope || "")}">
+            ${avatar({ ticker: e.ticker, name: stock?.name || h?.name || e.ticker })}
+            <div style="min-width:0"><div class="name">${escapeHtml(stock?.name || h?.name || e.ticker)}${reviewDue(e) ? ` <span class="negative" style="font-size:12px">· à revoir</span>` : ""}</div>
+              <div class="sub">${parts.join(" · ") || "pas d'objectif ni de stop"}</div>
+              <div class="sub">${escapeHtml(e.outcome || e.thesis || "")}</div></div>
+            <div class="right">${right}</div></button>`;
+      }).join("")}</div>`;
+    }
+    document.getElementById("journal-list").addEventListener("click", (e) => {
+      const row = e.target.closest("[data-journal-open]");
+      if (!row) return;
+      const ticker = row.dataset.journalOpen;
+      if (overview?.holdings?.some((h) => h.ticker === ticker && (h.envelope || "") === row.dataset.envelope)) openPosition(ticker, row.dataset.envelope);
+      else openStockByTicker(ticker);
+    });
+    document.getElementById("tx-tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-txtab]");
+      if (!b) return;
+      document.querySelectorAll("#tx-tabs button").forEach((x) => x.classList.toggle("active", x === b));
+      document.getElementById("tx-journal").hidden = b.dataset.txtab !== "journal";
+      document.getElementById("tx-ops").hidden = b.dataset.txtab === "journal";
+      if (b.dataset.txtab === "journal") renderJournalList();
+    });
 
     document.getElementById("view-stock").addEventListener("click", (e) => {
       const b = e.target.closest("#price-periods button[data-period]");
@@ -2967,12 +3224,16 @@
         ${s.minimal ? "" : `<div class="bigprice">${money(s.price, s.currency)}</div>`}
         <div id="compare-open-slot"></div>
         ${priceChartBlock()}
+        <div class="analysis fiche" id="stock-tech"></div>
+        <div id="stock-journal"></div>
         <div id="stock-about"></div>
         <div id="stock-news"></div>
         ${s.minimal ? `<div class="analysis fiche">${extraRows}</div>` : renderStockDetail(s, extraRows, showDates)}`;
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== "view-stock"));
       window.scrollTo(0, 0);
+      techFor = null;
       loadPriceChart(s);
+      renderJournalCard(s);
       loadProfile(s);
       loadNews(s);
       renderCompareButton();
@@ -4372,7 +4633,8 @@
       document.querySelectorAll(".view").forEach((v) => (v.hidden = v.id !== view));
       window.scrollTo(0, scroll);
     }
-    window.addEventListener("popstate", () => { if (txReturn && !stockReturn && !compareReturn) closeTransactions(); });
+    // Retour depuis une fiche ouverte dans le journal : on retombe sur l'entrée { transactions }, qui reste ouverte
+    window.addEventListener("popstate", (e) => { if (txReturn && !e.state?.transactions && !stockReturn && !compareReturn) closeTransactions(); });
 
     async function loadTransactions() {
       const status = document.getElementById("tx-status");
@@ -4802,6 +5064,12 @@
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
         "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "RSI (14 jours)": "<p>Indice de force relative : compare l'ampleur des hausses et des baisses des 14 dernières séances, de 0 à 100.</p><p>Au-dessus de 70, on parle de <b>surachat</b> : le cours a beaucoup monté très vite, une pause ou un repli suit souvent. Sous 30, de <b>survente</b>. Entre les deux, rien de particulier.</p><p>Une action solide peut rester « en surachat » des semaines pendant une forte hausse : c'est un thermomètre, pas un signal de vente.</p>",
+        "Moyenne 50 jours": "<p>Moyenne des 50 dernières clôtures (environ 2 mois et demi de bourse) : la tendance récente, plus réactive que la moyenne 200 jours.</p>",
+        "Croisement 50 / 200 jours": "<p>Quand la moyenne 50 jours passe au-dessus de la moyenne 200 jours (croisement haussier, « golden cross »), la tendance récente dépasse la tendance de fond ; en dessous, c'est un croisement baissier (« death cross »).</p><p>Il arrive toujours après le mouvement, et donne souvent de faux signaux quand le cours fait du surplace.</p>",
+        "Plus haut sur 1 an": "<p>Plus haute clôture des 252 dernières séances, et l'écart du cours actuel avec elle : −30 % veut dire que l'action a perdu 30 % depuis son sommet de l'année.</p>",
+        "Plus bas sur 1 an": "<p>Plus basse clôture des 252 dernières séances, et l'écart du cours actuel avec elle.</p>",
+        "Momentum": "<p>Variation du cours sur 1, 3, 6 et 12 mois. Les études montrent qu'une action qui a bien monté sur 6 à 12 mois a tendance à continuer quelques mois (effet momentum), sans que ce soit une règle.</p><p>À croiser avec la valorisation : une forte hausse peut aussi avoir rendu l'action chère.</p>",
         "Variation du jour": "<p>Ce que ton portefeuille a gagné ou perdu depuis la clôture précédente de chaque titre, en euros, taux de change compris (cours Yahoo, mis à jour toutes les 10 minutes environ).</p><p>Une ligne achetée pendant la séance ne compte que ce qu'elle a gagné depuis ton achat, frais compris : un achat du jour n'est pas une hausse. Le week-end, c'est la variation de la dernière séance.</p><p>Chaque place a ses horaires : le matin, une action américaine affiche encore la variation de la veille.</p>",
         "Effet du change": "<p>Part de ta plus-value latente qui vient du taux de change, pour les titres cotés dans une autre devise que l'euro.</p><p>Exemple : 10 actions Apple achetées 2 000 € quand 1 $ valait 0,92 € (2 174 $). Elles valent 2 300 $, soit 1 978 € à 0,86 € : au taux d'achat, elles vaudraient 2 116 €. Le change t'a coûté 138 €, l'action t'a rapporté 116 € : au total, −22 €.</p><p>Taux d'achat : celui du jour de chaque achat (Yahoo). Seule la devise de cotation compte : un ETF coté en euros qui détient des actions américaines n'a pas d'effet du change ici, alors qu'il subit bien celui du dollar.</p>",
         "Volatilité": "<p>Amplitude habituelle des variations de ton portefeuille, sur un an (écart-type des variations quotidiennes, × √252 jours de bourse).</p><p>Repères : 15 % environ pour le MSCI World, 20 à 25 % pour un portefeuille de quelques actions, plus de 30 % pour des valeurs de croissance ou des cryptos. Plus elle est haute, plus les baisses peuvent être fortes et rapides.</p>",

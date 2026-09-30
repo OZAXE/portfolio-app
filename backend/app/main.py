@@ -677,6 +677,29 @@ def write_operations_import(payload: dict = Body(...), user: User = Depends(requ
     return result
 
 
+# --- Journal de trading : thèse, objectif, stop et bilan de chaque titre (onglet Journal, journal.py) ---
+@app.get("/journal")
+def get_journal(user: User = Depends(require_access)):
+    from .journal import list_journal
+
+    return _sheet_call(lambda: list_journal(user.sheet_id))
+
+
+@app.post("/journal")
+def post_journal(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .journal import save_entry
+
+    _checked_ticker(str(payload.get("ticker") or ""))
+    return _operation_call(lambda: save_entry(user.sheet_id, payload))
+
+
+@app.delete("/journal/{ticker}")
+def delete_journal(ticker: str, user: User = Depends(require_access)):
+    from .journal import delete_entry
+
+    return _operation_call(lambda: delete_entry(user.sheet_id, _checked_ticker(ticker)))
+
+
 # --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---
 APP_URL = "https://portfolio-front-8t6m.onrender.com/#portfolio"
 
