@@ -67,10 +67,18 @@ POSITION_FORMULAS = {
     "D2": '=MAP(C2:C; LAMBDA(c; IF(c=""; ""; IFERROR(VLOOKUP(c; Comptes!A:B; 2; FALSE); ""))))',
     "E2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat")'
           ' - SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Vente"))))',
-    # PRU = coût total des achats (frais et taxes compris) / quantité achetée (méthode du prix moyen pondéré),
-    # par compte : le PRU fiscal du CTO ne mélange pas les achats faits dans le PEA
-    "F2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; IFERROR(SUMIFS(Opérations!L2:L; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat")'
-          ' / SUMIFS(Opérations!E2:E; Opérations!D2:D; t; Opérations!B2:B; c; Opérations!C2:C; "Achat"); 0))))',
+    # PRU = prix moyen pondéré frais compris (règle fiscale), par compte, en rejouant les opérations dans
+    # l'ordre (REDUCE sur le couple quantité / coût) : une vente retire sa part du coût sans changer le PRU,
+    # une vente totale remet tout à zéro. Avant (coût de tous les achats / quantité achetée), une ligne vendue
+    # restait dans la moyenne : Alphabet C acheté 170,74 € (2025), vendu, puis racheté 78 € vers 295 € en 2026
+    # -> PRU de 197 € et +52 % affichés au lieu de ~+2 %. Même ordre que history.reconstruct : date, achats
+    # avant ventes le même jour, puis ordre de saisie
+    "F2": '=MAP(A2:A; C2:C; LAMBDA(t; c; IF(t=""; ""; IFERROR(LET('
+          'ops; SORT(FILTER(HSTACK(Opérations!A2:A; (Opérations!C2:C="Vente")*1; Opérations!E2:E; Opérations!L2:L; ROW(Opérations!A2:A));'
+          ' Opérations!D2:D=t; Opérations!B2:B=c; (Opérations!C2:C="Achat")+(Opérations!C2:C="Vente")); 1; TRUE; 2; TRUE; 5; TRUE);'
+          ' pos; REDUCE(HSTACK(0; 0); SEQUENCE(ROWS(ops)); LAMBDA(acc; i; LET(q; INDEX(acc; 1; 1); k; INDEX(acc; 1; 2); n; INDEX(ops; i; 3);'
+          ' IF(INDEX(ops; i; 2)=0; HSTACK(q+n; k+INDEX(ops; i; 4)); IF(n>=q; HSTACK(0; 0); HSTACK(q-n; k*(q-n)/q))))));'
+          ' INDEX(pos; 1; 2)/INDEX(pos; 1; 1)); 0))))',
     "G2": '=MAP(E2:E; F2:F; LAMBDA(q; p; IF(q=""; ""; q*p)))',
     "H2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(GOOGLEFINANCE(VLOOKUP(t; Titres!A:B; 2; FALSE)); ""))))',
     "I2": '=MAP(A2:A; LAMBDA(t; IF(t=""; ""; IFERROR(VLOOKUP(t; Titres!A:F; 6; FALSE); "EUR"))))',
@@ -85,7 +93,8 @@ POSITION_FORMULAS = {
 }
 
 # Les Sheets créés avant septembre 2026 faisaient une ligne par ticker (quantité de tous les comptes,
-# enveloppe du premier) : leurs formules Positions sont remplacées à la première lecture
+# enveloppe du premier), ceux d'avant octobre 2026 un PRU qui ignorait les ventes : leurs formules
+# Positions sont remplacées à la première lecture
 _positions_checked: set[str] = set()
 
 
@@ -94,14 +103,19 @@ def is_old_positions_formula(formula: str) -> bool:
     return "!D2:D" in formula and "!B2:B" not in formula
 
 
+def is_old_pru_formula(formula: str) -> bool:
+    """PRU en F2 jusqu'en septembre 2026 : moyenne de tous les achats, sans rejouer les ventes."""
+    return "SUMIFS" in formula and "REDUCE" not in formula
+
+
 def ensure_position_formulas(sheet_id: str) -> None:
     if sheet_id in _positions_checked:
         return
     _positions_checked.add(sheet_id)  # une vérification par Sheet et par démarrage du serveur (quota Google)
     try:
         ws = _find_worksheet(sheets_client(write=True).open_by_key(sheet_id), "Positions")
-        formula = ws.acell("A2", value_render_option=gspread.utils.ValueRenderOption.formula).value if ws else ""
-        if formula and is_old_positions_formula(str(formula)):
+        read = lambda cell: str(ws.acell(cell, value_render_option=gspread.utils.ValueRenderOption.formula).value or "")
+        if ws and (is_old_positions_formula(read("A2")) or is_old_pru_formula(read("F2"))):
             ws.batch_update([{"range": cell, "values": [[f]]} for cell, f in POSITION_FORMULAS.items()],
                             value_input_option="USER_ENTERED")
     except Exception:
