@@ -612,6 +612,7 @@
           <div style="margin-top:10px">
             <button class="btn" id="imp-preview">Analyser</button>
             <button class="btn" id="imp-cancel">Fermer</button>
+            <p class="help" style="margin-top:8px">Tes opérations sont emmêlées ? <a href="#" id="imp-reset-link" style="color:var(--accent)">Tout effacer et réimporter</a> (Réglages &gt; Opérations avancées, avec sauvegarde).</p>
           </div>
           <p class="help" id="imp-status"></p>
           <div id="imp-list"></div>
@@ -4005,14 +4006,24 @@
     opEl("reset-go").addEventListener("click", async () => {
       const status = opEl("reset-status");
       const scope = { account: opEl("reset-account").value, imported_only: opEl("reset-imported").checked };
+      const plural = (n) => (n > 1 ? "s" : "");
       try {
         const preview = await postJson("/operations/reset", { ...scope, dry_run: true });
-        if (!preview.count) { status.textContent = "Aucune opération à effacer avec ces choix."; return; }
-        const what = `${preview.count} opération${preview.count > 1 ? "s" : ""}${scope.account ? ` du compte « ${scope.account} »` : ""}${scope.imported_only ? " importée" + (preview.count > 1 ? "s" : "") : ""}`;
-        if (!confirm(`Effacer ${what} ?${preview.everything ? " La courbe d'évolution sera aussi effacée, puis reconstituée après ton prochain import." : ""} Une sauvegarde sera créée dans ton Sheet.`)) return;
+        // Case « Seulement les lignes importées » cochée : combien de lignes restent (saisies à la main, ancien Sheet) ?
+        const all = scope.imported_only ? await postJson("/operations/reset", { ...scope, imported_only: false, dry_run: true }) : preview;
+        const kept = all.count - preview.count;
+        if (!preview.count) {
+          status.textContent = kept
+            ? `Aucune ligne importée${scope.account ? ` pour « ${scope.account} »` : ""}, mais ${kept} ligne${plural(kept)} saisie${plural(kept)} à la main ou reprise${plural(kept)} de l'ancien Sheet : décoche « Seulement les lignes importées » pour les effacer aussi.`
+            : "Aucune opération à effacer avec ces choix.";
+          return;
+        }
+        const what = `${preview.count} opération${plural(preview.count)}${scope.account ? ` du compte « ${scope.account} »` : ""}${scope.imported_only ? " importée" + plural(preview.count) : ""}`;
+        const keptNote = kept ? ` ${kept} ligne${plural(kept)} saisie${plural(kept)} à la main ${kept > 1 ? "restent" : "reste"} (décoche « Seulement les lignes importées » pour tout effacer).` : "";
+        if (!confirm(`Effacer ${what} ?${keptNote}${preview.everything ? " La courbe d'évolution sera aussi effacée, puis reconstituée après ton prochain import." : ""} Une sauvegarde sera créée dans ton Sheet.`)) return;
         status.textContent = "Sauvegarde et effacement…";
         lastReset = await postJson("/operations/reset", scope);
-        status.textContent = `${lastReset.count} opération${lastReset.count > 1 ? "s" : ""} effacée${lastReset.count > 1 ? "s" : ""}. Sauvegarde : onglet « ${lastReset.backup} » de ton Sheet. Réimporte maintenant tes relevés ci-dessus.`;
+        status.textContent = `${lastReset.count} opération${lastReset.count > 1 ? "s" : ""} effacée${lastReset.count > 1 ? "s" : ""}. Sauvegarde : onglet « ${lastReset.backup} » de ton Sheet. Réimporte maintenant tes relevés : bouton Importer du Portefeuille.`;
         opEl("reset-undo").hidden = false;
         opSettings = null;
         loadPortfolio();
@@ -4156,6 +4167,12 @@
     }
 
     opEl("imp-open").addEventListener("click", openImport);
+    opEl("imp-reset-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      showView("settings");
+      openSettingsPage("advanced");
+      opEl("reset-go").scrollIntoView({ block: "center" });
+    });
     opEl("imp-cancel").addEventListener("click", () => { opEl("imp-panel").hidden = true; });
     opEl("imp-preview").addEventListener("click", previewImport);
     opEl("imp-submit").addEventListener("click", submitImport);
