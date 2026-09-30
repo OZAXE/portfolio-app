@@ -141,6 +141,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (`ensure_position_formulas`, une vérification par Sheet et par démarrage). Côté appli, un même ticker
   peut donc avoir deux lignes : rendement par ligne dans `returns.positions_by_envelope`, dédoublonner
   ce qui est rangé par titre (poche de l'Allocation, frais courants des ETF).
+  PRU (octobre 2026, bug signalé par Enzo sur Alphabet C) : la colonne F rejoue les opérations dans l'ordre
+  (`REDUCE` sur quantité / coût, comme `history.reconstruct` et `realized.py`) ; avant, elle moyennait tous les
+  achats, donc une ligne vendue puis rachetée gardait l'ancien PRU (+52 % affichés au lieu de +2 %). Anciens
+  Sheets mis à niveau par `ensure_position_formulas` (`is_old_pru_formula`). Pas de nombre décimal dans les
+  formules (séparateur selon la région du Sheet).
 
 - **Courbe du portefeuille** : l'onglet Historique s'arrête à la veille (relevé nocturne après chaque
   jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »
