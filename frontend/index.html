@@ -323,10 +323,19 @@
     .quick svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     button.envelope { border: 1px solid transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
     button.envelope.on { border-color: var(--accent); }
-    .seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--card); border-radius: 12px; padding: 3px; margin-top: 18px;
+    .seg { display: grid; grid-template-columns: repeat(5, 1fr); background: var(--card); border-radius: 12px; padding: 3px; margin-top: 18px;
       position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; box-shadow: 0 6px 12px -8px rgba(2, 6, 23, 0.6); }
-    .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; padding: 8px 0; border-radius: 9px; cursor: pointer; }
+    .seg button { background: none; border: 0; color: var(--muted); font: inherit; font-size: 12px; padding: 8px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; border-radius: 9px; cursor: pointer; }
     .seg button.active { background: var(--card-2); color: var(--text); font-weight: 600; }
+    /* Performance et risque */
+    .perf-table td b { font-weight: 600; }
+    .perf-table .bench { color: var(--muted); }
+    .contrib-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 14px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .contrib-row:first-child { border-top: 0; }
+    .contrib-row .who { font-size: 12px; color: var(--muted); }
+    .contrib-row .right { text-align: right; white-space: nowrap; }
+    .contrib-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--card-2); overflow: hidden; }
+    .contrib-bar i { display: block; height: 100%; border-radius: 2px; }
     .ptools { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 12px 0 8px; }
     .pill-gain { font-size: 12px; font-weight: 600; }
     .poscard { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 12px; }
@@ -629,6 +638,7 @@
 
         <div class="seg" id="portfolio-tabs" role="tablist">
           <button role="tab" data-ptab="positions" class="active">Positions</button>
+          <button role="tab" data-ptab="performance">Perf.</button>
           <button role="tab" data-ptab="repartition">Répartition</button>
           <button role="tab" data-ptab="revenus">Revenus</button>
           <button role="tab" data-ptab="fiscalite">Fiscalité</button>
@@ -639,6 +649,28 @@
             <div class="segmented" id="positions-sort"><button data-sort="value" class="active">Valeur</button><button data-sort="perf">Perf.</button></div></div>
           <div class="mlist" id="positions"></div>
           <div class="status" id="analysis-status">Chargement des analyses (valeur intrinsèque, score)…</div>
+        </div>
+
+        <div class="ptab" data-pane="performance" hidden>
+        <h2 style="margin-top:16px">Performance par période</h2>
+        <div class="card">
+          <div class="chart-head">
+            <div class="segmented" id="stats-env"><button data-env="Total" class="active">Total</button><button data-env="PEA">PEA</button><button data-env="CTO">CTO</button></div>
+            <select class="fin-select" id="stats-bench" aria-label="Indice de comparaison" style="margin-top:0">
+              <option value="world">MSCI World</option><option value="sp500">S&amp;P 500</option><option value="cac40">CAC 40</option>
+            </select>
+          </div>
+          <div id="stats-periods" class="help">Ouvre cet onglet pour lancer le calcul…</div>
+        </div>
+
+        <h2>Risque</h2>
+        <div class="card" id="stats-risk"><div class="help">Chargement…</div></div>
+
+        <h2>Ce qui a fait ta performance</h2>
+        <div class="card">
+          <div class="segmented" id="stats-attrib-period"></div>
+          <div id="stats-attrib" style="margin-top:12px" class="help">Chargement…</div>
+        </div>
         </div>
 
         <div class="ptab" data-pane="repartition" hidden>
@@ -1447,6 +1479,7 @@
       document.querySelectorAll("#portfolio-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.ptab === tab));
       document.querySelectorAll("#portfolio-content .ptab").forEach((p) => (p.hidden = p.dataset.pane !== tab));
       if (tab === "repartition" && overview) renderChartsAfterShow();
+      if (tab === "performance" && overview) loadStats();
     }
     // Les graphiques dessinés dans un volet caché n'ont pas de taille : on les redessine à l'affichage
     function renderChartsAfterShow() { renderSectors(); renderExposure(); }
@@ -2978,6 +3011,148 @@
       body.innerHTML = pea + years + etf || `<p class="help" style="margin:0">Rien à afficher pour l'instant.</p>`;
     }
 
+
+    // --- Performance par période (TWR), risque et contribution de chaque ligne ---
+    // Calcul lourd côté API (cours Yahoo de chaque titre) : lancé à la première ouverture de l'onglet
+    let stats = null, statsLoading = null;
+    const statsView = { envelope: "Total", period: null };
+    const STATS_BENCH_KEY = () => (["world", "sp500", "cac40"].includes(settings.statsBench) ? settings.statsBench : "world");
+    const statsDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+    async function loadStats(force = false) {
+      if (statsLoading || (stats && !force)) return statsLoading;
+      const periodsEl = document.getElementById("stats-periods");
+      document.getElementById("stats-bench").value = STATS_BENCH_KEY();
+      periodsEl.className = "help";
+      periodsEl.textContent = "Calcul en cours (cours de chaque titre depuis 5 ans)…";
+      statsLoading = api(`/portfolio/stats?benchmark=${STATS_BENCH_KEY()}`)
+        .then((data) => { stats = data ?? { envelopes: {}, attribution: {}, legacy: true }; renderStats(); })
+        .catch((e) => {
+          periodsEl.textContent = "Indisponible : " + e.message;
+          document.getElementById("stats-risk").innerHTML = "";
+          document.getElementById("stats-attrib").textContent = "";
+        })
+        .finally(() => { statsLoading = null; });
+      return statsLoading;
+    }
+
+    function renderStats() {
+      const periodsEl = document.getElementById("stats-periods");
+      if (!stats || !Object.keys(stats.envelopes || {}).length) {
+        periodsEl.textContent = stats?.legacy
+          ? "Disponible avec le Sheet modèle (onglet Opérations)."
+          : "Pas encore assez d'historique : il faut au moins deux relevés (un par jour de bourse).";
+        document.getElementById("stats-risk").innerHTML = "";
+        document.getElementById("stats-attrib").textContent = "";
+        return;
+      }
+      const envs = Object.keys(stats.envelopes);
+      if (!envs.includes(statsView.envelope)) statsView.envelope = envs[0];
+      document.querySelectorAll("#stats-env button").forEach((b) => {
+        b.hidden = !envs.includes(b.dataset.env);
+        b.classList.toggle("active", b.dataset.env === statsView.envelope);
+      });
+      const data = stats.envelopes[statsView.envelope];
+      renderStatsPeriods(data.periods);
+      renderStatsRisk(data.risk);
+      renderAttribution();
+    }
+
+    function renderStatsPeriods(periods) {
+      const el = document.getElementById("stats-periods");
+      el.className = "";
+      const bench = stats.benchmark;
+      const rows = periods.filter((p) => p.available).map((p) => {
+        const ann = p.annualized != null ? `<div class="who muted" style="font-size:11px">${pctFmt.format(p.annualized)} /an</div>` : "";
+        const diff = p.benchmark != null ? p.twr - p.benchmark : null;
+        return `<tr><td>${p.label}</td>
+          <td><b class="${signClass(p.twr)}">${pctFmt.format(p.twr)}</b>${ann}</td>
+          ${bench ? `<td class="bench">${p.benchmark != null ? pctFmt.format(p.benchmark) : "—"}${diff != null ? `<div style="font-size:11px" class="${signClass(diff)}">${pctFmt.format(Math.abs(diff)).replace("+", "").replace("%", "pt")} ${diff >= 0 ? "devant" : "derrière"}</div>` : ""}</td>` : ""}
+          <td class="${signClass(p.gain)}">${signedEur(p.gain)}</td></tr>`;
+      }).join("");
+      const missing = periods.filter((p) => !p.available).map((p) => p.label.toLowerCase());
+      el.innerHTML = `<table class="fees-table perf-table">
+          <tr><th>Période</th><th><span data-term="Performance pondérée">Toi</span></th>${bench ? "<th>Indice</th>" : ""}<th>Gain</th></tr>${rows}</table>
+        <p class="help" style="margin-top:8px"><span data-term="Performance pondérée">Performance pondérée par le temps</span> : tes apports ne la faussent pas, elle se compare directement à l'indice${bench ? ` (${escapeHtml(bench)}, dividendes réinvestis sauf CAC 40)` : ""}. Gain : plus-values et dividendes en euros sur la période, apports déduits.${missing.length ? ` Pas encore d'historique pour : ${missing.join(", ")}.` : ""}${bench ? "" : " Indice indisponible pour l'instant (Yahoo)."}</p>`;
+    }
+
+    function riskCell(term, value, sub = "", cls = "") {
+      return `<div><div class="k"><span data-term="${term}">${term}</span></div><div class="v ${cls}">${value}</div>${sub ? `<div class="help" style="margin:2px 0 0;font-size:12px">${sub}</div>` : ""}</div>`;
+    }
+
+    function renderStatsRisk(r) {
+      const el = document.getElementById("stats-risk");
+      if (!r) { el.innerHTML = `<p class="help" style="margin:0">Pas assez d'historique.</p>`; return; }
+      const pct = (x) => pctFmt.format(x).replace("+", "");
+      const dd = r.drawdown, bdd = r.benchmark_drawdown;
+      const cells = [];
+      if (r.volatility != null) {
+        cells.push(riskCell("Volatilité", pct(r.volatility), r.benchmark_volatility != null ? `indice : ${pct(r.benchmark_volatility)}` : "sur 12 mois"));
+      }
+      if (dd) {
+        cells.push(riskCell("Pire baisse", pctFmt.format(dd.max), dd.max < 0 ? `${statsDate(dd.peak)} → ${statsDate(dd.trough)}${dd.recovered ? ", effacée" : ""}${bdd ? ` · indice : ${pctFmt.format(bdd.max)}` : ""}` : "aucune baisse", dd.max < 0 ? "negative" : ""));
+        cells.push(riskCell("Sous le sommet", dd.current < -0.0005 ? pctFmt.format(dd.current) : "au sommet", dd.current < -0.0005 ? "écart avec ton plus haut" : "ton plus haut historique", dd.current < -0.0005 ? "negative" : "positive"));
+      }
+      if (r.sharpe != null) cells.push(riskCell("Ratio de Sharpe", num(r.sharpe, 2), `taux sans risque ${pct(stats.risk_free)}`, r.sharpe >= 0 ? "" : "negative"));
+      if (r.beta != null) cells.push(riskCell("Bêta", num(r.beta, 2), `face à l'indice`));
+      const notes = [];
+      if (r.volatility == null) notes.push(`Volatilité, Sharpe et bêta demandent au moins 40 relevés quotidiens (${r.daily_returns} pour l'instant).`);
+      else if (r.sharpe == null) notes.push("Ratio de Sharpe affiché après 6 mois d'historique : avant, un rendement annualisé ne veut rien dire.");
+      if (r.volatility != null && r.from) notes.push(`Volatilité, Sharpe et bêta sur les 12 derniers mois (depuis le ${statsDate(r.from)}), pire baisse depuis le début.`);
+      el.innerHTML = `<div class="stat">${cells.join("")}</div>${riskSentence(r)}${notes.length ? `<p class="help" style="margin-top:10px">${notes.join(" ")}</p>` : ""}`;
+    }
+
+    // Une phrase en clair, prudente : le chiffre seul ne dit pas si c'est beaucoup
+    function riskSentence(r) {
+      if (r.volatility == null) return "";
+      const ratio = r.benchmark_volatility ? r.volatility / r.benchmark_volatility : null;
+      const level = ratio == null ? "" : ratio > 1.15 ? "plus agité que l'indice" : ratio < 0.85 ? "plus calme que l'indice" : "à peu près aussi agité que l'indice";
+      const typical = r.volatility * 100 / Math.sqrt(12);
+      return `<p class="help" style="margin-top:10px">En clair : sur un mois, ton portefeuille bouge couramment de ± ${num(typical, 1)} %${level ? `, ${level}` : ""}.</p>`;
+    }
+
+    function renderAttribution() {
+      const periodsEl = document.getElementById("stats-attrib-period");
+      const el = document.getElementById("stats-attrib");
+      const keys = Object.keys(stats.attribution || {});
+      if (!keys.length) { periodsEl.innerHTML = ""; el.textContent = "Indisponible pour l'instant (cours Yahoo)."; return; }
+      if (!keys.includes(statsView.period)) statsView.period = keys.includes("ytd") ? "ytd" : keys[keys.length - 1];
+      const short = { "1m": "1M", ytd: "1er janv.", "1y": "1A", "3y": "3A", "5y": "5A", all: "Début" };
+      periodsEl.innerHTML = keys.map((k) => `<button data-period="${k}" class="${k === statsView.period ? "active" : ""}">${short[k]}</button>`).join("");
+      const a = stats.attribution[statsView.period];
+      const env = statsView.envelope;
+      const lines = a.lines.filter((l) => env === "Total" || l.envelope === env);
+      if (!lines.length) { el.innerHTML = `<p class="help" style="margin:0">Aucun gain ni perte sur cette période.</p>`; return; }
+      const max = Math.max(...lines.map((l) => Math.abs(l.gain)));
+      const total = lines.reduce((s, l) => s + l.gain, 0);
+      el.className = "";
+      el.innerHTML = `<div style="font-size:14px;margin-bottom:6px">${env === "Total" ? "Total" : env} depuis le ${statsDate(a.from)} : <b class="${signClass(total)}">${signedEur(total)}</b></div>`
+        + lines.map((l) => `<div class="contrib-row">
+            <div>${escapeHtml(l.name)}<div class="who">${escapeHtml(l.envelope)} · ${l.end ? `vaut ${eur.format(l.end)}` : "vendue"}</div></div>
+            <div class="right"><span class="${signClass(l.gain)}">${signedEur(l.gain)}</span>${l.points != null ? `<div class="who">${pctFmt.format(l.points).replace("%", "pt")}</div>` : ""}</div>
+            <div class="contrib-bar"><i style="width:${Math.max(Math.abs(l.gain) / max * 100, 1)}%;background:${l.gain >= 0 ? "var(--positive)" : "var(--accent-neg)"}"></i></div>
+          </div>`).join("")
+        + `<p class="help" style="margin-top:10px">Gain de chaque ligne sur la période : valeur actuelle − valeur au départ − achats + ventes + dividendes. <span data-term="Contribution">En points</span> : sa part dans la performance du portefeuille (la somme des lignes donne le total).${a.missing.length ? ` Cours de départ introuvable pour ${escapeHtml(a.missing.join(", "))} : compté comme acheté pendant la période.` : ""}</p>`;
+    }
+
+    document.getElementById("stats-env").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-env]");
+      if (!b || !stats) return;
+      statsView.envelope = b.dataset.env;
+      renderStats();
+    });
+    document.getElementById("stats-attrib-period").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-period]");
+      if (!b) return;
+      statsView.period = b.dataset.period;
+      renderAttribution();
+    });
+    document.getElementById("stats-bench").addEventListener("change", (e) => {
+      settings.statsBench = e.target.value;
+      saveSettings();
+      loadStats(true);
+    });
+
     // --- Alertes de prix : vérifiées chaque nuit sur le cours de clôture, notifiées une seule fois ---
     let priceAlerts = [];
 
@@ -3723,6 +3898,13 @@
         "Investi": "<p>Ce que tu as payé pour cette ligne, frais d'achat compris : quantité × PRU.</p><p>C'est la base de calcul de la plus-value.</p>",
         "Quantité": "<p>Nombre d'actions détenues. Il peut être fractionnaire avec les plans d'investissement (0,97 action par exemple).</p>",
         "PRU": "<p>Prix de revient unitaire : le prix moyen payé par action, frais inclus.</p><p>Si tu renforces à un prix plus bas, ton PRU baisse ; plus haut, il monte. Une vente ne le change pas.</p>",
+        "Performance pondérée": "<p>Performance pondérée par le temps (TWR en anglais), celle qu'affichent les fonds et les indices. Chaque jour, la variation de valeur est corrigée de tes achats, ventes et dividendes, puis les jours sont enchaînés.</p><p>Exemple : 1 000 € gagnent 10 %, puis tu ajoutes 1 100 € juste avant une baisse de 10 %. Valeur / investi donne −0,5 %, mais ta performance réelle de gestion est 1,1 × 0,9 − 1 = −1 %. Tes apports ne la faussent ni dans un sens ni dans l'autre : elle se compare directement à un indice.</p><p>Le rendement annualisé (TRI) répond à une autre question : combien a rapporté ton argent, en tenant compte du moment où tu l'as placé.</p>",
+        "Volatilité": "<p>Amplitude habituelle des variations de ton portefeuille, sur un an (écart-type des variations quotidiennes, × √252 jours de bourse).</p><p>Repères : 15 % environ pour le MSCI World, 20 à 25 % pour un portefeuille de quelques actions, plus de 30 % pour des valeurs de croissance ou des cryptos. Plus elle est haute, plus les baisses peuvent être fortes et rapides.</p>",
+        "Pire baisse": "<p>La plus forte chute de ton portefeuille depuis un sommet (max drawdown), apports neutralisés : de ton plus haut à ton plus bas qui a suivi.</p><p>C'est la question « quelle baisse ai-je déjà encaissée ? ». Le MSCI World a perdu environ 34 % en mars 2020 et 17 % en 2022. « Effacée » : tu es depuis repassé au-dessus de ce sommet.</p>",
+        "Sous le sommet": "<p>Écart entre la performance actuelle et ton plus haut historique (apports neutralisés). 0 : tu es au sommet.</p>",
+        "Ratio de Sharpe": "<p>Rendement obtenu au-delà d'un placement sans risque (2 %, taux de dépôt de la BCE), divisé par la volatilité : combien tu as gagné par unité de risque prise, sur les 12 derniers mois.</p><p>Repères : en dessous de 0, tu as fait moins bien qu'un placement sans risque ; autour de 0,5, correct ; au-dessus de 1, très bon. Sur un an, il dépend beaucoup du marché : à comparer avec celui de l'indice sur la même période.</p>",
+        "Bêta": "<p>Sensibilité de ton portefeuille aux mouvements de l'indice choisi, sur 12 mois. 1 : il bouge comme l'indice ; 1,3 : quand l'indice perd 10 %, il perd en moyenne 13 % ; 0,7 : 7 %.</p><p>Un portefeuille en actions européennes aura un bêta plus faible face au S&amp;P 500 simplement parce que les deux marchés ne bougent pas pareil.</p>",
+        "Contribution": "<p>Part d'une ligne dans la performance du portefeuille, en points de pourcentage : son gain en euros divisé par le capital moyen investi sur la période (méthode de Dietz modifiée : un achat en cours de période compte au prorata du temps investi).</p><p>La somme des lignes donne la performance totale : +2 pt sur une ligne veut dire qu'elle a apporté 2 % des 5 % du portefeuille, par exemple.</p>",
         "Rendement annualisé": "<p>Le taux par an réellement obtenu sur ton argent (TRI, ou XIRR en anglais), dividendes compris. Il tient compte de la date de chaque apport : 1 000 € ajoutés hier ne « diluent » pas la performance des euros placés depuis un an.</p><p>C'est le chiffre à comparer au rendement d'un livret (≈ 2 %) ou d'un ETF monde (≈ 7 à 8 % par an sur longue période). Affiché une fois que ton premier achat a plus d'un an.</p>",
         "Rendement réel": "<p>Ce qu'a rapporté ton argent depuis ton premier achat, en tenant compte de la date de chaque apport, dividendes compris (TRI ramené à la période).</p><p>Avant un an de recul, il n'est pas annualisé : 3 % en deux mois ne veut pas dire 18 % par an. Il devient le « rendement annualisé » après un an.</p>",
         "Gain total": "<p>Tout ce que tes placements t'ont rapporté : valeur actuelle + ventes + dividendes nets − achats (frais compris).</p><p>Contrairement à la plus-value latente, il inclut les plus-values déjà encaissées et les dividendes.</p>",

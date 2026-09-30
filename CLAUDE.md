@@ -195,6 +195,22 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   le front lit `p[5] ?? null`. Graphique « Historique du screener » : cours, prix juste (bleu, tirets) et
   valeur intrinsèque (orange, pointillés).
 
+- **Performance et risque (septembre 2026, demande d'Enzo, sous-onglet « Perf. » du Portefeuille).** `stats.py`,
+  route `/portfolio/stats?benchmark=` (gardée 6 h, recalculée après chaque écriture dans le Sheet), chargée à la
+  première ouverture de l'onglet (cours Yahoo de chaque titre sur 5 ans).
+  - Périodes (1 mois, depuis le 1er janvier = depuis la clôture du 31/12, 1, 3, 5 ans, début) en performance
+    **pondérée par le temps** (TWR) : rendement du jour = (valeur − flux du jour) / valeur de la veille − 1, flux =
+    achats (+), ventes et dividendes (−). Le dividende est donc un gain, comme dans un indice dividendes réinvestis.
+    Base = onglet Historique + point du jour tiré des positions (comme `withLivePoint`). Période indisponible si
+    l'historique commence après sa date de départ. Gain en euros = valeur fin − valeur début − flux.
+    Le TRI (`returns.py`) reste affiché en haut : il répond à « combien a rapporté mon argent ».
+  - Risque sur 12 mois : volatilité (écart-type quotidien × √252, seulement les écarts ≤ 5 jours entre relevés,
+    au moins 40), Sharpe (taux sans risque 2 %, au moins 6 mois d'historique), bêta face à l'indice choisi ; pire
+    baisse et baisse actuelle depuis le début, les mêmes pour l'indice.
+  - Contribution par ligne (enveloppe, titre) : gain = valeur actuelle − quantité au départ × clôture Yahoo en euros
+    − flux ; en points = gain / capital moyen de Dietz modifié du portefeuille (la somme des lignes = total). Cours de
+    départ manquant : ligne signalée (`missing`), comptée comme achetée pendant la période.
+
 ## Pistes non faites
 
 - Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste

@@ -10,6 +10,7 @@ Endpoints prévus pour le MVP :
 - GET /watchlist            -> actions surveillées (onglet Watchlist du Sheet) ; POST / DELETE /watchlist/{ticker}
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
+- GET /portfolio/stats      -> performance par période (TWR), risque, contribution de chaque ligne
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
@@ -457,6 +458,32 @@ def get_performance(benchmark: str = "world", user: User = Depends(require_acces
         return cached[1]
     result = _sheet_call(lambda: portfolio_performance(user.sheet_id, benchmark))
     _performance_cache[key] = (time.monotonic(), result)
+    return result
+
+
+# --- Performance par période, risque et contribution de chaque ligne ---
+_stats_cache: dict[tuple, tuple[float, dict | None]] = {}
+
+
+@app.get("/portfolio/stats")
+def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
+    from datetime import date
+
+    from . import sheets
+    from .performance import BENCHMARKS
+    from .stats import stats_summary
+
+    if benchmark not in BENCHMARKS:
+        raise HTTPException(status_code=400, detail=f"Indice inconnu (choix : {', '.join(BENCHMARKS)})")
+    # Recalculé après chaque opération saisie (génération du cache des Sheets) et chaque jour
+    key = (user.sheet_id, benchmark, sheets.cache_generation(), date.today())
+    cached = _stats_cache.get(key)
+    if cached and time.monotonic() - cached[0] < PERFORMANCE_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: stats_summary(user.sheet_id, benchmark))
+    if len(_stats_cache) > 200:  # anciennes clés (générations, jours passés)
+        _stats_cache.clear()
+    _stats_cache[key] = (time.monotonic(), result)
     return result
 
 

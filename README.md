@@ -12,7 +12,7 @@ watchlist, alertes et briefs marchés hebdomadaires.
 
 | Onglet | Contenu |
 |---|---|
-| **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
+| **Portefeuille** | Valeur, plus-value, PEA / CTO, courbe d'évolution (un relevé par jour de bourse), mode discret qui floute les montants, comparaison à un indice (même argent aux mêmes dates dans un ETF MSCI World, S&P 500 ou CAC 40), positions détaillées, performance par période pondérée par le temps (1 mois à 5 ans, face à l'indice), risque (volatilité, pire baisse, Sharpe, bêta), contribution de chaque ligne, alertes, actions surveillées, répartition par secteur, livrets. Saisie des achats, ventes et dividendes, avec frais proposés selon le barème du courtier et TTF. |
 | **Marché** | Screener (recherche, filtres région / secteur / DCF fiable / sous-évaluées / score / dividende / super investisseurs / watchlist, tris) et fiche par action : courbe du cours (1 mois à 10 ans, moyenne 200 jours, prix juste en repère), présentation de l'entreprise, ratios, score qualité calibré par secteur, prix juste avec verdict sous-évaluée / correcte / surévaluée, DCF, dividende, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Briefs** | Briefs marchés hebdomadaires déposés par une tâche Claude Cowork dans un dossier Google Drive. |
 | **Guides** | [Guide d'utilisation](docs/guide-utilisation.md), [installation pour un nouvel utilisateur](docs/tutoriel-amis.md), [gestion des utilisateurs](docs/ajouter-un-ami.md). |
@@ -39,7 +39,7 @@ frontend/ (site statique sur Render, installable sur téléphone)
 - **`backend/app/`** : API. `data.py` (Yahoo via yfinance), `valuation.py` (DCF, prix juste, score), `sectors.py`
   (paliers et PER normal par secteur), `sheets.py` (lecture du Sheet, ancien et nouveau format), `workbook.py`
   (Sheet modèle et migration), `operations.py` (saisie), `performance.py` (comparaison à un indice),
-  `alerts.py`, `briefs.py`, `users.py` (un code d'accès = un utilisateur = un Sheet).
+  `stats.py` (performance par période, risque, contributions), `alerts.py`, `briefs.py`, `users.py` (un code d'accès = un utilisateur = un Sheet).
 - **`frontend/index.html`** : toute l'appli (HTML, CSS, JS, graphiques Chart.js).
 - **`screener/`** : scripts du calcul nocturne. `build_universe.py` construit la liste des actions
   (`universe.csv`) à partir des indices ; à relancer à la main de temps en temps.
