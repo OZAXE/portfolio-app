@@ -449,7 +449,8 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   backend/requirements.txt` sans alerte ; requêtes de plus de 30 Mo refusées (413) avant d'être gardées en
   mémoire (`BodySizeLimit`, placé à l'intérieur de CORS pour garder ses en-têtes), ticker de `/analysis` validé
   (`_checked_ticker`). Configuration Render vérifiée avec Enzo (octobre 2026) : codes changés, `USERS_JSON` seul
-  (`APP_ACCESS_TOKEN` ignoré quand il existe), `PUBLIC_BRIEFS_FOLDER`, en-têtes du front `X-Frame-Options: DENY` et
+  (`APP_ACCESS_TOKEN` ignoré quand il existe), `PUBLIC_BRIEFS_FOLDER`, inscription laissée ouverte (choix d'Enzo, `SIGNUP_OPEN=1`) mais limitée à
+  `MAX_SIGNUPS=10` comptes (amis de `USERS_JSON` compris, administrateur non compté), en-têtes du front `X-Frame-Options: DENY` et
   `X-Content-Type-Options: nosniff`. Deux identifiants de Sheets d'Enzo restent dans l'historique Git public
   (retirés du code en septembre) : sans danger tant que leur partage reste « Restreint ». Deuxième passage (octobre 2026) : les
   textes libres d'une opération (note, motif, terme, devise, compte, ticker) étaient écrits en USER_ENTERED, donc
