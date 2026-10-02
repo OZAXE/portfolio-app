@@ -616,6 +616,55 @@
     .setting { min-height: 56px; }
     /* Mode Essentiel : les écrans gardent l'essentiel (valeur, positions, alertes, revenus) */
     html[data-detail="essentiel"] .adv { display: none !important; }
+    /* Plus > Budget (admin) : comptes du mois envoyés par la tâche mensuelle */
+    #budget { display: grid; gap: 12px; }
+    .bud-nav { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; }
+    .bud-nav button { height: 44px; border: 0; background: var(--card-2); color: var(--text); border-radius: 12px; font: inherit; font-size: 20px; cursor: pointer; }
+    .bud-nav button:disabled { opacity: 0.35; cursor: default; }
+    .bud-nav .label { text-align: center; font-weight: 700; font-size: 17px; }
+    .bud-nav .label small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+    .bud-solde { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 14px; color: var(--muted); }
+    .bud-big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .bud-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .bud-kpis > div { background: var(--card-2); border-radius: 10px; padding: 10px; min-width: 0; }
+    .bud-kpis > div > span { display: block; font-size: 12px; color: var(--muted); }
+    .bud-kpis b { display: block; font-size: 16px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .bud-sentence { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+    .bud-sentence b { color: var(--text); font-weight: 600; }
+    .bud-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+    .bud-stack { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 4px 0 12px; }
+    .bud-stack i { display: block; height: 100%; }
+    details.bud-cat { border-radius: 10px; }
+    details.bud-cat[open] { background: var(--card-2); }
+    details.bud-cat > summary { list-style: none; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 8px; cursor: pointer; min-height: 44px; }
+    details.bud-cat > summary::-webkit-details-marker { display: none; }
+    .bud-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .bud-cname { font-weight: 600; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .bud-bar { display: block; height: 4px; background: var(--card-2); border-radius: 999px; margin-top: 5px; overflow: hidden; }
+    details.bud-cat[open] .bud-bar { background: var(--line); }
+    .bud-bar i { display: block; height: 100%; border-radius: 999px; }
+    .bud-amt { text-align: right; font-variant-numeric: tabular-nums; }
+    .bud-amt b { display: block; }
+    .bud-amt > span { font-size: 12px; color: var(--muted); }
+    .bud-body { padding: 0 8px 10px 28px; display: grid; gap: 6px; }
+    .bud-line { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+    .bud-line > span:first-child { min-width: 0; }
+    .bud-line > span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bud-ops { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+    .bud-op { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; font-size: 13px; align-items: baseline; }
+    .bud-op .lib { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bud-op .sub { color: var(--muted); font-size: 12px; }
+    .bud-op > span:last-child { font-variant-numeric: tabular-nums; }
+    #budget .link-btn { justify-self: start; padding: 0; }
+    .bud-chart svg { width: 100%; height: auto; display: block; }
+    .bud-chart text { fill: var(--muted); font-size: 10px; }
+    .bud-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .bud-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .bud-legend i { width: 14px; border-top: 2px solid var(--positive); }
+    .bud-legend i.dash { border-top: 2px dashed var(--muted); }
+    .bud-aside + .bud-aside { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+    .bud-check { margin-top: 8px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 12%, transparent); }
+    .bud-check b { color: var(--warn); }
   </style>
   <script>
     const APP_ICONS = [["barres", "Barres"], ["courbe", "Courbe"], ["anneau", "Anneau"], ["euro", "Euro"], ["clair", "Clair"], ["violet", "Violet"]];
@@ -971,6 +1020,7 @@
         <button class="setting" data-spage="patrimoine"><span class="ic" style="background:#0d9488"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5"/></svg></span><span style="min-width:0"><span class="t">Épargne et patrimoine</span><span class="d">Livrets, assurance-vie, PER : ton patrimoine financier</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="projection"><span class="ic" style="background:#7c3aed"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-5 3 3 6-7"/></svg></span><span style="min-width:0"><span class="t">Projection</span><span class="d">Ce que pourrait devenir ton épargne</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="goals"><span class="ic" style="background:#22c55e"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></span><span style="min-width:0"><span class="t">Objectifs et rééquilibrage</span><span class="d">Poches, allocation cible et ordres pour y revenir</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="budget" id="budget-entry" hidden><span class="ic" style="background:#ea580c"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span><span style="min-width:0"><span class="t">Budget</span><span class="d">Tes dépenses et revenus du mois, d'après ton relevé</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       <div id="briefs-entry" hidden>
       <div class="group-title">À lire</div><div class="group">
@@ -1007,6 +1057,10 @@
         <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Objectifs et rééquilibrage</strong></div>
         <p class="help needs-portfolio" hidden>Ton portefeuille n'est pas encore chargé : saisis ton code d'accès (Plus &gt; Code d'accès) ou attends la fin du chargement.</p>
         <div class="card" id="allocation"></div>
+      </div>
+      <div class="spage" data-page="budget" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Budget</strong></div>
+        <div id="budget"><div class="status">Chargement…</div></div>
       </div>
       <div class="spage" data-page="accounts" hidden>
         <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Comptes et courtiers</strong></div>
@@ -1380,6 +1434,7 @@
       saveSettings();
       applyPrivacy();
       if (overview) { renderChart(); renderProjection(); }
+      if (settingsPage === "budget" && budget) renderBudget();  // axe du graphique en texte SVG
     });
     applyPrivacy();
 
@@ -3983,6 +4038,9 @@
         items.push({ icon: "📝", tone: "good", ticker: e.ticker, key: `revue:${e.ticker}:${e.review}`, text: `Relire ta thèse sur ${shortName(name) || name}`,
           sub: `Revue prévue le ${dayFmt.format(new Date(e.review + "T12:00:00"))}` });
       }
+      const todo = (budget?.operations || []).filter((o) => o.kind === "a_categoriser").length;
+      if (todo) items.push({ icon: "🧾", tone: "warn", go: "budget", key: `budget:${budget.sent}`, text: `${todo} opération${todo > 1 ? "s" : ""} à catégoriser dans ton budget`,
+        sub: "Elles se règlent avec ta tâche du mois" });
       const held = new Set((overview?.holdings || []).map((h) => (h.yahoo_ticker || "").toUpperCase()));
       for (const st of market?.stocks || []) {
         if (!held.has(st.ticker)) continue;
@@ -4036,7 +4094,10 @@
       }
       const row = e.target.closest(".watch-main");
       if (!row) return;
-      if (row.dataset.watchGo === "concentration") {
+      if (row.dataset.watchGo === "budget") {
+        showView("settings");
+        openSettingsPage("budget");
+      } else if (row.dataset.watchGo === "concentration") {
         showView("portfolio");
         showPortfolioTab("repartition");
         document.getElementById("concentration").scrollIntoView({ block: "start" });
@@ -4087,8 +4148,14 @@
     }
     async function loadMe() {
       renderGreeting();
-      try { userName = (await api("/me")).name || ""; } catch { return; }
+      let me;
+      try { me = await api("/me"); } catch { return; }
+      userName = me.name || "";
       renderGreeting();
+      // Budget réservé à l'administrateur (l'API refuse aussi les autres) ; chargé tout de suite pour « À regarder »
+      document.getElementById("budget-entry").hidden = !me.admin;
+      budget = null;
+      if (me.admin) loadBudget().then(renderAlertsList).catch(() => {});
     }
 
     // --- Historique hebdomadaire du screener (cours, prix juste et valeur intrinsèque) ---
@@ -5589,6 +5656,7 @@
       window.scrollTo(0, 0);
       if (name === "advanced") prepareAdvancedTools();
       if (name === "appearance") syncDensityButtons();
+      if (name === "budget") openBudget();
       if (PORTFOLIO_PAGES.includes(name)) {
         document.querySelector(`#view-settings .spage[data-page="${name}"] .needs-portfolio`).hidden = !!overview;
         if (overview && name === "projection") renderProjection();  // graphique dessiné page cachée : sans taille
@@ -5624,6 +5692,250 @@
       }
     });
     window.addEventListener("popstate", () => { if (!stockReturn && settingsPage) closeSettingsPage(); });
+
+    // --- Plus > Budget (administrateur) : comptes du mois tirés du relevé du compte courant ---
+    // La tâche mensuelle d'Enzo catégorise sur son PC (outputs.xlsx), scripts/envoyer_budget.py envoie toutes les
+    // opérations, l'appli fait les mois d'après la date de chacune. Dépenses et revenus font le solde ; virements
+    // internes et investissement restent à part, comme dans le Résumé du fichier.
+    const BUDGET_COLORS = { "Logement": "#3b82f6", "Courses": "#10b981", "Loisirs": "#ec4899", "Restaurant/Bar": "#f97316",
+      "Shopping": "#8b5cf6", "Voiture": "#eab308", "Abonnements": "#06b6d4", "Transport": "#94a3b8", "Santé": "#ef4444",
+      "Autre": "#64748b", "À catégoriser": "#a8a29e" };
+    const BUDGET_SPARE = ["#14b8a6", "#f43f5e", "#84cc16", "#0ea5e9", "#d946ef", "#f59e0b"];
+    const BUDGET_SPENDING = new Set(["depense", "a_categoriser"]);
+    const budgetFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+    const budgetEur = (v) => hideable(budgetFmt.format(v), "•••• €");
+    const budgetSigned = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + budgetEur(Math.abs(v));
+    const budgetPct = (x) => `${Math.round(x * 100).toLocaleString("fr-FR")} %`.replace("-", "−");
+    let budget = null, budgetMonth = null, budgetLoading = null;
+
+    function budgetColor(cat) {
+      if (BUDGET_COLORS[cat]) return BUDGET_COLORS[cat];
+      let h = 0;
+      for (const c of cat) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      return BUDGET_SPARE[h % BUDGET_SPARE.length];
+    }
+    const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const lastDayOf = (key) => { const d = monthDate(key); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
+
+    // Mois continus du premier au dernier relevé, avec leurs totaux. Le dernier mois n'est complet que si le relevé va
+    // jusqu'à ses 3 derniers jours et a été envoyé après sa fin : un export du 14/09 laisse septembre incomplet.
+    function budgetMonths() {
+      const ops = budget.operations;
+      const last = ops.reduce((m, o) => (o.date > m ? o.date : m), "");
+      const first = ops.reduce((m, o) => (o.date < m ? o.date : m), last);
+      const keys = [];
+      for (let d = monthDate(first.slice(0, 7)); monthKey(d) <= last.slice(0, 7); d.setMonth(d.getMonth() + 1)) keys.push(monthKey(d));
+      const months = keys.map((key) => ({ key, cats: {}, subs: {}, revenus: {}, dep: 0, rev: 0, inv: 0, internes: 0, ops: [] }));
+      const byKey = Object.fromEntries(months.map((m) => [m.key, m]));
+      for (const o of ops) {
+        const m = byKey[o.date.slice(0, 7)];
+        m.ops.push(o);
+        if (BUDGET_SPENDING.has(o.kind)) {
+          m.dep += o.amount;
+          m.cats[o.category] = (m.cats[o.category] || 0) + o.amount;
+          const sub = `${o.category}|${o.subcategory || "Sans sous-catégorie"}`;
+          m.subs[sub] = (m.subs[sub] || 0) + o.amount;
+        } else if (o.kind === "revenu") {
+          m.rev += o.amount;
+          m.revenus[o.category] = (m.revenus[o.category] || 0) + o.amount;
+        } else if (o.kind === "investissement") m.inv += o.amount;
+        else m.internes += o.amount;
+      }
+      const lastKey = last.slice(0, 7), endDay = `${lastKey}-${String(lastDayOf(lastKey)).padStart(2, "0")}`;
+      const lastComplete = Number(last.slice(8, 10)) >= lastDayOf(lastKey) - 2 && (budget.sent || "") > endDay;
+      months.forEach((m) => (m.partial = m.key === lastKey && !lastComplete));
+      return { months, last };
+    }
+
+    async function loadBudget(force = false) {
+      if (budget && !force) return budget;
+      budgetLoading ??= api("/budget").then((b) => { budget = b; return b; }).finally(() => { budgetLoading = null; });
+      return budgetLoading;
+    }
+    async function openBudget() {
+      const el = document.getElementById("budget");
+      if (!budget) {
+        el.innerHTML = `<div class="status">Chargement…</div>`;
+        try { await loadBudget(); } catch (e) { el.innerHTML = `<div class="status">Budget indisponible : ${escapeHtml(e.message)}</div>`; return; }
+      }
+      renderBudget();
+    }
+
+    function renderBudget() {
+      const el = document.getElementById("budget");
+      if (!budget?.operations?.length) {
+        el.innerHTML = `<div class="card"><p class="help" style="margin:0">Rien de reçu pour l'instant. Ta tâche mensuelle envoie tes opérations avec
+          <code>python envoyer_budget.py outputs.xlsx</code> après la mise à jour de ton fichier (voir scripts/envoyer_budget.py).</p></div>`;
+        return;
+      }
+      const { months, last } = budgetMonths();
+      const complete = months.filter((m) => !m.partial);
+      if (budgetMonth == null || !months.some((m) => m.key === budgetMonth)) budgetMonth = (complete.at(-1) || months.at(-1)).key;
+      const idx = months.findIndex((m) => m.key === budgetMonth), m = months[idx];
+      // Moyennes des 12 derniers mois complets : le repère des comparaisons « vs ta moyenne »
+      const ref = complete.slice(-12);
+      const refRev = ref.reduce((a, x) => a + x.rev, 0);
+      const avgRate = refRev > 0 ? ref.reduce((a, x) => a + x.rev - x.dep, 0) / refRev : null;
+      const avgCat = (k) => (ref.length ? ref.reduce((a, x) => a + (x.cats[k] || 0), 0) / ref.length : 0);
+      const avgDep = ref.length ? ref.reduce((a, x) => a + x.dep, 0) / ref.length : null;
+      const solde = m.rev - m.dep, rate = m.rev > 0 ? solde / m.rev : null;
+      const lastShort = new Date(last + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+
+      let sentence;
+      if (m.partial) sentence = `Le mois n'est relevé que jusqu'au ${lastShort} : une partie des dépenses et des revenus manque encore. Attends le prochain envoi avant de comparer.`;
+      else if (rate === null) sentence = "Pas de revenus relevés ce mois-ci.";
+      else {
+        sentence = rate >= 0 ? `Tu as mis de côté <b>${budgetPct(rate)}</b> de tes revenus`
+          : `Tu as dépensé <b>${budgetEur(-solde)} de plus</b> que tes revenus`;
+        if (avgRate !== null && ref.length >= 3) sentence += rate >= 0 ? `, ${rate >= avgRate ? "mieux que" : "moins que"} ta moyenne sur ${ref.length} mois (${budgetPct(avgRate)}).` : `. Sur ${ref.length} mois, tu mets de côté ${budgetPct(avgRate)} en moyenne.`;
+        else sentence += ".";
+        const top = Object.entries(m.cats).map(([k, t]) => [k, t - avgCat(k)]).sort((a, b) => b[1] - a[1])[0];
+        if (top && top[1] > 60 && ref.length >= 3) sentence += ` Le poste qui dépasse le plus son habitude : <b>${escapeHtml(top[0])}</b>, ${budgetSigned(top[1])} par rapport à sa moyenne.`;
+      }
+
+      const cats = Object.entries(m.cats).filter(([, t]) => t > 0).sort((a, b) => b[1] - a[1]);
+      const maxCat = cats[0]?.[1] || 1;
+      const catRows = cats.map(([k, t]) => {
+        const avg = avgCat(k), ratio = avg > 0 ? t / avg - 1 : 0;
+        const badge = m.partial || ref.length < 3 ? "" : ratio > 0.25 && t - avg > 30 ? `<span class="pill warn">+${budgetPct(ratio)} vs moyenne</span>`
+          : ratio < -0.25 && avg - t > 30 ? `<span class="pill good">${budgetPct(ratio)} vs moyenne</span>` : "";
+        const subs = Object.entries(m.subs).filter(([s]) => s.startsWith(k + "|")).sort((a, b) => b[1] - a[1]);
+        return `<details class="bud-cat">
+          <summary><span class="bud-dot" style="background:${budgetColor(k)}"></span>
+            <span style="min-width:0"><span class="bud-cname">${escapeHtml(k)} ${badge}</span><span class="bud-bar"><i style="width:${Math.max(0, t / maxCat * 100)}%;background:${budgetColor(k)}"></i></span></span>
+            <span class="bud-amt"><b>${budgetEur(t)}</b><span>${m.dep > 0 ? budgetPct(t / m.dep) : ""}</span></span></summary>
+          <div class="bud-body">
+            ${subs.map(([s, a]) => `<div class="bud-line"><span>${escapeHtml(s.split("|")[1])}</span><span>${eur.format(a)}</span></div>`).join("")}
+            <button class="link-btn" data-bud-ops="${escapeHtml(k)}">Voir les opérations</button>
+            <div class="bud-ops" hidden></div>
+          </div></details>`;
+      }).join("");
+
+      const revRows = Object.entries(m.revenus).filter(([, a]) => a > 0).sort((a, b) => b[1] - a[1]);
+      const deposit = budget.deposits?.[m.key] || 0, tracksDeposits = Object.keys(budget.deposits || {}).length > 0;
+      const invCheck = !m.inv ? "" : !tracksDeposits
+        ? `<p class="help" style="margin:8px 0 0">Saisis tes versements dans Suivi &gt; Opérations pour que l'appli vérifie qu'aucun n'a été oublié.</p>`
+        : m.inv - deposit > 1 ? `<div class="bud-check"><b>À vérifier :</b> ${budgetEur(m.inv)} virés vers tes placements d'après le relevé, ${budgetEur(deposit)} de versements saisis dans Suivi &gt; Opérations ce mois-ci. Un versement oublié, ou passé au début du mois suivant ?</div>`
+        : `<p class="help" style="margin:8px 0 0">Les versements saisis dans Suivi &gt; Opérations couvrent ces virements.</p>`;
+      const invOps = m.ops.filter((o) => o.kind === "investissement");
+      const todo = budget.operations.filter((o) => o.kind === "a_categoriser").sort((a, b) => b.date.localeCompare(a.date));
+
+      el.innerHTML = `
+        <p class="help" style="margin:0">Envoyé par ta tâche « maj-suivi-bancaire »${budget.sent ? ` le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}` : ""}, relevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
+        <div class="card">
+          <div class="bud-nav">
+            <button data-bud-month="-1" aria-label="Mois précédent" ${idx === 0 ? "disabled" : ""}>‹</button>
+            <div class="label">${escapeHtml(monthLong.format(monthDate(m.key)).replace(/^./, (c) => c.toUpperCase()))}<small>${m.partial ? `relevé jusqu'au ${lastShort}` : "mois complet"}</small></div>
+            <button data-bud-month="1" aria-label="Mois suivant" ${idx === months.length - 1 ? "disabled" : ""}>›</button>
+          </div>
+          <div class="bud-solde"><span>Solde du mois</span>${m.partial ? `<span class="pill warn">Mois incomplet</span>` : ""}</div>
+          <div class="bud-big ${signClass(solde)}">${budgetSigned(solde)}</div>
+          <div class="bud-kpis">
+            <div><span>Revenus</span><b>${budgetEur(m.rev)}</b></div>
+            <div><span>Dépenses</span><b>${budgetEur(m.dep)}</b></div>
+            <div><span>Mis de côté</span><b class="${signClass(rate)}">${rate === null ? "N/A" : budgetPct(rate)}</b></div>
+          </div>
+          <p class="bud-sentence">${sentence}</p>
+        </div>
+        <div class="card">
+          <div class="bud-h">Dépenses par catégorie</div>
+          ${cats.length ? `<div class="bud-stack">${cats.map(([k, t]) => `<i style="width:${t / m.dep * 100}%;background:${budgetColor(k)}" title="${escapeHtml(k)}"></i>`).join("")}</div><div>${catRows}</div>`
+            : `<p class="help" style="margin:0">Aucune dépense relevée ce mois-ci.</p>`}
+        </div>
+        <div class="card bud-chart">
+          <div class="bud-h">Sur 12 mois</div>
+          ${budgetChart(months, idx, avgDep)}
+          <div class="bud-legend"><span><i></i>Revenus</span>${avgDep != null ? `<span><i class="dash"></i>Dépenses moyennes</span>` : ""}<span>Touche un mois pour l'ouvrir</span></div>
+        </div>
+        <div class="card">
+          <div class="bud-h">Revenus</div>
+          ${revRows.length ? revRows.map(([k, a]) => `<div class="bud-line" style="font-size:15px;margin-bottom:6px"><span>${escapeHtml(k)}</span><span>${budgetEur(a)} <span class="muted">· ${budgetPct(a / m.rev)}</span></span></div>`).join("")
+            : `<p class="help" style="margin:0">Aucun revenu relevé ce mois-ci.</p>`}
+        </div>
+        <div class="card">
+          <div class="bud-h">À part</div>
+          <div class="bud-aside">
+            <div class="bud-line" style="font-size:15px"><span>Investissement</span><b>${budgetEur(m.inv)}</b></div>
+            ${invOps.map((o) => `<div class="bud-line muted"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(o.label)}</span><span>${eur.format(o.amount)}</span></div>`).join("")}
+            ${invCheck}
+          </div>
+          <div class="bud-aside">
+            <div class="bud-line" style="font-size:15px"><span>Virements internes</span><b>${budgetEur(m.internes)}</b></div>
+            <p class="help" style="margin:8px 0 0">Entre tes propres comptes (Livret A, compte courant), dans les deux sens. Ils ne comptent ni dans les revenus, ni dans les dépenses, ni dans le solde.</p>
+          </div>
+        </div>
+        ${todo.length ? `<div class="card">
+          <div class="bud-h">À catégoriser (${todo.length})</div>
+          <div class="bud-ops" style="border:0;padding:0">${todo.map(budgetOpRow).join("")}</div>
+          <p class="help" style="margin:10px 0 0">Comptées dans les dépenses, catégorie « À catégoriser », en attendant. Elles se règlent avec ta tâche du mois : l'appli les montre, elle ne les classe pas.</p>
+        </div>` : ""}`;
+    }
+    function budgetOpRow(o) {
+      const day = new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+      return `<div class="bud-op"><span class="muted">${day}</span><span class="lib">${escapeHtml(o.label)}${o.subcategory ? `<div class="sub">${escapeHtml(o.subcategory)}</div>` : ""}</span><span>${eur.format(o.amount)}</span></div>`;
+    }
+
+    // 12 mois : dépenses empilées par catégorie, revenus en ligne, dépenses moyennes en pointillés. Montants de l'axe
+    // et des infobulles retirés en mode discret (texte SVG, pas de .amt).
+    function budgetChart(months, sel, avgDep) {
+      const end = sel <= months.length - 12 ? sel + 11 : months.length - 1;
+      const shown = months.slice(Math.max(0, end - 11), end + 1);
+      const W = 360, H = 210, L = settings.privacy ? 8 : 36, R = 6, T = 10, B = 22;
+      const top = Math.max(1, ...shown.map((m) => Math.max(m.dep, m.rev)), avgDep || 0);
+      const step = [100, 250, 500, 1000, 2000, 5000, 10000].find((s) => top / s <= 5) || 20000, yMax = Math.ceil(top / step) * step;
+      const y = (v) => T + (H - T - B) * (1 - Math.max(0, v) / yMax);
+      const slot = (W - L - R) / 12, bw = slot * 0.62;
+      const cats = [...new Set(shown.flatMap((m) => Object.keys(m.cats)))];
+      let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Dépenses et revenus sur 12 mois">`;
+      for (let v = 0; v <= yMax; v += step) {
+        svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+        if (!settings.privacy) svg += `<text x="${L - 4}" y="${y(v) + 3}" text-anchor="end">${v >= 1000 ? `${(v / 1000).toLocaleString("fr-FR")} k€` : `${v} €`}</text>`;
+      }
+      shown.forEach((m, i) => {
+        const x = L + i * slot, current = m.key === months[sel].key;
+        if (current) svg += `<rect x="${x + 1}" y="${T}" width="${slot - 2}" height="${H - T - B}" rx="4" fill="var(--card-2)"/>`;
+        let acc = 0;
+        for (const c of cats) {
+          const t = m.cats[c] || 0;
+          if (t <= 0) continue;
+          svg += `<rect x="${x + (slot - bw) / 2}" y="${y(acc + t)}" width="${bw}" height="${Math.max(0, y(acc) - y(acc + t))}" fill="${budgetColor(c)}" opacity="${current ? 1 : 0.55}"/>`;
+          acc += t;
+        }
+        const label = monthDate(m.key).toLocaleDateString("fr-FR", { month: "narrow" }).toUpperCase() + (m.partial ? "*" : "");
+        svg += `<text x="${x + slot / 2}" y="${H - 7}" text-anchor="middle" ${current ? 'style="fill:var(--text);font-weight:700"' : ""}>${label}</text>`;
+      });
+      if (avgDep != null) svg += `<line x1="${L}" x2="${W - R}" y1="${y(avgDep)}" y2="${y(avgDep)}" stroke="var(--muted)" stroke-dasharray="4 3" stroke-width="1.2"/>`;
+      const pts = shown.map((m, i) => [L + i * slot + slot / 2, y(m.rev)]);
+      svg += `<polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--positive)" stroke-width="2"/>`;
+      svg += pts.map((p) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--positive)"/>`).join("");
+      shown.forEach((m, i) => {
+        const name = monthLong.format(monthDate(m.key));
+        const tip = settings.privacy ? name : `${name} : ${budgetFmt.format(m.dep)} dépensés, ${budgetFmt.format(m.rev)} reçus`;
+        svg += `<rect data-bud-pick="${m.key}" x="${L + i * slot}" y="0" width="${slot}" height="${H}" fill="transparent" style="cursor:pointer"><title>${escapeHtml(tip)}</title></rect>`;
+      });
+      svg += "</svg>";
+      return svg + (shown.some((m) => m.partial) ? `<p class="help" style="margin:4px 0 0">* mois incomplet</p>` : "");
+    }
+
+    document.getElementById("budget").addEventListener("click", (e) => {
+      const nav = e.target.closest("[data-bud-month]");
+      const pick = e.target.closest("[data-bud-pick]");
+      const ops = e.target.closest("[data-bud-ops]");
+      if (nav || pick) {
+        const { months } = budgetMonths();
+        const i = months.findIndex((m) => m.key === budgetMonth);
+        budgetMonth = pick ? pick.dataset.budPick : months[Math.min(months.length - 1, Math.max(0, i + Number(nav.dataset.budMonth)))].key;
+        renderBudget();
+      } else if (ops) {
+        const box = ops.nextElementSibling;
+        if (!box.hidden) { box.hidden = true; ops.textContent = "Voir les opérations"; return; }
+        const list = budget.operations.filter((o) => o.date.startsWith(budgetMonth) && BUDGET_SPENDING.has(o.kind) && o.category === ops.dataset.budOps)
+          .sort((a, b) => b.date.localeCompare(a.date) || b.amount - a.amount);
+        box.innerHTML = list.map(budgetOpRow).join("");
+        box.hidden = false;
+        ops.textContent = "Masquer les opérations";
+      }
+    });
 
     // --- Briefs hebdo (dossier Drive "Briefs", déposés par la tâche Cowork) ---
     const longDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

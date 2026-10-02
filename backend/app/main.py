@@ -23,6 +23,7 @@ Endpoints prévus pour le MVP :
 - GET /prices/{ticker}      -> courbe de cours sur 10 ans affichée en tête de la fiche action
 - POST /history/snapshot    -> relevé quotidien de l'onglet Historique (job nocturne, admin)
 - GET /signup/info, POST /signup/start, /signup/finish -> inscription libre (signup.py)
+- GET /budget, POST /budget/import -> comptes du mois envoyés par scripts/envoyer_budget.py (admin)
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
 """
@@ -756,6 +757,28 @@ def delete_journal(ticker: str, user: User = Depends(require_access)):
     from .journal import delete_entry
 
     return _operation_call(lambda: delete_entry(user.sheet_id, _checked_ticker(ticker)))
+
+
+# --- Budget : comptes du mois envoyés par la tâche mensuelle d'Enzo (onglet Budget, budget.py), admin seulement ---
+@app.get("/budget")
+def get_budget(user: User = Depends(require_admin)):
+    from .budget import read_budget
+    from .realized import read_cash
+
+    def build():
+        try:
+            cash = read_cash(user.sheet_id)
+        except Exception:  # pas d'onglet Opérations lisible : le budget s'affiche sans la comparaison des versements
+            cash = []
+        return read_budget(user.sheet_id, cash)
+    return _sheet_call(build)
+
+
+@app.post("/budget/import")
+def import_budget(payload: dict = Body(...), user: User = Depends(require_admin)):
+    from .budget import replace_budget
+
+    return _operation_call(lambda: replace_budget(user.sheet_id, payload))
 
 
 # --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---

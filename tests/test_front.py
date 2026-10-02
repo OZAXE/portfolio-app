@@ -78,6 +78,7 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.wait_for_function("document.getElementById('total-value').textContent.includes('346,80')")
     page.wait_for_selector("#alerts .watch-row")
     assert "Relire ta thèse" in page.inner_text("#alerts")
+    page.wait_for_function("document.getElementById('alerts').textContent.includes('à catégoriser dans ton budget')")
     page.wait_for_selector("#home-tiles .tile")
     assert "Revenu sur 12 mois" in page.inner_text("#home-tiles")
 
@@ -123,6 +124,21 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
         page.go_back()
         page.wait_for_selector("#settings-home:not([hidden])")
 
+    # Plus > Budget (administrateur) : s'ouvre sur le dernier mois complet (1 500 - 780 = +720 €, 48 % mis de côté),
+    # une catégorie se déplie jusqu'aux opérations, le mois suivant est marqué incomplet
+    page.click('#settings-home [data-spage="budget"]')
+    page.wait_for_selector("#budget .bud-big")
+    assert "720" in page.inner_text("#budget .bud-big") and "48 %" in page.inner_text("#budget .bud-kpis")
+    assert "mois complet" in page.inner_text("#budget .bud-nav")
+    page.click("#budget details.bud-cat >> nth=0")
+    page.click("#budget [data-bud-ops] >> nth=0")
+    assert "Agence Immo" in page.inner_text("#budget .bud-ops >> nth=0")
+    page.click('#budget [data-bud-month="1"]')
+    assert "Mois incomplet" in page.inner_text("#budget")
+    assert "CB NOUVEAU COMMERCE" in page.inner_text("#budget")
+    page.go_back()
+    page.wait_for_selector("#settings-home:not([hidden])")
+
     # Essentiel masque l'onglet Perf., Complet le remet
     page.click("#detail-mode [data-detail=essentiel]")
     page.click("#tabbar [data-view=portfolio]")
@@ -140,4 +156,4 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     server_errors = [c for c in api_calls if c[2] >= 500]
     assert server_errors == [], f"erreurs 500 de l'API : {server_errors}"
     called = {re.sub(r"\?.*", "", path) for _, path, _ in api_calls}
-    assert {"/portfolio/overview", "/portfolio/dividends", "/transactions", "/journal"} <= called
+    assert {"/portfolio/overview", "/portfolio/dividends", "/transactions", "/journal", "/budget"} <= called

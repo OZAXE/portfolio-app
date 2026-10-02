@@ -86,6 +86,12 @@ class FakeWorksheet:
     def add_rows(self, n):
         pass
 
+    def clear(self):
+        self.rows = []
+
+    def resize(self, rows=None, cols=None):
+        pass
+
     def append_row(self, row, **k):
         from app import sheets
         self.rows.append(list(row))
@@ -174,7 +180,32 @@ def default_tabs(today: date) -> dict:
         "Allocation": [workbook.ALLOCATION_HEADERS],
         "Journal": [journal.JOURNAL_HEADERS,
                     ["AI.PA", "Leader des gaz industriels", 200, 150, "Long", (today - timedelta(days=15)).isoformat(), "", ""]],
+        "Budget": budget_rows(today),
     }
+
+
+def budget_rows(today: date) -> list[list]:
+    """Onglet Budget (Plus > Budget) : deux mois complets avant celui-ci, puis le mois en cours relevé jusqu'au 1er
+    avec une opération à catégoriser. Chaque mois complet : 1 500 € de revenus, 540 + 180 + 60 = 780 € de dépenses,
+    solde +720 € (48 % mis de côté), 100 € investis, 500 € de virements internes. Libellés inventés."""
+    from app import budget
+    first = today.replace(day=1)
+    previous = (first - timedelta(days=1)).replace(day=1)
+    before = (previous - timedelta(days=1)).replace(day=1)
+    rows = [budget.BUDGET_HEADERS]
+    for month in (before, previous):
+        day = lambda d: month.replace(day=d).isoformat()  # noqa: E731
+        rows += [[day(1), "VIR INST vers Agence Immo", 540, "Logement", "Loyer", "depense", today.isoformat()],
+                 [day(5), "CB SUPERMARCHE CENTRE", 120, "Courses", "Supermarché", "depense", today.isoformat()],
+                 [day(19), "CB EPICERIE DU COIN", 60, "Courses", "Épicerie", "depense", today.isoformat()],
+                 [day(12), "CB TRATTORIA", 60, "Restaurant/Bar", "Restaurant", "depense", today.isoformat()],
+                 [day(27), "VIR Gratification de stage", 1200, "Salaire", "", "revenu", today.isoformat()],
+                 [day(3), "VIR Famille", 300, "Virement reçu", "", "revenu", today.isoformat()],
+                 [day(8), "VIR INST vers Trade Republic", 100, "Investissement", "Bourse/Épargne", "investissement", today.isoformat()],
+                 [day(15), "VIR vers Livret A", 500, "Virements internes", "Livret A", "interne", today.isoformat()]]
+    rows += [[first.isoformat(), "VIR INST vers Agence Immo", 540, "Logement", "Loyer", "depense", today.isoformat()],
+             [first.isoformat(), "CB NOUVEAU COMMERCE", 23.4, "À catégoriser", "", "a_categoriser", today.isoformat()]]
+    return rows
 
 
 class Offline(ConnectionError):
