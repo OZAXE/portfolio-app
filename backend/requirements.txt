@@ -1,4 +1,5 @@
-fastapi==0.115.0
+fastapi==0.142.2
+starlette==1.7.0  # épinglée : la 0.38.6 tirée par fastapi 0.115 avait des failles connues (audit d'octobre 2026)
 uvicorn[standard]==0.30.6
 yfinance==1.7.0
 pandas==2.2.2
