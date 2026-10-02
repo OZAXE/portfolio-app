@@ -104,3 +104,19 @@ def test_targets_accept_percent_or_fraction():
 
     rows = [["Poche", "Cible %"], ["ETF Monde", 0.6], ["Actions France", 25], ["", 10], ["Vide", ""]]
     assert parse_targets(rows) == [{"pocket": "ETF Monde", "target": 0.6}, {"pocket": "Actions France", "target": 0.25}]
+
+
+def test_api_fermee_sans_code_configure(monkeypatch):
+    """Code du propriétaire effacé sur Render (APP_ACCESS_TOKEN vide) : avant, l'API répondait à tout le
+    monde comme administrateur. Maintenant elle refuse, même la route du portefeuille."""
+    monkeypatch.setattr(users, "USERS", [User("Propriétaire", None, "sheet-enzo", admin=True)])
+    monkeypatch.delenv("ALLOW_OPEN_API", raising=False)
+    assert users.resolve(None) is None
+    assert TestClient(main.app).get("/portfolio").status_code == 401
+
+
+def test_api_ouverte_seulement_sur_demande(monkeypatch):
+    """Installation ou essai en local : ALLOW_OPEN_API=1 rouvre l'API sans code, comme avant."""
+    monkeypatch.setattr(users, "USERS", [User("Propriétaire", None, "sheet-enzo", admin=True)])
+    monkeypatch.setenv("ALLOW_OPEN_API", "1")
+    assert users.resolve(None).sheet_id == "sheet-enzo"

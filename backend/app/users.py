@@ -7,7 +7,8 @@ Configuration sur Render, variable d'environnement USERS_JSON :
      {"name": "Paul", "token": "...", "sheet_id": "..."}]
 
 Sans USERS_JSON, un seul utilisateur : le propriétaire, avec APP_ACCESS_TOKEN, SHEET_ID et
-BRIEFS_FOLDER. Sans code d'accès du tout, l'API reste ouverte (installation en cours).
+BRIEFS_FOLDER. Sans code d'accès du tout, l'API refuse tout, sauf ALLOW_OPEN_API=1 (installation,
+essai en local) : une variable effacée par erreur sur Render ne doit pas ouvrir les portefeuilles.
 Aucun identifiant de Sheet ou de dossier dans le code : le repo est public.
 """
 
@@ -50,10 +51,16 @@ def access_protected() -> bool:
     return any(u.token for u in USERS)
 
 
+def open_api_allowed() -> bool:
+    """API sans code d'accès seulement sur demande explicite. Avant, elle s'ouvrait dès qu'aucun code
+    n'était configuré : supprimer APP_ACCESS_TOKEN sur Render donnait l'accès administrateur à tous."""
+    return os.environ.get("ALLOW_OPEN_API") == "1"
+
+
 def resolve(token: str | None) -> User | None:
     """Utilisateur correspondant au code d'accès (comparaison à temps constant)."""
     if not access_protected():
-        return USERS[0]
+        return USERS[0] if open_api_allowed() else None
     if not token:
         return None
     for user in admins():
