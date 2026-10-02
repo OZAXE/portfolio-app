@@ -73,13 +73,20 @@ def _restore(sheet, target_name: str, backup_name: str, columns: str) -> int:
     if backup is None:
         raise OperationError(f"Sauvegarde introuvable : {backup_name}")
     target = _worksheet(sheet, target_name)
-    values = backup.get_values(value_render_option="FORMULA")[1:]
+    count = len(backup.get_values()) - 1
     target.batch_clear([f"A2:{columns}"])
-    if values:
-        if target.row_count < len(values) + 1:
-            target.add_rows(len(values) + 1 - target.row_count)
-        target.update(range_name="A2", values=values, value_input_option="USER_ENTERED")
-    return len(values)
+    if count > 0:
+        if target.row_count < count + 1:
+            target.add_rows(count + 1 - target.row_count)
+        # Copié par Google plutôt que relu puis réécrit en USER_ENTERED : une note gardée en texte (« =IMPORTRANGE(...) »,
+        # voir workbook.as_text) serait redevenue une formule à la restauration. Les vraies formules (montants) restent
+        # des formules, aux mêmes lignes
+        width = ord(columns) - ord("A") + 1
+        area = {"startRowIndex": 1, "endRowIndex": count + 1, "startColumnIndex": 0, "endColumnIndex": width}
+        sheet.batch_update({"requests": [{"copyPaste": {
+            "source": {"sheetId": backup.id, **area}, "destination": {"sheetId": target.id, **area},
+            "pasteType": "PASTE_NORMAL"}}]})
+    return max(count, 0)
 
 
 def restore_backup(sheet_id: str, backup: str, history_backup: str | None = None) -> dict:

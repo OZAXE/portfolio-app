@@ -846,6 +846,9 @@ def _signup_call(request: Request, call):
     # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
     ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
     now = time.time()
+    if len(_signup_hits) > 5000:  # sinon chaque adresse vue resterait en mémoire jusqu'au redémarrage
+        for old in [k for k, hits in _signup_hits.items() if not hits or now - hits[-1] >= 3600]:
+            del _signup_hits[old]
     _signup_hits[ip] = [t for t in _signup_hits[ip] if now - t < 3600] + [now]
     if len(_signup_hits[ip]) > SIGNUP_LIMIT:
         raise HTTPException(status_code=429, detail="Trop de tentatives : réessaie dans une heure.")

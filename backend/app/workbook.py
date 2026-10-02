@@ -357,14 +357,25 @@ def ensure_operation_types(sheet: gspread.Spreadsheet) -> None:
     _types_checked.add(sheet.id)
 
 
+FORMULA_STARTS = ("=", "+", "-", "@")
+
+
+def as_text(value):
+    """Texte écrit tel quel dans une ligne envoyée en USER_ENTERED : sans l'apostrophe, une note « =IMPORTRANGE(...) »
+    devenait une formule exécutée par le compte de service, qui a accès aux Sheets de tous les utilisateurs
+    (inscription libre : n'importe qui peut écrire dans son propre Sheet par l'appli). L'apostrophe n'est pas
+    gardée dans la cellule : relue, la note vaut toujours « =IMPORTRANGE(...) », mais en texte."""
+    return f"'{value}" if isinstance(value, str) and value.startswith(FORMULA_STARTS) else value
+
+
 def operation_row(op: dict, row: int) -> list:
     """Ligne de l'onglet Opérations, avec les montants en formules pour rester modifiables à la main."""
     return [
-        op["date"].isoformat(), op["account"], op["type"], op["ticker"], op["quantity"], op["price"],
-        op.get("currency", "EUR"), op["fx"],
+        op["date"].isoformat(), as_text(op["account"]), as_text(op["type"]), as_text(op["ticker"]),
+        op["quantity"], op["price"], as_text(op.get("currency", "EUR")), op["fx"],
         f"=E{row}*F{row}*H{row}", op.get("fees", 0), op.get("taxes", 0),
         f'=IF(C{row}="Achat"; I{row}+J{row}+K{row}; I{row}-J{row}-K{row})',
-        op["order_type"], op["why"], op["term"], op["note"],
+        as_text(op["order_type"]), as_text(op["why"]), as_text(op["term"]), as_text(op["note"]),
     ]
 
 
