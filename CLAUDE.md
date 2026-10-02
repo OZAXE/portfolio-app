@@ -445,8 +445,8 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   `localStorage` : une XSS le volerait), liens http(s) seulement, briefs en iframe `sandbox` sans scripts ; aucun secret
   dans `tests.yml` (PR externes). Corrigé : sans code configuré, l'API refuse tout (avant : accès administrateur pour
   tous), sauf `ALLOW_OPEN_API=1` (`open_api_allowed`) ; sujet ntfy de 20 caractères au moins (public sur ntfy.sh) ;
-  python-dotenv 1.2.2. Restent : FastAPI 0.115 / Starlette 0.38.6 (failles connues, surtout formulaires multipart
-  non utilisés : montée à faire dans une PR à part), limite d'inscription par IP sur le dernier `X-Forwarded-For`
+  python-dotenv 1.2.2 ; FastAPI 0.142.2 et Starlette 1.7.0 épinglée (la 0.38.6 avait des failles connues), `pip-audit -r
+  backend/requirements.txt` sans alerte. Restent : limite d'inscription par IP sur le dernier `X-Forwarded-For`
   (placement de Render non vérifié), imports jusqu'à 60 x 2 Mo par requête, messages d'erreur avec le texte des
   exceptions. Toute nouvelle insertion dans `innerHTML` d'un texte venu de Yahoo, Google ou du Sheet passe par
   `escapeHtml`.
