@@ -428,6 +428,24 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     fichier `NIGHT_REPORT` (journaux GitHub publics). `snapshot.py` y écrit chaque relevé impossible et termine en
     échec (`sys.exit`) après avoir traité tous les utilisateurs.
 
+- **Budget (octobre 2026, demande d'Enzo, administrateur seulement).** Comptes du mois tirés du relevé de son compte
+  courant Crédit Agricole. La catégorisation reste sur son PC (tâche planifiée « maj-suivi-bancaire » : `update_suivi.py`,
+  règles apprises, validation des « À catégoriser » avec Claude, `outputs.xlsx` jamais recréé) ; `scripts/envoyer_budget.py`
+  (bibliothèque standard + openpyxl) lit ensuite `outputs.xlsx` (un onglet par catégorie, en-têtes ligne 2, colonnes A à D ;
+  Résumé ignoré ; Revenus -> `revenu` avec la colonne D en catégorie ; Investissement, Virements internes à part ;
+  « À categoriser » -> `a_categoriser`, compté dans les dépenses) et POST `/budget/import` avec le code administrateur
+  (`PORTFOLIO_CODE` ou `code_acces.txt` à côté du fichier). `budget.py` **remplace** l'onglet « Budget » du Sheet à chaque
+  envoi (opération reclassée suivie, renvoi sans doublon) ; pas de dédoublonnage (deux virements identiques le même jour
+  sont réels) ; envoi de moins de la moitié des lignes rangées refusé sans `--force`. Écrit en RAW. `GET /budget` ajoute
+  les versements saisis par mois (`deposits_by_month`) pour signaler un virement « Investissement » sans versement.
+  Front (Plus > Budget, `#budget-entry` affiché si `/me` dit admin, `renderBudget`) : mois civils faits d'après la date
+  (le fichier n'est pas trié), ouverture sur le **dernier mois complet** (choix d'Enzo : un mois relevé à moitié a son
+  loyer sans ses revenus), dernier mois complet seulement si le relevé atteint ses 3 derniers jours et a été envoyé après
+  sa fin ; moyennes sur les 12 derniers mois complets ; graphique SVG maison (pas Chart.js) ; ligne « À regarder » tant
+  qu'il reste des opérations à catégoriser (clé `budget:<date d'envoi>`). Vrais relevés jamais dans le dépôt (public) :
+  tests et banc avec des libellés inventés. Vérifié sur le vrai fichier (local) : 865 opérations, totaux par catégorie
+  identiques au Résumé (20 965,32 € de dépenses ; la seconde ligne « TOTAL DÉPENSES » à 19 219,88 € du Résumé est fausse).
+
 ## Tester le front (banc Playwright)
 
 Le banc réutilisable est dans le dépôt (`tests/front_bench.py`) : partir de lui pour vérifier un écran à la main
