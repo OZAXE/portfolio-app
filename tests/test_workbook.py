@@ -43,6 +43,19 @@ def test_operation_row_formulas_reference_their_row():
     assert row[11] == '=IF(C7="Achat"; I7+J7+K7; I7-J7-K7)'
 
 
+def test_textes_libres_jamais_lus_comme_formules():
+    # Ligne écrite en USER_ENTERED : une note « =IMPORTRANGE(...) » serait exécutée par le compte de service, qui
+    # a accès au Sheet d'Enzo. L'apostrophe force le texte ; nombres, dates et vraies formules (I, L) inchangés
+    op = {"date": date(2026, 10, 2), "account": "CTO TR", "type": "Achat", "ticker": "AI.PA", "quantity": 2,
+          "price": 160.5, "currency": "EUR", "fx": 1, "fees": 1, "taxes": 0, "order_type": "Ordre",
+          "why": "+10 % de marge", "term": "@long", "note": '=IMPORTRANGE("1abc"; "Opérations!A:P")'}
+    row = operation_row(op, 7)
+    assert row[13:16] == ["'+10 % de marge", "'@long", '\'=IMPORTRANGE("1abc"; "Opérations!A:P")']
+    assert row[:8] == ["2026-10-02", "CTO TR", "Achat", "AI.PA", 2, 160.5, "EUR", 1]
+    assert row[8] == "=E7*F7*H7" and row[12] == "Ordre"
+    assert wb.as_text("- vendu trop tôt") == "'- vendu trop tôt" and wb.as_text(-3) == -3
+
+
 def test_positions_une_ligne_par_titre_et_par_compte():
     # Ticker (A) et compte (C) sortent du même tri de couples « ticker|compte » ; quantité et PRU par compte
     for cell in ("A2", "C2", "E2", "F2"):

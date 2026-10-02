@@ -451,7 +451,13 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   (`_checked_ticker`). Configuration Render vérifiée avec Enzo (octobre 2026) : codes changés, `USERS_JSON` seul
   (`APP_ACCESS_TOKEN` ignoré quand il existe), `PUBLIC_BRIEFS_FOLDER`, en-têtes du front `X-Frame-Options: DENY` et
   `X-Content-Type-Options: nosniff`. Deux identifiants de Sheets d'Enzo restent dans l'historique Git public
-  (retirés du code en septembre) : sans danger tant que leur partage reste « Restreint ». Restent : limite
+  (retirés du code en septembre) : sans danger tant que leur partage reste « Restreint ». Deuxième passage (octobre 2026) : les
+  textes libres d'une opération (note, motif, terme, devise, compte, ticker) étaient écrits en USER_ENTERED, donc
+  « =IMPORTRANGE(...) » devenait une formule exécutée par le compte de service, qui a accès à tous les Sheets
+  (inscription libre) : `workbook.as_text` ajoute l'apostrophe (texte forcé) dès qu'un texte commence par = + - @, et
+  la restauration d'une sauvegarde (`reset._restore`) passe par un `copyPaste` de Google au lieu de relire et réécrire
+  les formules. `admin.yml` lit ses identifiants dans le fichier d'événement, les masque et n'affiche plus la réponse
+  (journaux publics). Toute nouvelle écriture USER_ENTERED d'un texte saisi passe par `as_text`. Restent : limite
   d'inscription par IP sur le dernier `X-Forwarded-For` (placement de Render non vérifié), messages d'erreur avec
   le texte des exceptions. Toute nouvelle insertion dans `innerHTML` d'un texte venu de Yahoo, Google ou du Sheet passe par
   `escapeHtml`.

@@ -84,6 +84,10 @@ def test_full_reset_clears_operations_and_history_then_restore(sheet):
     assert result["everything"] and result["history_backup"].startswith("Sauvegarde historique")
     assert sheet.tabs["Opérations"].cleared == ["A2:P6"] and sheet.tabs["Historique"].cleared == ["A2:H"]
     restored = reset.restore_backup("s", result["backup"], result["history_backup"])
-    assert restored == {"restored": 5} and sheet.tabs["Opérations"].written == ROWS[1:]
+    assert restored == {"restored": 5}
+    # Copie faite par Google (texte gardé en texte, formules gardées) : 5 lignes d'opérations (A2:P6), 1 d'historique
+    copies = [r["copyPaste"] for r in sheet.requests if "copyPaste" in r]
+    assert [(c["source"]["sheetId"], c["destination"]["sheetId"], c["source"]["endRowIndex"], c["source"]["endColumnIndex"])
+            for c in copies] == [(99, 1, 6, 16), (99, 2, 2, 8)]
     with pytest.raises(OperationError):
         reset.restore_backup("s", "Positions")  # seulement une sauvegarde

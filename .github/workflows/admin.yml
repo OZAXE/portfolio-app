@@ -22,10 +22,19 @@ jobs:
             curl -sf --max-time 60 https://portfolio-app-blvx.onrender.com/health && break
             sleep 10
           done
+      # Identifiants lus dans le fichier de l'événement puis masqués : collés tels quels dans le script
+      # (${{ inputs.target }}), ils s'affichaient dans les journaux publics et pouvaient y injecter une commande.
+      # La réponse (adresse du Sheet, titres migrés) n'est pas affichée non plus : seulement le statut HTTP
       - name: Construit le Sheet modèle
         env:
           TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
         run: |
-          curl -sS --fail-with-body --max-time 900 -X POST \
+          TARGET=$(jq -r '.inputs.target // ""' "$GITHUB_EVENT_PATH")
+          MIGRATE=$(jq -r '.inputs.migrate_from // ""' "$GITHUB_EVENT_PATH")
+          for v in "$TARGET" "$MIGRATE"; do [ -n "$v" ] && echo "::add-mask::$v"; done
+          code=$(curl -sS -o response.json -w "%{http_code}" --max-time 900 -X POST -G \
             -H "X-Access-Token: $TOKEN" \
-            "https://portfolio-app-blvx.onrender.com/admin/sheet/setup?target=${{ inputs.target }}&migrate_from=${{ inputs.migrate_from }}"
+            --data-urlencode "target=$TARGET" --data-urlencode "migrate_from=$MIGRATE" \
+            https://portfolio-app-blvx.onrender.com/admin/sheet/setup)
+          echo "Réponse de l'API : HTTP $code : ouvre le Sheet pour vérifier le résultat"
+          [ "$code" = "200" ]
