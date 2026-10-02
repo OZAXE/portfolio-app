@@ -452,7 +452,9 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   (`APP_ACCESS_TOKEN` ignoré quand il existe), `PUBLIC_BRIEFS_FOLDER`, inscription laissée ouverte (choix d'Enzo, `SIGNUP_OPEN=1`) mais limitée à
   `MAX_SIGNUPS=10` comptes (amis de `USERS_JSON` compris, administrateur non compté), en-têtes du front `X-Frame-Options: DENY` et
   `X-Content-Type-Options: nosniff`. Deux identifiants de Sheets d'Enzo restent dans l'historique Git public
-  (retirés du code en septembre) : sans danger tant que leur partage reste « Restreint ». Deuxième passage (octobre 2026) : les
+  (retirés du code en septembre) : l'ancien Sheet v1 (« Portefeuille », 11yHfADl…) a été mis à la corbeille le
+  02/10/2026 à la demande d'Enzo ; l'autre est sans danger tant que son partage reste « Restreint ». Historique Git
+  non réécrit (choix assumé : force-push sur `main` pour un identifiant qui ne donne accès à rien). Deuxième passage (octobre 2026) : les
   textes libres d'une opération (note, motif, terme, devise, compte, ticker) étaient écrits en USER_ENTERED, donc
   « =IMPORTRANGE(...) » devenait une formule exécutée par le compte de service, qui a accès à tous les Sheets
   (inscription libre) : `workbook.as_text` ajoute l'apostrophe (texte forcé) dès qu'un texte commence par = + - @, et
