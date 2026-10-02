@@ -1,6 +1,6 @@
 """
 API principale. Lance en local avec :
-    uvicorn app.main:app --reload
+    ALLOW_OPEN_API=1 uvicorn app.main:app --reload
 
 Endpoints prévus pour le MVP :
 - GET /portfolio            -> positions lues depuis le Google Sheet
@@ -54,6 +54,61 @@ from .operations import OperationError, add_operation, read_settings
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 
 app = FastAPI(title="Portfolio Insights API")
+
+# Taille maximale d'une requête. imports.py limite à 60 fichiers de 2 Mo, mais seulement une fois la requête
+# lue : 120 Mo en base64 font 160 Mo de JSON, de quoi faire tomber l'instance gratuite de Render (512 Mo) pour
+# tout le monde. 30 Mo laissent passer un vrai import (un relevé Boursorama en PDF : ~100 Ko, un export CSV
+# Trade Republic de plusieurs années : ~1 Mo)
+MAX_BODY_BYTES = 30_000_000
+TOO_LARGE = "Requête trop volumineuse (30 Mo au plus) : importe tes relevés en plusieurs fois."
+
+
+class BodySizeLimit:
+    """Refuse (413) une requête trop grosse avant de la garder en mémoire : d'après Content-Length quand il est
+    annoncé, sinon en comptant les morceaux reçus (envoi par blocs, sans taille annoncée)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        limit = MAX_BODY_BYTES  # lu à chaque requête : les tests l'abaissent
+        declared = dict(scope["headers"]).get(b"content-length", b"")
+        if declared.isdigit() and int(declared) > limit:
+            return await self.reject(scope, receive, send)
+        chunks, size = [], 0
+        while True:
+            message = await receive()
+            if message["type"] != "http.request":  # client parti : la route le verra comme d'habitude
+                return await self.app(scope, _replay([message], receive), send)
+            size += len(message.get("body", b""))
+            if size > limit:
+                return await self.reject(scope, receive, send)
+            chunks.append(message)
+            if not message.get("more_body"):
+                break
+        await self.app(scope, _replay(chunks, receive), send)
+
+    @staticmethod
+    async def reject(scope, receive, send):
+        from fastapi.responses import JSONResponse
+
+        await JSONResponse({"detail": TOO_LARGE}, status_code=413)(scope, receive, send)
+
+
+def _replay(messages: list, receive):
+    """Rejoue à la route les morceaux déjà lus par BodySizeLimit, puis repasse au vrai flux."""
+    pending = list(messages)
+
+    async def replayed():
+        return pending.pop(0) if pending else await receive()
+    return replayed
+
+
+# Ajouté avant CORSMiddleware, donc placé à l'intérieur : le refus 413 garde les en-têtes CORS et le front
+# peut afficher le message au lieu d'une erreur réseau muette
+app.add_middleware(BodySizeLimit)
 
 # Seul le frontend peut appeler l'API depuis un navigateur. Ce n'est pas une protection
 # des données (un script n'envoie pas d'Origin) : c'est le rôle du code d'accès ci-dessous
@@ -125,6 +180,8 @@ def cached_financials(ticker: str):
 
 @app.get("/analysis/{ticker}", dependencies=[Depends(require_access)])
 def get_analysis(ticker: str):
+    # Comme /prices et /portfolio/chart : sans ça, n'importe quelle chaîne partait chez Yahoo
+    ticker = _checked_ticker(ticker)
     cf = cached_financials(ticker)
     if cf.raw_error == INVALID_TICKER_ERROR:
         raise HTTPException(status_code=404, detail=f"{INVALID_TICKER_ERROR} : {ticker}")

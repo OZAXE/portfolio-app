@@ -446,9 +446,14 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
   dans `tests.yml` (PR externes). Corrigé : sans code configuré, l'API refuse tout (avant : accès administrateur pour
   tous), sauf `ALLOW_OPEN_API=1` (`open_api_allowed`) ; sujet ntfy de 20 caractères au moins (public sur ntfy.sh) ;
   python-dotenv 1.2.2 ; FastAPI 0.142.2 et Starlette 1.7.0 épinglée (la 0.38.6 avait des failles connues), `pip-audit -r
-  backend/requirements.txt` sans alerte. Restent : limite d'inscription par IP sur le dernier `X-Forwarded-For`
-  (placement de Render non vérifié), imports jusqu'à 60 x 2 Mo par requête, messages d'erreur avec le texte des
-  exceptions. Toute nouvelle insertion dans `innerHTML` d'un texte venu de Yahoo, Google ou du Sheet passe par
+  backend/requirements.txt` sans alerte ; requêtes de plus de 30 Mo refusées (413) avant d'être gardées en
+  mémoire (`BodySizeLimit`, placé à l'intérieur de CORS pour garder ses en-têtes), ticker de `/analysis` validé
+  (`_checked_ticker`). Configuration Render vérifiée avec Enzo (octobre 2026) : codes changés, `USERS_JSON` seul
+  (`APP_ACCESS_TOKEN` ignoré quand il existe), `PUBLIC_BRIEFS_FOLDER`, en-têtes du front `X-Frame-Options: DENY` et
+  `X-Content-Type-Options: nosniff`. Deux identifiants de Sheets d'Enzo restent dans l'historique Git public
+  (retirés du code en septembre) : sans danger tant que leur partage reste « Restreint ». Restent : limite
+  d'inscription par IP sur le dernier `X-Forwarded-For` (placement de Render non vérifié), messages d'erreur avec
+  le texte des exceptions. Toute nouvelle insertion dans `innerHTML` d'un texte venu de Yahoo, Google ou du Sheet passe par
   `escapeHtml`.
 
 ## Pistes non faites
