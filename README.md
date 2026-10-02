@@ -68,7 +68,9 @@ frontend/ (site statique sur Render, installable sur téléphone)
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Chemin du fichier de clé du compte de service, ajouté en *Secret File* (`/etc/secrets/google-credentials.json`). |
 | `USERS_JSON` | Compte administrateur (voir [docs/ajouter-un-ami.md](docs/ajouter-un-ami.md)) ; les autres utilisateurs s'inscrivent depuis l'appli. Si absente : utilisateur unique avec `APP_ACCESS_TOKEN` et `SHEET_ID`. |
-| `APP_ACCESS_TOKEN` | Code d'accès du propriétaire quand `USERS_JSON` n'est pas défini. |
+| `APP_ACCESS_TOKEN` | Code d'accès du propriétaire quand `USERS_JSON` n'est pas défini. Au moins 30 caractères aléatoires (`python -c "import secrets; print(secrets.token_urlsafe(32))"`) : rien ne limite les essais. Le même dans le secret GitHub du même nom. |
+| `ALLOW_OPEN_API` | `1` pour laisser l'API répondre sans code d'accès (installation, essai en local). Jamais sur Render : sans elle, une API sans code configuré refuse tout. |
+| `SIGNUP_OPEN` | `0` ferme l'inscription libre (ouverte par défaut, 50 comptes au plus avec `MAX_SIGNUPS`). |
 | `SHEET_ID`, `BRIEFS_FOLDER` | Sheet et dossier Briefs du propriétaire, seulement sans `USERS_JSON`. |
 
 Commande de démarrage : `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (répertoire racine `backend`).
@@ -114,7 +116,7 @@ python -m venv backend/.venv && backend/.venv/Scripts/activate   # Windows (sour
 pip install -r requirements-dev.txt
 python -m playwright install chromium                           # navigateur du test du front (sinon test ignoré)
 python -m pytest tests -q
-cd backend && uvicorn app.main:app --reload                     # API sur http://localhost:8000
+cd backend && ALLOW_OPEN_API=1 uvicorn app.main:app --reload    # API sur http://localhost:8000, sans code
 python screener/run.py --data-dir data --max-fundamentals 20    # mini screener local
 ```
 

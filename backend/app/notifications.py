@@ -22,7 +22,9 @@ ALERTS_TAB = "Alertes prix"
 ALERTS_HEADERS = ["ID", "TICKER", "SENS", "PRIX", "NOTE", "CRÉÉE LE", "DÉCLENCHÉE LE"]
 SETTINGS_TAB = "Réglages"
 DIRECTIONS = ("Sous", "Au-dessus")
-TOPIC_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+# Un sujet ntfy.sh est public : quiconque le devine lit les notifications. 20 caractères au moins
+# (« portfolio-enzo » se devine, le sujet généré par l'appli en fait 24, ex. portfolio-k3x9q2m1p8ab1c)
+TOPIC_PATTERN = re.compile(r"^[A-Za-z0-9_-]{20,64}$")
 
 
 def check_price_alerts(alerts: list[dict], prices: dict[str, float | None]) -> list[dict]:
@@ -115,7 +117,7 @@ def get_topic(sheet_id: str) -> str | None:
 def set_topic(sheet_id: str, topic: str | None) -> str | None:
     topic = (topic or "").strip() or None
     if topic and not TOPIC_PATTERN.match(topic):
-        raise OperationError("Sujet ntfy invalide : 8 à 64 caractères, lettres, chiffres, - ou _")
+        raise OperationError("Sujet ntfy invalide ou trop facile à deviner : 20 à 64 caractères, lettres, chiffres, - ou _ (bouton « Générer un sujet »)")
     ws = _tab(sheet_id, SETTINGS_TAB, ["CLÉ", "VALEUR"], create=True)
     keys = ws.col_values(1)
     if "ntfy_topic" in keys:

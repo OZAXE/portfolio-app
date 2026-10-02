@@ -51,3 +51,5 @@ def test_night_job_endpoint_reserved_to_admin(team):
 def test_topic_validation():
     with pytest.raises(notifications.OperationError):
         notifications.set_topic("sheet", "trop court")
+    with pytest.raises(notifications.OperationError):  # 14 caractères : se devine, sujet public sur ntfy.sh
+        notifications.set_topic("sheet", "portfolio-enzo")

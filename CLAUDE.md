@@ -29,7 +29,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q                                    # doit rester vert avant tout push
 # test du front : Chromium de Playwright ; dans le conteneur web, Chart.js local (jsDelivr bloqué), sinon ignoré :
 CHART_JS_PATH=/chemin/chart.umd.js FRONT_TESTS_REQUIRED=1 python -m pytest tests/test_front.py -q
-cd backend && uvicorn app.main:app --reload                  # API locale
+cd backend && ALLOW_OPEN_API=1 uvicorn app.main:app --reload  # API locale sans code d'accès
 python screener/run.py --data-dir data --max-fundamentals 20 # mini screener local
 ```
 
@@ -438,6 +438,18 @@ mémoire (patcher `sheets.sheets_client` et `workbook.sheets_client`, `main.reso
 `prices.fetch_price_history` remplacés par des cours synthétiques, requêtes vers l'API Render redirigées vers le
 TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, sinon le service worker intercepte
 `screener.json` avant Playwright (« Screener pas encore disponible »).
+
+- **Sécurité (octobre 2026, audit demandé par Enzo).** Points solides : le Sheet vient toujours du code d'accès
+  (`require_access`), jamais d'un paramètre ; codes des inscrits aléatoires (144 bits), empreinte SHA-256 seulement,
+  comparaison à temps constant ; textes externes du front passés par `escapeHtml` (le code d'accès est dans le
+  `localStorage` : une XSS le volerait), liens http(s) seulement, briefs en iframe `sandbox` sans scripts ; aucun secret
+  dans `tests.yml` (PR externes). Corrigé : sans code configuré, l'API refuse tout (avant : accès administrateur pour
+  tous), sauf `ALLOW_OPEN_API=1` (`open_api_allowed`) ; sujet ntfy de 20 caractères au moins (public sur ntfy.sh) ;
+  python-dotenv 1.2.2. Restent : FastAPI 0.115 / Starlette 0.38.6 (failles connues, surtout formulaires multipart
+  non utilisés : montée à faire dans une PR à part), limite d'inscription par IP sur le dernier `X-Forwarded-For`
+  (placement de Render non vérifié), imports jusqu'à 60 x 2 Mo par requête, messages d'erreur avec le texte des
+  exceptions. Toute nouvelle insertion dans `innerHTML` d'un texte venu de Yahoo, Google ou du Sheet passe par
+  `escapeHtml`.
 
 ## Pistes non faites
 
