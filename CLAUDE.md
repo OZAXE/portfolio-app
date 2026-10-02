@@ -445,6 +445,12 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   qu'il reste des opérations à catégoriser (clé `budget:<date d'envoi>`). Vrais relevés jamais dans le dépôt (public) :
   tests et banc avec des libellés inventés. Vérifié sur le vrai fichier (local) : 865 opérations, totaux par catégorie
   identiques au Résumé (20 965,32 € de dépenses ; la seconde ligne « TOTAL DÉPENSES » à 19 219,88 € du Résumé est fausse).
+  Envoi automatique (octobre 2026) : la tâche planifiée Claude ne peut **pas** envoyer (son bac à sable bloque Render :
+  `Tunnel connection failed: 403`, et les « Sites autorisés » de Claude ne concernent que le navigateur). L'envoi est
+  fait par le Planificateur de tâches Windows du PC d'Enzo, tâche « Envoi budget appli » chaque soir à 21 h, qui lance
+  `envoyer_budget.bat` (`cd /d "%~dp0"` puis `python envoyer_budget.py outputs.xlsx >> envoi_budget.log`) ; renvoyer
+  chaque soir est sans effet quand rien n'a changé (l'onglet est remplacé). La tâche Claude lit seulement la fin de
+  `envoi_budget.log` pour signaler un échec. Premier envoi réussi le 02/10/2026 : 892 opérations.
 
 ## Tester le front (banc Playwright)
 
