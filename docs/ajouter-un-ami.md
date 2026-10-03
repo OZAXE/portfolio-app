@@ -100,3 +100,22 @@ ne doivent pas y avoir accès. À la place, ils lisent une version publique, ré
    > qu'aucun chiffre ni nom de titre venant du portefeuille n'y reste.
 3. Relis le premier brief public avant de l'ouvrir aux amis : rien dans le code ne vérifie qu'il est
    anonyme. Les anciens briefs n'ont pas de version publique.
+
+### Dépôt automatique par la tâche (octobre 2026)
+
+La tâche planifiée dépose elle-même les deux versions grâce au **connecteur Google Drive** de Claude
+(branché sur le compte propriétaire des dossiers, pas sur le compte de service : l'appli reste en
+lecture seule). Points vérifiés :
+
+- fichier créé avec `disableConversionToGoogleType: true`, sinon il devient un Google Doc et l'appli
+  l'ignore (seuls les `.html` / `.htm` dont le nom contient une date `AAAA-MM-JJ` sont lus) ;
+- nom = **date de publication** (`2026-10-03.html` pour le brief du samedi 3 octobre), comme les anciens
+  briefs : l'appli en déduit elle-même « Semaine du 28 septembre » ;
+- version complète dans « Briefs », version publique dans « Briefs publics » ;
+- un seul fichier par date : si deux fichiers portent la même date, l'appli n'affiche que le dernier
+  modifié (le doublon reste dans le Drive, autant le mettre à la corbeille).
+
+Avant de déposer la version publique, la tâche passe une **liste de contrôle d'anonymat** : aucun montant,
+quantité, PRU, plus-value ni performance du portefeuille, aucun « ta position » / « ton portefeuille »,
+pas de section « Mes positions », aucun titre détenu présenté comme tel. Un point en échec : rien n'est
+publié et elle prévient. Les premières semaines, elle prévient à chaque publication pour une relecture.

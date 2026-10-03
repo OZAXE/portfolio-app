@@ -452,6 +452,16 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   chaque soir est sans effet quand rien n'a changé (l'onglet est remplacé). La tâche Claude lit seulement la fin de
   `envoi_budget.log` pour signaler un échec. Premier envoi réussi le 02/10/2026 : 892 opérations.
 
+- **Briefs hebdo (octobre 2026).** `briefs.py` lit le dossier Drive de l'utilisateur (`briefs_folder` de
+  `USERS_JSON`, `PUBLIC_BRIEFS_FOLDER` pour les amis et inscrits), compte de service en `drive.readonly`. Brief = `.html`
+  / `.htm` dont le nom contient une date valide ; nom = **date de publication** (samedi), le front en déduit « Semaine
+  du <lundi> » et le badge « Nouveau » (8 jours). **Un seul brief par date** : le dernier modifié (deux copies de
+  `2026-09-26.html` s'affichaient en double), le doublon écarté n'est pas servi non plus. Dépôt : la tâche planifiée
+  Claude écrit elle-même dans « Briefs » (version complète) et « Briefs publics » (version anonyme) par le **connecteur
+  Google Drive** du compte propriétaire, `disableConversionToGoogleType: true` (sinon Google Doc ignoré) ; pas besoin
+  de Render ni d'écriture par le compte de service. Version publique soumise à une liste de contrôle d'anonymat
+  (`docs/ajouter-un-ami.md`), relue par Enzo les premières semaines. Tests : `tests/test_briefs.py`.
+
 ## Tester le front (banc Playwright)
 
 Le banc réutilisable est dans le dépôt (`tests/front_bench.py`) : partir de lui pour vérifier un écran à la main
