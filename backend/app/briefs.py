@@ -2,12 +2,15 @@
 Briefs marchés hebdomadaires : fichiers HTML déposés par la tâche Claude Cowork
 dans le dossier Google Drive "Briefs", partagé en lecture avec le compte de service.
 
-Le nom de fichier porte la date (2026-09-26.html) : c'est lui qui sert de date
-et d'ordre d'affichage.
+Le nom de fichier porte la date de publication (2026-09-26.html, un samedi) : c'est
+lui qui sert de date et d'ordre d'affichage ; le front en déduit le lundi de la semaine.
+Un seul brief par date : le 26/09/2026, « Briefs » contenait deux copies de
+2026-09-26.html (import en bloc puis nouveau dépôt), affichées en double.
 """
 
 import re
 import time
+from datetime import date
 
 from google.auth.transport.requests import AuthorizedSession
 
@@ -73,15 +76,30 @@ def list_briefs(folder_id: str) -> list[dict]:
         if not page_token:
             break
 
-    briefs = []
+    by_date: dict[str, dict] = {}
     for f in files:
-        match = DATE_IN_NAME.search(f["name"])
-        if not f["name"].lower().endswith((".html", ".htm")) or not match:
-            continue  # la référence de mise en page (DA_de_reference.html) et autres fichiers sont ignorés
-        briefs.append({"id": f["id"], "date": match.group(1), "name": f["name"], "modified": f["modifiedTime"]})
-    briefs.sort(key=lambda b: b["date"], reverse=True)
+        day = _brief_date(f["name"])
+        if day is None:
+            continue
+        brief = {"id": f["id"], "date": day, "name": f["name"], "modified": f["modifiedTime"]}
+        # Deux fichiers à la même date : le dernier modifié est la version à jour
+        if day not in by_date or brief["modified"] > by_date[day]["modified"]:
+            by_date[day] = brief
+    briefs = sorted(by_date.values(), key=lambda b: b["date"], reverse=True)
     _list_cache[folder_id] = (time.monotonic(), briefs)
     return briefs
+
+
+def _brief_date(name: str) -> str | None:
+    """Date ISO d'un nom de brief, None si ce n'est pas un brief : la référence de mise en page
+    (DA_de_reference.html), un fichier non HTML ou une date impossible (2026-13-45.html)."""
+    match = DATE_IN_NAME.search(name)
+    if not name.lower().endswith((".html", ".htm")) or not match:
+        return None
+    try:
+        return date.fromisoformat(match.group(1)).isoformat()
+    except ValueError:
+        return None
 
 
 def get_brief_html(folder_id: str, brief_id: str) -> str:
