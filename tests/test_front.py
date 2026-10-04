@@ -9,6 +9,7 @@ le test est ignoré en local."""
 
 import os
 import re
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -136,6 +137,25 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click('#budget [data-bud-month="1"]')
     assert "Mois incomplet" in page.inner_text("#budget")
     assert "CB NOUVEAU COMMERCE" in page.inner_text("#budget")
+    # Vue Année (année civile du mois affiché) : mois complets du banc dans cette année (+720 € chacun) et le mois en
+    # cours (loyer 540 + 23,40 à catégoriser, sans revenu). En octobre : 2 x 720 - 563,40 = +876,60, affiché +877 €.
+    today = date.today()
+    first = today.replace(day=1)
+    previous = (first - timedelta(days=1)).replace(day=1)
+    before = (previous - timedelta(days=1)).replace(day=1)
+    full_months = sum(m.year == today.year for m in (before, previous))
+    page.click('#budget [data-bud-view="annee"]')
+    page.wait_for_selector('#budget [data-bud-view="annee"].active')
+    assert str(today.year) in page.inner_text("#budget .bud-nav")
+    assert re.sub(r"\D", "", page.inner_text("#budget .bud-big")) == str(abs(round(720 * full_months - 563.4)))
+    assert "Dépenses moyennes" in page.inner_text("#budget .bud-chart") or full_months == 0
+    page.click("#budget details.bud-cat >> nth=0")
+    page.click("#budget [data-bud-ops] >> nth=0")
+    assert page.inner_text("#budget .bud-ops >> nth=0").count("Agence Immo") == full_months + 1
+    # Un mois touché sur le graphique repasse en vue Mois sur ce mois
+    page.click(f'#budget [data-bud-pick="{first:%Y-%m}"]')
+    page.wait_for_selector('#budget [data-bud-view="mois"].active')
+    assert "Mois incomplet" in page.inner_text("#budget")
     page.go_back()
     page.wait_for_selector("#settings-home:not([hidden])")
 
