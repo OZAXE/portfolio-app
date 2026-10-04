@@ -442,7 +442,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (le fichier n'est pas trié), ouverture sur le **dernier mois complet** (choix d'Enzo : un mois relevé à moitié a son
   loyer sans ses revenus), dernier mois complet seulement si le relevé atteint ses 3 derniers jours et a été envoyé après
   sa fin ; moyennes sur les 12 derniers mois complets ; graphique SVG maison (pas Chart.js) ; ligne « À regarder » tant
-  qu'il reste des opérations à catégoriser (clé `budget:<date d'envoi>`). Vrais relevés jamais dans le dépôt (public) :
+  qu'il reste des opérations à catégoriser (clé `budget:<date d'envoi>`).
+  Vue Année (octobre 2026, demande d'Enzo) : bouton Mois / Année (`settings.budgetView`), année civile du mois affiché
+  (`budgetYearHtml`, `budgetSum`). Totaux de l'année en cours mois incomplet compris ; moyennes par mois (phrase, « €/mois »
+  des catégories, pointillés du graphique) sur les mois complets seulement ; comparaison à l'année précédente sur les mois
+  complets **des deux années** (2025 commencée en mars : mars à septembre face à mars à septembre), pastilles « vs 2025 »
+  au-delà de ±25 % et 30 €/mois. Graphique de janvier à décembre (mois touché -> vue Mois), tableau « Année par année »
+  dès 2 années, investissement vérifié mois par mois. Vrais relevés jamais dans le dépôt (public) :
   tests et banc avec des libellés inventés. Vérifié sur le vrai fichier (local) : 865 opérations, totaux par catégorie
   identiques au Résumé (20 965,32 € de dépenses ; la seconde ligne « TOTAL DÉPENSES » à 19 219,88 € du Résumé est fausse).
   Envoi automatique (octobre 2026) : la tâche planifiée Claude ne peut **pas** envoyer (son bac à sable bloque Render :

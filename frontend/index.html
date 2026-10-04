@@ -662,6 +662,13 @@
     .bud-legend span { display: inline-flex; align-items: center; gap: 5px; }
     .bud-legend i { width: 14px; border-top: 2px solid var(--positive); }
     .bud-legend i.dash { border-top: 2px dashed var(--muted); }
+    .bud-years { display: grid; gap: 2px; }
+    .bud-year { display: grid; grid-template-columns: minmax(0, 1.1fr) repeat(4, minmax(0, 1fr)); gap: 6px; align-items: center; text-align: right;
+      background: none; border: 0; border-radius: 10px; color: var(--text); font: inherit; font-size: 13px; padding: 8px 6px; min-height: 44px; cursor: pointer; font-variant-numeric: tabular-nums; }
+    .bud-year > span:first-child { text-align: left; min-width: 0; }
+    .bud-year small { display: block; font-size: 12px; color: var(--muted); }
+    .bud-year.on { background: var(--card-2); }
+    .bud-year.head { min-height: 0; padding-top: 0; padding-bottom: 2px; font-size: 12px; color: var(--muted); cursor: default; }
     .bud-aside + .bud-aside { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
     .bud-check { margin-top: 8px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 12%, transparent); }
     .bud-check b { color: var(--warn); }
@@ -1020,7 +1027,7 @@
         <button class="setting" data-spage="patrimoine"><span class="ic" style="background:#0d9488"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5"/></svg></span><span style="min-width:0"><span class="t">Épargne et patrimoine</span><span class="d">Livrets, assurance-vie, PER : ton patrimoine financier</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="projection"><span class="ic" style="background:#7c3aed"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-5 3 3 6-7"/></svg></span><span style="min-width:0"><span class="t">Projection</span><span class="d">Ce que pourrait devenir ton épargne</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="goals"><span class="ic" style="background:#22c55e"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg></span><span style="min-width:0"><span class="t">Objectifs et rééquilibrage</span><span class="d">Poches, allocation cible et ordres pour y revenir</span></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="setting" data-spage="budget" id="budget-entry" hidden><span class="ic" style="background:#ea580c"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span><span style="min-width:0"><span class="t">Budget</span><span class="d">Tes dépenses et revenus du mois, d'après ton relevé</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="budget" id="budget-entry" hidden><span class="ic" style="background:#ea580c"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span><span style="min-width:0"><span class="t">Budget</span><span class="d">Tes dépenses et revenus du mois et de l'année, d'après ton relevé</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       <div id="briefs-entry" hidden>
       <div class="group-title">À lire</div><div class="group">
@@ -5761,6 +5768,25 @@
       renderBudget();
     }
 
+    // Totaux d'une liste de mois (une année, ou les mêmes mois de l'année précédente pour comparer)
+    function budgetSum(list) {
+      const p = { cats: {}, subs: {}, revenus: {}, dep: 0, rev: 0, inv: 0, internes: 0, ops: [], partial: list.some((m) => m.partial) };
+      for (const m of list) {
+        for (const f of ["dep", "rev", "inv", "internes"]) p[f] += m[f];
+        for (const f of ["cats", "subs", "revenus"]) for (const [k, v] of Object.entries(m[f])) p[f][k] = (p[f][k] || 0) + v;
+        p.ops.push(...m.ops);
+      }
+      return p;
+    }
+    const budgetYearView = () => settings.budgetView === "annee";
+    const monthName = (key) => monthDate(key).toLocaleDateString("fr-FR", { month: "long" });
+    const monthAbbr = (key) => monthDate(key).toLocaleDateString("fr-FR", { month: "short" });
+    // Mois affiché quand on arrive sur une année : son dernier mois complet (même règle que l'ouverture de la page)
+    const budgetYearMonth = (months, year) => {
+      const ms = months.filter((m) => m.key.startsWith(year));
+      return (ms.filter((m) => !m.partial).at(-1) || ms.at(-1)).key;
+    };
+
     function renderBudget() {
       const el = document.getElementById("budget");
       if (!budget?.operations?.length) {
@@ -5771,6 +5797,17 @@
       const { months, last } = budgetMonths();
       const complete = months.filter((m) => !m.partial);
       if (budgetMonth == null || !months.some((m) => m.key === budgetMonth)) budgetMonth = (complete.at(-1) || months.at(-1)).key;
+      const head = `
+        <p class="help" style="margin:0">Envoyé par ta tâche « maj-suivi-bancaire »${budget.sent ? ` le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}` : ""}, relevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
+        <div class="seg seg-flat" role="radiogroup" aria-label="Période">
+          <button data-bud-view="mois" role="radio" aria-checked="${!budgetYearView()}" class="${budgetYearView() ? "" : "active"}">Mois</button>
+          <button data-bud-view="annee" role="radio" aria-checked="${budgetYearView()}" class="${budgetYearView() ? "active" : ""}">Année</button>
+        </div>`;
+      el.innerHTML = head + (budgetYearView() ? budgetYearHtml(months, last) : budgetMonthHtml(months, last)) + budgetTodoHtml();
+    }
+
+    function budgetMonthHtml(months, last) {
+      const complete = months.filter((m) => !m.partial);
       const idx = months.findIndex((m) => m.key === budgetMonth), m = months[idx];
       // Moyennes des 12 derniers mois complets : le repère des comparaisons « vs ta moyenne »
       const ref = complete.slice(-12);
@@ -5792,36 +5829,20 @@
         const top = Object.entries(m.cats).map(([k, t]) => [k, t - avgCat(k)]).sort((a, b) => b[1] - a[1])[0];
         if (top && top[1] > 60 && ref.length >= 3) sentence += ` Le poste qui dépasse le plus son habitude : <b>${escapeHtml(top[0])}</b>, ${budgetSigned(top[1])} par rapport à sa moyenne.`;
       }
-
-      const cats = Object.entries(m.cats).filter(([, t]) => t > 0).sort((a, b) => b[1] - a[1]);
-      const maxCat = cats[0]?.[1] || 1;
-      const catRows = cats.map(([k, t]) => {
+      const badge = (k, t) => {
         const avg = avgCat(k), ratio = avg > 0 ? t / avg - 1 : 0;
-        const badge = m.partial || ref.length < 3 ? "" : ratio > 0.25 && t - avg > 30 ? `<span class="pill warn">+${budgetPct(ratio)} vs moyenne</span>`
+        return m.partial || ref.length < 3 ? "" : ratio > 0.25 && t - avg > 30 ? `<span class="pill warn">+${budgetPct(ratio)} vs moyenne</span>`
           : ratio < -0.25 && avg - t > 30 ? `<span class="pill good">${budgetPct(ratio)} vs moyenne</span>` : "";
-        const subs = Object.entries(m.subs).filter(([s]) => s.startsWith(k + "|")).sort((a, b) => b[1] - a[1]);
-        return `<details class="bud-cat">
-          <summary><span class="bud-dot" style="background:${budgetColor(k)}"></span>
-            <span style="min-width:0"><span class="bud-cname">${escapeHtml(k)} ${badge}</span><span class="bud-bar"><i style="width:${Math.max(0, t / maxCat * 100)}%;background:${budgetColor(k)}"></i></span></span>
-            <span class="bud-amt"><b>${budgetEur(t)}</b><span>${m.dep > 0 ? budgetPct(t / m.dep) : ""}</span></span></summary>
-          <div class="bud-body">
-            ${subs.map(([s, a]) => `<div class="bud-line"><span>${escapeHtml(s.split("|")[1])}</span><span>${eur.format(a)}</span></div>`).join("")}
-            <button class="link-btn" data-bud-ops="${escapeHtml(k)}">Voir les opérations</button>
-            <div class="bud-ops" hidden></div>
-          </div></details>`;
-      }).join("");
+      };
 
-      const revRows = Object.entries(m.revenus).filter(([, a]) => a > 0).sort((a, b) => b[1] - a[1]);
       const deposit = budget.deposits?.[m.key] || 0, tracksDeposits = Object.keys(budget.deposits || {}).length > 0;
-      const invCheck = !m.inv ? "" : !tracksDeposits
-        ? `<p class="help" style="margin:8px 0 0">Saisis tes versements dans Suivi &gt; Opérations pour que l'appli vérifie qu'aucun n'a été oublié.</p>`
+      const invCheck = !m.inv ? "" : !tracksDeposits ? BUDGET_DEPOSIT_HINT
         : m.inv - deposit > 1 ? `<div class="bud-check"><b>À vérifier :</b> ${budgetEur(m.inv)} virés vers tes placements d'après le relevé, ${budgetEur(deposit)} de versements saisis dans Suivi &gt; Opérations ce mois-ci. Un versement oublié, ou passé au début du mois suivant ?</div>`
         : `<p class="help" style="margin:8px 0 0">Les versements saisis dans Suivi &gt; Opérations couvrent ces virements.</p>`;
-      const invOps = m.ops.filter((o) => o.kind === "investissement");
-      const todo = budget.operations.filter((o) => o.kind === "a_categoriser").sort((a, b) => b.date.localeCompare(a.date));
+      const invOps = m.ops.filter((o) => o.kind === "investissement")
+        .map((o) => `<div class="bud-line muted"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(o.label)}</span><span>${eur.format(o.amount)}</span></div>`).join("");
 
-      el.innerHTML = `
-        <p class="help" style="margin:0">Envoyé par ta tâche « maj-suivi-bancaire »${budget.sent ? ` le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}` : ""}, relevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
+      return `
         <div class="card">
           <div class="bud-nav">
             <button data-bud-month="-1" aria-label="Mois précédent" ${idx === 0 ? "disabled" : ""}>‹</button>
@@ -5829,46 +5850,173 @@
             <button data-bud-month="1" aria-label="Mois suivant" ${idx === months.length - 1 ? "disabled" : ""}>›</button>
           </div>
           <div class="bud-solde"><span>Solde du mois</span>${m.partial ? `<span class="pill warn">Mois incomplet</span>` : ""}</div>
-          <div class="bud-big ${signClass(solde)}">${budgetSigned(solde)}</div>
-          <div class="bud-kpis">
-            <div><span>Revenus</span><b>${budgetEur(m.rev)}</b></div>
-            <div><span>Dépenses</span><b>${budgetEur(m.dep)}</b></div>
-            <div><span>Mis de côté</span><b class="${signClass(rate)}">${rate === null ? "N/A" : budgetPct(rate)}</b></div>
-          </div>
+          ${budgetKpis(m, solde, rate)}
           <p class="bud-sentence">${sentence}</p>
         </div>
-        <div class="card">
-          <div class="bud-h">Dépenses par catégorie</div>
-          ${cats.length ? `<div class="bud-stack">${cats.map(([k, t]) => `<i style="width:${t / m.dep * 100}%;background:${budgetColor(k)}" title="${escapeHtml(k)}"></i>`).join("")}</div><div>${catRows}</div>`
-            : `<p class="help" style="margin:0">Aucune dépense relevée ce mois-ci.</p>`}
-        </div>
+        ${budgetCatsHtml(m, badge, () => "", "ce mois-ci")}
         <div class="card bud-chart">
           <div class="bud-h">Sur 12 mois</div>
-          ${budgetChart(months, idx, avgDep)}
+          ${budgetChart(months.slice(Math.max(0, (idx <= months.length - 12 ? idx + 11 : months.length - 1) - 11), (idx <= months.length - 12 ? idx + 11 : months.length - 1) + 1), m.key, avgDep)}
           <div class="bud-legend"><span><i></i>Revenus</span>${avgDep != null ? `<span><i class="dash"></i>Dépenses moyennes</span>` : ""}<span>Touche un mois pour l'ouvrir</span></div>
         </div>
+        ${budgetRevHtml(m, "ce mois-ci")}
+        ${budgetAsideHtml(m, invOps + invCheck)}`;
+    }
+
+    // Vue Année : totaux de l'année civile (l'année en cours = depuis le 1er janvier). Les moyennes par mois et la
+    // comparaison à l'année précédente ne prennent que les mois complets, et seulement les mêmes mois des deux côtés :
+    // de janvier à septembre 2026 face à janvier à septembre 2025, jamais 9 mois face à 12.
+    function budgetYearHtml(months, last) {
+      const year = budgetMonth.slice(0, 4);
+      const years = [...new Set(months.map((m) => m.key.slice(0, 4)))], yi = years.indexOf(year);
+      const ms = months.filter((m) => m.key.startsWith(year)), full = budgetSum(ms);
+      const done = ms.filter((m) => !m.partial), n = done.length, cur = budgetSum(done);
+      const solde = full.rev - full.dep, rate = full.rev > 0 ? solde / full.rev : null;
+      const lastShort = new Date(last + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+      const span = ms.length === 12 && !full.partial ? "année complète"
+        : `${monthName(ms[0].key)}${ms.length > 1 ? ` à ${monthName(ms.at(-1).key)}` : ""}${full.partial ? `, relevé jusqu'au ${lastShort}` : ""}`;
+
+      // Mêmes mois l'année d'avant : seulement ceux relevés en entier des deux côtés (2025 commencée en mars : mars à
+      // septembre 2026 face à mars à septembre 2025)
+      const prevYear = String(Number(year) - 1);
+      const pairs = done.map((m) => [m, months.find((x) => x.key === prevYear + m.key.slice(4))]).filter(([, x]) => x && !x.partial);
+      const np = pairs.length, now = budgetSum(pairs.map(([m]) => m)), prev = np ? budgetSum(pairs.map(([, x]) => x)) : null;
+      const sameMonths = np === 12 ? `en ${prevYear}` : `sur les mêmes mois en ${prevYear}`;
+
+      let sentence = "";
+      if (!n) sentence = `Aucun mois complet en ${year} pour l'instant : attends la fin du mois pour une moyenne.`;
+      else {
+        const rateDone = cur.rev > 0 ? (cur.rev - cur.dep) / cur.rev : null;
+        sentence = `${n === ms.length ? (n === 12 ? "Sur l'année" : `Sur ces ${n} mois`) : `Sur les ${n} mois complets`}, tu as reçu en moyenne <b>${budgetEur(cur.rev / n)}</b> et dépensé <b>${budgetEur(cur.dep / n)}</b> par mois`;
+        sentence += rateDone === null ? "." : rateDone >= 0 ? `, soit <b>${budgetPct(rateDone)}</b> de tes revenus mis de côté.` : `, soit ${budgetEur((cur.dep - cur.rev) / n)} de plus que tes revenus chaque mois.`;
+        if (prev && prev.rev > 0 && now.rev > 0) {
+          const nowRate = (now.rev - now.dep) / now.rev, prevRate = (prev.rev - prev.dep) / prev.rev;
+          const intro = np === n ? sameMonths.replace(/^./, (c) => c.toUpperCase())
+            : `De ${monthName(pairs[0][0].key)} à ${monthName(pairs.at(-1)[0].key)}, mois relevés les deux années : ${budgetPct(nowRate)} mis de côté cette année, et en ${prevYear}`;
+          sentence += ` ${intro} : ${budgetPct(prevRate)} mis de côté, ${budgetEur(prev.dep / np)} de dépenses par mois${np === n ? "" : ` (contre ${budgetEur(now.dep / np)})`}.`;
+          const top = Object.entries(now.cats).map(([k, t]) => [k, (t - (prev.cats[k] || 0)) / np]).sort((a, b) => b[1] - a[1])[0];
+          if (top && top[1] > 30) sentence += ` Le poste qui a le plus augmenté : <b>${escapeHtml(top[0])}</b>, ${budgetSigned(top[1])} par mois.`;
+        }
+        if (full.partial) sentence += ` ${monthName(ms.at(-1).key).replace(/^./, (c) => c.toUpperCase())}, pas encore complet, compte dans les totaux mais pas dans ces moyennes.`;
+      }
+      const badge = (k) => {
+        if (!prev) return "";
+        const t = now.cats[k] || 0, p = prev.cats[k] || 0, ratio = p > 0 ? t / p - 1 : 0;
+        return ratio > 0.25 && (t - p) / np > 30 ? `<span class="pill warn">+${budgetPct(ratio)} vs ${prevYear}</span>`
+          : ratio < -0.25 && (p - t) / np > 30 ? `<span class="pill good">${budgetPct(ratio)} vs ${prevYear}</span>` : "";
+      };
+      const perMonth = (k) => (n && cur.cats[k] ? `${budgetEur(cur.cats[k] / n)}/mois` : "");
+
+      // Investissement : mois où le relevé montre plus de virements que de versements saisis
+      const tracksDeposits = Object.keys(budget.deposits || {}).length > 0;
+      const gaps = ms.filter((m) => m.inv - (budget.deposits?.[m.key] || 0) > 1);
+      const invCheck = !full.inv ? "" : !tracksDeposits ? BUDGET_DEPOSIT_HINT
+        : gaps.length ? `<div class="bud-check"><b>À vérifier :</b> en ${gaps.map((m) => monthAbbr(m.key)).join(", ")}, ${budgetEur(gaps.reduce((a, m) => a + m.inv, 0))} virés vers tes placements d'après le relevé, ${budgetEur(gaps.reduce((a, m) => a + (budget.deposits?.[m.key] || 0), 0))} de versements saisis dans Suivi &gt; Opérations. Un versement oublié, ou passé au début du mois suivant ?</div>`
+        : `<p class="help" style="margin:8px 0 0">Les versements saisis dans Suivi &gt; Opérations couvrent ces virements, mois par mois.</p>`;
+      const invCount = full.ops.filter((o) => o.kind === "investissement").length;
+      const invLine = invCount ? `<div class="bud-line muted"><span>${invCount} virement${invCount > 1 ? "s" : ""}${n ? `, ${budgetEur(cur.inv / n)} par mois en moyenne` : ""}</span><span></span></div>` : "";
+
+      const slots = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`)
+        .map((key) => months.find((m) => m.key === key) || { key, cats: {}, dep: 0, rev: 0, missing: true });
+
+      return `
         <div class="card">
-          <div class="bud-h">Revenus</div>
-          ${revRows.length ? revRows.map(([k, a]) => `<div class="bud-line" style="font-size:15px;margin-bottom:6px"><span>${escapeHtml(k)}</span><span>${budgetEur(a)} <span class="muted">· ${budgetPct(a / m.rev)}</span></span></div>`).join("")
-            : `<p class="help" style="margin:0">Aucun revenu relevé ce mois-ci.</p>`}
+          <div class="bud-nav">
+            <button data-bud-month="-1" aria-label="Année précédente" ${yi === 0 ? "disabled" : ""}>‹</button>
+            <div class="label">${year}<small>${escapeHtml(span)}</small></div>
+            <button data-bud-month="1" aria-label="Année suivante" ${yi === years.length - 1 ? "disabled" : ""}>›</button>
+          </div>
+          <div class="bud-solde"><span>Solde de l'année</span>${ms.length < 12 || full.partial ? `<span class="pill warn">${Number(year) >= new Date().getFullYear() ? "En cours" : "Année partielle"}</span>` : ""}</div>
+          ${budgetKpis(full, solde, rate)}
+          <p class="bud-sentence">${sentence}</p>
         </div>
-        <div class="card">
+        ${budgetCatsHtml(full, badge, perMonth, `en ${year}`)}
+        <div class="card bud-chart">
+          <div class="bud-h">Mois par mois</div>
+          ${budgetChart(slots, null, n ? cur.dep / n : null)}
+          <div class="bud-legend"><span><i></i>Revenus</span>${n ? `<span><i class="dash"></i>Dépenses moyennes</span>` : ""}<span>Touche un mois pour l'ouvrir</span></div>
+        </div>
+        ${years.length > 1 ? budgetYearsHtml(months, years, year) : ""}
+        ${budgetRevHtml(full, `en ${year}`)}
+        ${budgetAsideHtml(full, invLine + invCheck)}`;
+    }
+
+    // Une ligne par année : de quoi voir d'un coup d'œil si tu mets plus de côté qu'avant
+    function budgetYearsHtml(months, years, year) {
+      const rows = years.map((y) => {
+        const ms = months.filter((m) => m.key.startsWith(y)), t = budgetSum(ms), s = t.rev - t.dep;
+        const note = ms.length === 12 && !t.partial ? "" : `<small>${ms.length > 1 ? `${monthAbbr(ms[0].key)} à ${monthAbbr(ms.at(-1).key)}` : monthName(ms[0].key)}${t.partial ? " *" : ""}</small>`;
+        return `<button class="bud-year ${y === year ? "on" : ""}" data-bud-year="${y}">
+          <span><b>${y}</b>${note}</span><span>${budgetEur(t.rev)}</span><span>${budgetEur(t.dep)}</span>
+          <span class="${signClass(s)}">${budgetSigned(s)}</span><span>${t.rev > 0 ? budgetPct(s / t.rev) : "N/A"}</span></button>`;
+      }).join("");
+      return `<div class="card">
+        <div class="bud-h">Année par année</div>
+        <div class="bud-years"><div class="bud-year head"><span></span><span>Revenus</span><span>Dépenses</span><span>Solde</span><span>Mis de côté</span></div>${rows}</div>
+        ${years.some((y) => months.some((m) => m.key.startsWith(y) && m.partial)) ? `<p class="help" style="margin:6px 0 0">* dernier mois incomplet</p>` : ""}
+      </div>`;
+    }
+
+    const BUDGET_DEPOSIT_HINT = `<p class="help" style="margin:8px 0 0">Saisis tes versements dans Suivi &gt; Opérations pour que l'appli vérifie qu'aucun n'a été oublié.</p>`;
+    function budgetKpis(p, solde, rate) {
+      return `<div class="bud-big ${signClass(solde)}">${budgetSigned(solde)}</div>
+          <div class="bud-kpis">
+            <div><span>Revenus</span><b>${budgetEur(p.rev)}</b></div>
+            <div><span>Dépenses</span><b>${budgetEur(p.dep)}</b></div>
+            <div><span>Mis de côté</span><b class="${signClass(rate)}">${rate === null ? "N/A" : budgetPct(rate)}</b></div>
+          </div>`;
+    }
+    // badge(k, total) : pastille de comparaison ; perMonth(k) : moyenne mensuelle sous le montant (vue Année)
+    function budgetCatsHtml(p, badge, perMonth, when) {
+      const cats = Object.entries(p.cats).filter(([, t]) => t > 0).sort((a, b) => b[1] - a[1]);
+      const maxCat = cats[0]?.[1] || 1;
+      const catRows = cats.map(([k, t]) => {
+        const subs = Object.entries(p.subs).filter(([s]) => s.startsWith(k + "|")).sort((a, b) => b[1] - a[1]);
+        const pm = perMonth(k);
+        return `<details class="bud-cat">
+          <summary><span class="bud-dot" style="background:${budgetColor(k)}"></span>
+            <span style="min-width:0"><span class="bud-cname">${escapeHtml(k)} ${badge(k, t)}</span><span class="bud-bar"><i style="width:${Math.max(0, t / maxCat * 100)}%;background:${budgetColor(k)}"></i></span></span>
+            <span class="bud-amt"><b>${budgetEur(t)}</b><span>${pm ? `${pm} · ` : ""}${p.dep > 0 ? budgetPct(t / p.dep) : ""}</span></span></summary>
+          <div class="bud-body">
+            ${subs.map(([s, a]) => `<div class="bud-line"><span>${escapeHtml(s.split("|")[1])}</span><span>${eur.format(a)}</span></div>`).join("")}
+            <button class="link-btn" data-bud-ops="${escapeHtml(k)}">Voir les opérations</button>
+            <div class="bud-ops" hidden></div>
+          </div></details>`;
+      }).join("");
+      return `<div class="card">
+          <div class="bud-h">Dépenses par catégorie</div>
+          ${cats.length ? `<div class="bud-stack">${cats.map(([k, t]) => `<i style="width:${t / p.dep * 100}%;background:${budgetColor(k)}" title="${escapeHtml(k)}"></i>`).join("")}</div><div>${catRows}</div>`
+            : `<p class="help" style="margin:0">Aucune dépense relevée ${when}.</p>`}
+        </div>`;
+    }
+    function budgetRevHtml(p, when) {
+      const revRows = Object.entries(p.revenus).filter(([, a]) => a > 0).sort((a, b) => b[1] - a[1]);
+      return `<div class="card">
+          <div class="bud-h">Revenus</div>
+          ${revRows.length ? revRows.map(([k, a]) => `<div class="bud-line" style="font-size:15px;margin-bottom:6px"><span>${escapeHtml(k)}</span><span>${budgetEur(a)} <span class="muted">· ${budgetPct(a / p.rev)}</span></span></div>`).join("")
+            : `<p class="help" style="margin:0">Aucun revenu relevé ${when}.</p>`}
+        </div>`;
+    }
+    function budgetAsideHtml(p, invDetail) {
+      return `<div class="card">
           <div class="bud-h">À part</div>
           <div class="bud-aside">
-            <div class="bud-line" style="font-size:15px"><span>Investissement</span><b>${budgetEur(m.inv)}</b></div>
-            ${invOps.map((o) => `<div class="bud-line muted"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(o.label)}</span><span>${eur.format(o.amount)}</span></div>`).join("")}
-            ${invCheck}
+            <div class="bud-line" style="font-size:15px"><span>Investissement</span><b>${budgetEur(p.inv)}</b></div>
+            ${invDetail}
           </div>
           <div class="bud-aside">
-            <div class="bud-line" style="font-size:15px"><span>Virements internes</span><b>${budgetEur(m.internes)}</b></div>
+            <div class="bud-line" style="font-size:15px"><span>Virements internes</span><b>${budgetEur(p.internes)}</b></div>
             <p class="help" style="margin:8px 0 0">Entre tes propres comptes (Livret A, compte courant), dans les deux sens. Ils ne comptent ni dans les revenus, ni dans les dépenses, ni dans le solde.</p>
           </div>
-        </div>
-        ${todo.length ? `<div class="card">
+        </div>`;
+    }
+    function budgetTodoHtml() {
+      const todo = budget.operations.filter((o) => o.kind === "a_categoriser").sort((a, b) => b.date.localeCompare(a.date));
+      return todo.length ? `<div class="card">
           <div class="bud-h">À catégoriser (${todo.length})</div>
           <div class="bud-ops" style="border:0;padding:0">${todo.map(budgetOpRow).join("")}</div>
           <p class="help" style="margin:10px 0 0">Comptées dans les dépenses, catégorie « À catégoriser », en attendant. Elles se règlent avec ta tâche du mois : l'appli les montre, elle ne les classe pas.</p>
-        </div>` : ""}`;
+        </div>` : "";
     }
     function budgetOpRow(o) {
       const day = new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -5876,10 +6024,9 @@
     }
 
     // 12 mois : dépenses empilées par catégorie, revenus en ligne, dépenses moyennes en pointillés. Montants de l'axe
-    // et des infobulles retirés en mode discret (texte SVG, pas de .amt).
-    function budgetChart(months, sel, avgDep) {
-      const end = sel <= months.length - 12 ? sel + 11 : months.length - 1;
-      const shown = months.slice(Math.max(0, end - 11), end + 1);
+    // et des infobulles retirés en mode discret (texte SVG, pas de .amt). selKey null (vue Année) : aucun mois mis en
+    // avant ; un mois sans relevé (missing) garde sa place vide, de janvier à décembre.
+    function budgetChart(shown, selKey, avgDep) {
       const W = 360, H = 210, L = settings.privacy ? 8 : 36, R = 6, T = 10, B = 22;
       const top = Math.max(1, ...shown.map((m) => Math.max(m.dep, m.rev)), avgDep || 0);
       const step = [100, 250, 500, 1000, 2000, 5000, 10000].find((s) => top / s <= 5) || 20000, yMax = Math.ceil(top / step) * step;
@@ -5892,8 +6039,8 @@
         if (!settings.privacy) svg += `<text x="${L - 4}" y="${y(v) + 3}" text-anchor="end">${v >= 1000 ? `${(v / 1000).toLocaleString("fr-FR")} k€` : `${v} €`}</text>`;
       }
       shown.forEach((m, i) => {
-        const x = L + i * slot, current = m.key === months[sel].key;
-        if (current) svg += `<rect x="${x + 1}" y="${T}" width="${slot - 2}" height="${H - T - B}" rx="4" fill="var(--card-2)"/>`;
+        const x = L + i * slot, current = selKey == null || m.key === selKey;
+        if (selKey != null && current) svg += `<rect x="${x + 1}" y="${T}" width="${slot - 2}" height="${H - T - B}" rx="4" fill="var(--card-2)"/>`;
         let acc = 0;
         for (const c of cats) {
           const t = m.cats[c] || 0;
@@ -5902,13 +6049,15 @@
           acc += t;
         }
         const label = monthDate(m.key).toLocaleDateString("fr-FR", { month: "narrow" }).toUpperCase() + (m.partial ? "*" : "");
-        svg += `<text x="${x + slot / 2}" y="${H - 7}" text-anchor="middle" ${current ? 'style="fill:var(--text);font-weight:700"' : ""}>${label}</text>`;
+        const style = m.key === selKey ? 'style="fill:var(--text);font-weight:700"' : m.missing ? 'style="opacity:0.4"' : "";
+        svg += `<text x="${x + slot / 2}" y="${H - 7}" text-anchor="middle" ${style}>${label}</text>`;
       });
       if (avgDep != null) svg += `<line x1="${L}" x2="${W - R}" y1="${y(avgDep)}" y2="${y(avgDep)}" stroke="var(--muted)" stroke-dasharray="4 3" stroke-width="1.2"/>`;
-      const pts = shown.map((m, i) => [L + i * slot + slot / 2, y(m.rev)]);
+      const pts = shown.map((m, i) => (m.missing ? null : [L + i * slot + slot / 2, y(m.rev)])).filter(Boolean);
       svg += `<polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="var(--positive)" stroke-width="2"/>`;
       svg += pts.map((p) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--positive)"/>`).join("");
       shown.forEach((m, i) => {
+        if (m.missing) return;
         const name = monthLong.format(monthDate(m.key));
         const tip = settings.privacy ? name : `${name} : ${budgetFmt.format(m.dep)} dépensés, ${budgetFmt.format(m.rev)} reçus`;
         svg += `<rect data-bud-pick="${m.key}" x="${L + i * slot}" y="0" width="${slot}" height="${H}" fill="transparent" style="cursor:pointer"><title>${escapeHtml(tip)}</title></rect>`;
@@ -5921,15 +6070,34 @@
       const nav = e.target.closest("[data-bud-month]");
       const pick = e.target.closest("[data-bud-pick]");
       const ops = e.target.closest("[data-bud-ops]");
-      if (nav || pick) {
+      const view = e.target.closest("[data-bud-view]");
+      const yearRow = e.target.closest("[data-bud-year]");
+      if (view) {
+        settings.budgetView = view.dataset.budView;
+        saveSettings();
+        renderBudget();
+      } else if (pick) {
+        // Un mois touché sur le graphique s'ouvre en vue Mois, même depuis la vue Année
+        budgetMonth = pick.dataset.budPick;
+        if (budgetYearView()) { settings.budgetView = "mois"; saveSettings(); }
+        renderBudget();
+      } else if (nav || yearRow) {
         const { months } = budgetMonths();
-        const i = months.findIndex((m) => m.key === budgetMonth);
-        budgetMonth = pick ? pick.dataset.budPick : months[Math.min(months.length - 1, Math.max(0, i + Number(nav.dataset.budMonth)))].key;
+        if (yearRow) budgetMonth = budgetYearMonth(months, yearRow.dataset.budYear);
+        else if (budgetYearView()) {
+          const years = [...new Set(months.map((m) => m.key.slice(0, 4)))];
+          const yi = Math.min(years.length - 1, Math.max(0, years.indexOf(budgetMonth.slice(0, 4)) + Number(nav.dataset.budMonth)));
+          budgetMonth = budgetYearMonth(months, years[yi]);
+        } else {
+          const i = months.findIndex((m) => m.key === budgetMonth);
+          budgetMonth = months[Math.min(months.length - 1, Math.max(0, i + Number(nav.dataset.budMonth)))].key;
+        }
         renderBudget();
       } else if (ops) {
         const box = ops.nextElementSibling;
         if (!box.hidden) { box.hidden = true; ops.textContent = "Voir les opérations"; return; }
-        const list = budget.operations.filter((o) => o.date.startsWith(budgetMonth) && BUDGET_SPENDING.has(o.kind) && o.category === ops.dataset.budOps)
+        const prefix = budgetYearView() ? budgetMonth.slice(0, 4) : budgetMonth;
+        const list = budget.operations.filter((o) => o.date.startsWith(prefix) && BUDGET_SPENDING.has(o.kind) && o.category === ops.dataset.budOps)
           .sort((a, b) => b.date.localeCompare(a.date) || b.amount - a.amount);
         box.innerHTML = list.map(budgetOpRow).join("");
         box.hidden = false;
