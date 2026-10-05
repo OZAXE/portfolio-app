@@ -151,7 +151,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
 
   PRU affiché (octobre 2026, demande d'Enzo) : `pruOf` (front) = investi ÷ quantité de la ligne, en euros frais inclus,
   dans le sous-titre de chaque position (« PEA · PRU 136,43 € · secteur ») et dans la carte « Ta position » avec le cours
-  actuel en euros (vert / rouge face au PRU). Absent sur un ancien Sheet sans quantité.
+  actuel en euros (vert / rouge face au PRU). Absent sur un ancien Sheet sans quantité. Aussi en devise de cotation
+  (choix d'Enzo : les deux) pour une ligne hors euro : `pruLocalOf` = PRU en euros ÷ `rate_paid` de `/portfolio/daily`
+  (taux Yahoo du jour de chaque achat, donc indicatif), cours = valeur ÷ quantité ÷ `rate_now` ; symbole court
+  (`localMoney` : « 200,29 $ ») et, dans la ligne, à la place du secteur (sinon coupé à 390 px). Absent tant que daily
+  n'est pas chargé.
 
 - **Courbe du portefeuille** : l'onglet Historique s'arrête à la veille (relevé nocturne après chaque
   jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »

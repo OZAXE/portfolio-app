@@ -106,7 +106,20 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click("#positions [data-position] >> nth=0")
     page.wait_for_selector("#view-stock:not([hidden])")
     card = page.locator(".poscard", has_text="Ta position").inner_text().replace("\u202f", " ")
-    assert "136,43" in card and "Cours actuel" in card
+    assert "136,43" in card and "Cours actuel" in card and "$" not in card  # action en euros : pas de seconde devise
+    page.go_back()
+    page.wait_for_selector("#view-portfolio:not([hidden])")
+
+    # Apple, cotée en dollars : PRU aussi en devise. 10 actions à 200 $ au taux de 0,92 € + 1 € de frais = 1 841 €, soit
+    # 184,10 € et ~200,1 $ (taux Yahoo simulé du jour d'achat, proche de 0,92). Cours : 230 $ (230 × 0,86 € ÷ 0,86)
+    apple = '#positions [data-position="AAPL"]'
+    page.wait_for_function(f"/\\$/.test(document.querySelector('{apple}').textContent)")
+    pru_usd = float(re.search(r"PRU [\d\s,]+€ · ([\d,]+)\s\$", page.inner_text(apple).replace("\u202f", " ")).group(1).replace(",", "."))
+    assert 199 < pru_usd < 202
+    page.click(apple)
+    page.wait_for_selector("#view-stock:not([hidden])")
+    card = page.locator(".poscard", has_text="Ta position").inner_text().replace("\u202f", " ").replace("\xa0", " ")
+    assert "184,1" in card and "230,00 $" in card
     page.go_back()
     page.wait_for_selector("#view-portfolio:not([hidden])")
 
