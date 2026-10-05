@@ -287,6 +287,13 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     with UNIVERSE.open(encoding="utf-8") as f:
         universe = list(csv.DictReader(f))
+    # Nombre d'actions actuel de chaque fiche du screener (lancé juste avant, même dossier)
+    screener_path = Path(args.data_dir) / "screener.json"
+    stocks = json.loads(screener_path.read_text(encoding="utf-8")).get("stocks", []) if screener_path.exists() else []
+    shares_now = {st["ticker"]: st["shares"] for st in stocks if st.get("shares")}
+    # Titres de watchlist hors univers (followed.py) : même historique que les autres (PER historique, ROIC)
+    universe += [{"ticker": st["ticker"], "region": st.get("region", ""), "followed": True} for st in stocks
+                 if st.get("followed") and not st.get("error")]
 
     def last_update(ticker: str) -> str:
         path = out_dir / f"{ticker}.json"
@@ -303,13 +310,6 @@ def main():
     queue.sort(key=lambda x: x[0])  # jamais faits d'abord, puis les plus anciens
     log.info("historique financier : %d actions à mettre à jour, lot de %d", len(queue), args.max)
 
-    # Nombre d'actions actuel de chaque fiche du screener (lancé juste avant, même dossier)
-    screener_path = Path(args.data_dir) / "screener.json"
-    shares_now = {}
-    if screener_path.exists():
-        stocks = json.loads(screener_path.read_text(encoding="utf-8")).get("stocks", [])
-        shares_now = {st["ticker"]: st["shares"] for st in stocks if st.get("shares")}
-
     ciks = sec_cik_map()
     done = 0
     for _, entry in queue[: args.max]:
@@ -317,6 +317,7 @@ def main():
             log.info("budget de temps atteint")
             break
         ticker = entry["ticker"]
+        label = "titre suivi" if entry.get("followed") else ticker  # journaux publics : pas les tickers des watchlists
         path = out_dir / f"{ticker}.json"
         try:
             is_us = entry["region"] == "US" and ticker in ciks
@@ -328,12 +329,12 @@ def main():
             try:
                 merged["pe_history"] = fetch_pe_history(ticker, merged["years"], merged["currency"], shares_now.get(ticker))
             except Exception as e:  # cours indisponibles : on garde l'ancien PER historique s'il existe
-                log.warning("%s : PER historique en erreur (%s)", ticker, e)
+                log.warning("%s : PER historique en erreur (%s)", label, e)
                 merged["pe_history"] = (existing or {}).get("pe_history")
             path.write_text(json.dumps({"ticker": ticker, **merged}, separators=(",", ":")), encoding="utf-8")
             done += 1
         except Exception as e:
-            log.warning("%s : historique en erreur (%s)", ticker, e)
+            log.warning("%s : historique en erreur (%s)", label, e)
     log.info("historique financier : %d actions mises à jour", done)
 
 
