@@ -98,10 +98,15 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click("#portfolio-tabs [data-ptab=repartition]")
     assert page.is_visible("#concentration")
 
-    # Fiche d'une position, puis retour
+    # PRU d'Air Liquide (première ligne, la plus grosse) : 20 × 150 € + 1,50 € de frais = 3 001,50 €, puis 2 actions
+    # gratuites (coût inchangé) -> 22 actions, PRU = 3 001,50 / 22 = 136,43 €. Dans la ligne et dans la carte « Ta position »
     page.click("#portfolio-tabs [data-ptab=positions]")
+    assert "PRU 136,43" in page.inner_text("#positions [data-position] >> nth=0").replace("\u202f", " ")
+    # Fiche d'une position, puis retour
     page.click("#positions [data-position] >> nth=0")
     page.wait_for_selector("#view-stock:not([hidden])")
+    card = page.locator(".poscard", has_text="Ta position").inner_text().replace("\u202f", " ")
+    assert "136,43" in card and "Cours actuel" in card
     page.go_back()
     page.wait_for_selector("#view-portfolio:not([hidden])")
 

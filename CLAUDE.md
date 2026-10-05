@@ -149,6 +149,10 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Sheets mis à niveau par `ensure_position_formulas` (`is_old_pru_formula`). Pas de nombre décimal dans les
   formules (séparateur selon la région du Sheet).
 
+  PRU affiché (octobre 2026, demande d'Enzo) : `pruOf` (front) = investi ÷ quantité de la ligne, en euros frais inclus,
+  dans le sous-titre de chaque position (« PEA · PRU 136,43 € · secteur ») et dans la carte « Ta position » avec le cours
+  actuel en euros (vert / rouge face au PRU). Absent sur un ancien Sheet sans quantité.
+
 - **Courbe du portefeuille** : l'onglet Historique s'arrête à la veille (relevé nocturne après chaque
   jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »
   pris sur les positions actuelles (`withLivePoint`), sinon une vente du jour (Evan, 29/09) laissait la
