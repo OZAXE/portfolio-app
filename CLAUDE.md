@@ -177,6 +177,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Marché : accueil en sections (`MARKET_PRESETS` : Tes actions, Ta watchlist, Solides et sous-évaluées, Les
     plus solides, Dividendes réguliers), recherche + panneau de filtres (`renderFilterSheet`, puces supprimables),
     lignes `marketRow` (logo, cours, verdict en mots via `verdictPill`, qualité en mots) ;
+  - recherche (octobre 2026, titres des briefs « introuvables » signalés par Enzo) : sans accents ni ponctuation
+    (`searchWords` : « hermes », « loreal », « orsted »), classée par pertinence (`searchRank` : ticker ou sa base
+    « AI » -> AI.PA, début du ticker, début du nom, début d'un mot, contenu), le tri choisi départage. Avant, « AI » mettait
+    Air Liquide 75e sur 115 (tri par qualité) et « hermes » ne trouvait rien. « Tes autres titres » (`offScreenerMatches`) :
+    positions et watchlist hors screener (ETF, crypto, ADR), recherche seule sans filtre ; une position ouvre sa fiche
+    (`openPosition`), un titre de la watchlist l'analyse en direct, fiche réduite si Yahoo dit ETF (`quote_type`).
+    « Analyser en direct » seulement pour un texte à la forme d'un ticker que rien de trouvé n'explique ;
   - mode Simple / Détaillé (`settings.marketDensity`) : Détaillé ajoute les chiffres aux lignes et ouvre toutes
     les rubriques des fiches, Simple ajoute une phrase d'explication sous chaque ratio ;
   - fiche action plein écran (`openStock`, vue `view-stock`, retour du téléphone géré par `history.pushState`) :

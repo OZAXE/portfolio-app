@@ -127,6 +127,26 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click("#tabbar [data-view=market]")
     page.wait_for_function("document.querySelectorAll('#view-market [data-open-stock], #view-market .mrow').length > 0")
 
+    # Recherche : sans accents ni apostrophe, la plus pertinente en tête, ETF de la watchlist hors screener
+    def search(text):
+        page.fill("#market-search", text)
+        page.wait_for_function("(t) => document.getElementById('market-count').textContent && marketFilters.query === t", arg=text)
+        return page.locator("#market-list .mrow")
+
+    assert search("loreal").first.get_attribute("data-open-stock") == "OR.PA"  # L'Oréal S.A.
+    assert search("societe").first.get_attribute("data-open-stock") == "MC.PA"  # LVMH ... Société Européenne
+    # « ai » est aussi dans « L'Air Liquide » et « Johnson » n'en a pas : AI.PA (12/20) passe avant les mieux notées
+    assert search("ai").first.get_attribute("data-open-stock") == "AI.PA"
+    assert not page.locator("#market-live-btn").count()
+    rows = search("ese")
+    assert rows.first.get_attribute("data-open-off") == "ESE.PA" and "Tes autres titres" in page.inner_text("#market-list")
+    assert not page.locator("#market-live-btn").count()  # le ticker est déjà trouvé
+    search("societe generale")
+    assert not page.locator("#market-live-btn").count()  # pas la forme d'un ticker : pas d'analyse en direct
+    search("XYZQ")
+    assert page.locator("#market-live-btn").count() == 1
+    search("")
+
     # Suivi : les quatre rubriques
     page.click("#tabbar [data-view=suivi]")
     page.wait_for_function("document.querySelectorAll('#tx-list [data-tx]').length > 0 || /Achat/.test(document.getElementById('tx-list').textContent)")

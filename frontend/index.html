@@ -2870,12 +2870,43 @@
     const activeFilterCount = (f = marketFilters) => Object.keys(NO_FILTERS).filter((k) => f[k]).length;
     const marketBrowsing = () => !!(marketFilters.query.trim() || marketFilters.preset || activeFilterCount());
 
+    // Recherche sans accents ni ponctuation : « hermes » trouve Hermès, « loreal » L'Oréal, « orsted » Ørsted
+    // (avant, ces trois recherches ne donnaient rien et laissaient croire que l'action manquait)
+    const searchWords = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+      .replace(/ø/g, "o").replace(/æ/g, "ae").replace(/œ/g, "oe").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
+    const searchKeys = new WeakMap();
+    function searchKeyOf(item) {
+      let k = searchKeys.get(item);
+      if (!k) {
+        const tickers = [item.ticker, item.yahoo_ticker].filter(Boolean).map((t) => t.toLowerCase());
+        const words = searchWords(item.name);
+        k = { tickers, bases: tickers.map((t) => t.split(".")[0]), words, compact: words.replace(/ /g, "") };
+        searchKeys.set(item, k);
+      }
+      return k;
+    }
+    // Pertinence d'un titre pour la recherche (0 = la meilleure), null s'il ne correspond pas. Les briefs citent les
+    // tickers courts : « AI » doit donner Air Liquide (AI.PA) en tête, pas en 75e position parmi les 115 noms
+    // contenant « ai » triés par qualité ; de même « V » pour Visa.
+    function searchRank(item, query) {
+      const raw = query.trim().toLowerCase(), words = searchWords(query), compact = words.replace(/ /g, "");
+      if (!compact) return null;
+      const k = searchKeyOf(item);
+      if (k.tickers.includes(raw) || k.bases.includes(raw) || k.bases.includes(compact)) return 0;
+      if (k.tickers.some((t) => t.startsWith(raw))) return 1;
+      if (k.words.startsWith(words) || k.compact.startsWith(compact)) return 2;
+      if ((" " + k.words).includes(" " + words)) return 3;  // début d'un mot : « liquide », « generale »
+      if (k.compact.includes(compact) || k.tickers.some((t) => t.includes(raw))) return 4;
+      return null;
+    }
+
     function filteredStocks(f = marketFilters) {
-      const q = f.query.trim().toLowerCase();
+      const q = f.query.trim();
       const owned = ownedTickers();
       const preset = MARKET_PRESETS[f.preset];
+      const ranks = new Map();
       let list = market.stocks.filter((s) =>
-        (!q || s.ticker.toLowerCase().includes(q) || (s.name || "").toLowerCase().includes(q)) &&
+        (!q || ranks.set(s, searchRank(s, q)).get(s) != null) &&
         (!preset || preset.pick(s)) &&
         (!f.region || s.region === f.region) &&
         (!f.sector || s.sector === f.sector) &&
@@ -2903,7 +2934,41 @@
         fcf: (s) => fcfYieldOf(s),
         growth: (s) => s.revenue_cagr ?? null,
       }[f.sort];
-      return list.sort((a, b) => (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
+      // Avec une recherche : les plus pertinentes d'abord, le tri choisi départage les autres
+      return list.sort((a, b) => (q ? ranks.get(a) - ranks.get(b) : 0) || (key(b) ?? -Infinity) - (key(a) ?? -Infinity));
+    }
+
+    // Titres hors screener trouvables par la recherche : tes positions (ETF, crypto, ADR comme TSMC) et ta watchlist.
+    // Les briefs citent tes ETF (ESE, URNU, TNOW) : le Marché ne les connaissait pas.
+    function offScreenerTitles() {
+      const inScreener = new Set(market.stocks.map((s) => s.ticker));
+      const titles = new Map();
+      for (const h of overview?.holdings || []) {
+        const t = h.yahoo_ticker || h.ticker;
+        if (!inScreener.has(t) && !titles.has(t)) titles.set(t, { ticker: h.ticker, yahoo_ticker: t, name: h.name || h.ticker, kind: h.kind, holding: h });
+      }
+      for (const t of watchlist) {
+        if (!inScreener.has(t) && !titles.has(t)) titles.set(t, { ticker: t, yahoo_ticker: t, name: t, watch: true });
+      }
+      return [...titles.values()];
+    }
+    function offScreenerMatches(query) {
+      if (!query.trim()) return [];
+      return offScreenerTitles().map((t) => [t, searchRank(t, query)]).filter(([, r]) => r != null)
+        .sort((a, b) => a[1] - b[1]).map(([t]) => t);
+    }
+    function offScreenerRow(t) {
+      const what = t.holding ? `${t.kind || "Titre"} · en portefeuille` : "ta watchlist";
+      return `<button class="mrow" data-open-off="${escapeHtml(t.yahoo_ticker)}">
+          ${avatar({ ticker: t.yahoo_ticker, name: t.name })}
+          <div style="min-width:0"><div class="name">${escapeHtml(t.name)}</div><div class="sub">${escapeHtml(t.yahoo_ticker)} · ${escapeHtml(what)}</div></div>
+          <div class="right"><span class="muted">hors screener</span></div>
+        </button>`;
+    }
+    function openOffScreener(ticker) {
+      const t = offScreenerTitles().find((x) => x.yahoo_ticker === ticker);
+      if (t?.holding) openPosition(t.holding.ticker, t.holding.envelope || "");
+      else analyzeLive(ticker);  // un ETF de la watchlist ouvre une fiche réduite (voir analyzeLive)
     }
 
     function renderMarketSections() {
@@ -2955,17 +3020,27 @@
       renderMarketChips();
       if (!browsing) { renderMarketSections(); return; }
       const list = filteredStocks();
-      document.getElementById("market-count").textContent = `${list.length} action${list.length > 1 ? "s" : ""} · triées par ${MARKET_SORTS[marketFilters.sort].toLowerCase()}`;
-      document.getElementById("market-list").innerHTML = (list.length ? `<div class="mlist">${list.slice(0, marketShown).map(marketRow).join("")}</div>`
-        : `<div class="card help" style="margin:0">Aucune action ne correspond. Retire un filtre pour élargir.</div>`)
+      const query = marketFilters.query.trim();
+      // Les titres hors screener ne passent pas les filtres (pas de score, pas de verdict) : recherche seule
+      const others = activeFilterCount() || marketFilters.preset ? [] : offScreenerMatches(query);
+      const sortLabel = query ? "pertinence" : MARKET_SORTS[marketFilters.sort].toLowerCase();
+      document.getElementById("market-count").textContent = `${list.length} action${list.length > 1 ? "s" : ""}`
+        + (others.length ? ` et ${others.length} autre${others.length > 1 ? "s" : ""} titre${others.length > 1 ? "s" : ""}` : "") + ` · triées par ${sortLabel}`;
+      document.getElementById("market-list").innerHTML = (others.length
+          ? `<div class="msection-head"><div><h2>Tes autres titres</h2><p>ETF, cryptos et titres hors du screener, sans score ni prix juste</p></div></div>
+             <div class="mlist">${others.map(offScreenerRow).join("")}</div>` : "")
+        + (list.length ? `<div class="mlist">${list.slice(0, marketShown).map(marketRow).join("")}</div>`
+          : others.length ? "" : `<div class="card help" style="margin:0">Aucune action ne correspond. Retire un filtre pour élargir.</div>`)
         + (list.length > marketShown ? `<button class="btn more" id="market-more">Afficher ${Math.min(PAGE_SIZE, list.length - marketShown)} de plus</button>` : "");
 
-      // Recherche d'un ticker hors panel : analyse en direct par l'API
-      // (pas quand la recherche porte sur un nom déjà trouvé : « Visa » trouve Visa Inc., ticker V)
-      const q = marketFilters.query.trim().toUpperCase();
-      document.getElementById("market-live").innerHTML = q && !list.some((s) => s.ticker === q || (s.name || "").toUpperCase().startsWith(q))
+      // Recherche d'un ticker hors panel : analyse en direct par l'API, seulement pour un texte qui a la forme d'un
+      // ticker Yahoo (« Société Générale » n'en est pas un) et que rien de trouvé n'explique déjà : « Visa » trouve
+      // Visa Inc., « AI » Air Liquide (AI.PA)
+      const q = query.toUpperCase();
+      const explained = [...list, ...others].some((s) => (searchRank(s, query) ?? 9) <= 2);
+      document.getElementById("market-live").innerHTML = /^[A-Z0-9][A-Z0-9.\-=^]{0,19}$/.test(q) && !explained
         ? `<button class="btn more" id="market-live-btn" data-ticker="${escapeHtml(q)}">Analyser « ${escapeHtml(q)} » en direct</button><div id="market-live-result"></div>`
-        : "";
+        : `<div id="market-live-result"></div>`;
     }
 
     function renderFilterSheet() {
@@ -3186,6 +3261,7 @@
       const d = t.dataset;
       if (t.id === "market-more") { marketShown += PAGE_SIZE; renderMarket(); }
       else if (t.id === "market-live-btn") analyzeLive(d.ticker);
+      else if (d.openOff) openOffScreener(d.openOff);
       else if ("preset" in d) { Object.assign(marketFilters, { preset: d.preset, sort: MARKET_PRESETS[d.preset]?.sort || "score", query: "" }); document.getElementById("market-search").value = ""; marketShown = PAGE_SIZE; renderMarket(); window.scrollTo(0, 0); }
       else if (t.id === "market-home") { Object.assign(marketFilters, { query: "", preset: "", sort: "score" }, NO_FILTERS); document.getElementById("market-search").value = ""; renderMarket(); }
       else if (d.clear) { marketFilters[d.clear] = d.clear === "preset" || typeof NO_FILTERS[d.clear] === "string" ? "" : d.clear === "qualityMin" ? 0 : false; marketShown = PAGE_SIZE; renderMarket(); }
@@ -3852,7 +3928,11 @@
       try {
         const a = await api(`/analysis/${encodeURIComponent(ticker)}`);
         if (out) out.innerHTML = "";
-        openStock(analysisToRecord(a, ticker), "", false);
+        // Un ETF n'a ni bénéfices ni score : fiche réduite (courbe de cours, actualités) plutôt qu'une fiche vide
+        if (a.financials?.quote_type === "ETF") {
+          openStock({ ticker, yahoo_ticker: ticker, name: a.financials.name || ticker, minimal: true },
+            `<div class="hypotheses">Un ETF réplique un indice : pas de prix juste ni de score.</div>`);
+        } else openStock(analysisToRecord(a, ticker), "", false);
       } catch (e) {
         if (out) out.innerHTML = `<div class="status">${escapeHtml(e.message)}. Vérifie le ticker au format Yahoo (ex : MC.PA, SAP.DE, AAPL, 7203.T).</div>`;
       }
