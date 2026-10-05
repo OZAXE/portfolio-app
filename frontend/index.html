@@ -1694,6 +1694,24 @@
     function pruOf(h) {
       return h.quantity > 0 && h.invested != null ? h.invested / h.quantity : null;
     }
+    // PRU et cours dans la devise de cotation (demande d'Enzo : comparer à un cours ou un objectif en dollars) : PRU en
+    // euros ÷ taux moyen payé de /portfolio/daily (chaque achat converti au taux Yahoo de son jour, ventes retirées comme
+    // pour le PRU). Apple : 10 actions à 200 $ payées 1 841 € frais compris
+    // (0,92 € le dollar) -> PRU 184,10 € = 200,11 USD. Le taux Yahoo du jour
+    // n'est pas exactement celui du courtier : indicatif. Rien pour une ligne en euros ni avant le chargement de daily
+    function pruLocalOf(h) {
+      const fx = daily?.currency?.lines?.[dailyKey(h)], pru = pruOf(h);
+      if (!fx?.rate_paid || pru == null) return null;
+      return { pru: pru / fx.rate_paid, price: h.value != null && fx.rate_now ? h.value / h.quantity / fx.rate_now : null,
+        currency: fx.currency };
+    }
+    // Symbole court (« 200,29 $ », « £ », « CHF ») pour tenir dans la ligne d'un téléphone ; décimales de la devise (yen : 0)
+    function localMoney(v, cur) {
+      let text;
+      try { text = new Intl.NumberFormat("fr-FR", { style: "currency", currency: cur, currencyDisplay: "narrowSymbol" }).format(v); }
+      catch { text = `${num(v, 2)} ${cur}`; }  // code de devise inconnu du navigateur
+      return hideable(escapeHtml(text), "••••");
+    }
     function renderPositions() {
       let list = overview.holdings.filter((h) => !portfolioView.envelope || h.envelope === portfolioView.envelope);
       const dayOf = (h) => daily?.lines?.[dailyKey(h)];
@@ -1712,7 +1730,7 @@
         return `<button class="mrow" data-position="${escapeHtml(h.ticker)}" data-envelope="${escapeHtml(h.envelope || "")}">
             ${avatar({ ticker: h.ticker, name, sector: rec?.sector || h.sector })}
             <div style="min-width:0"><div class="name">${escapeHtml(name)}</div>
-              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")}${pruOf(h) != null ? ` · PRU ${eur.format(pruOf(h))}` : ""} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
+              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")}${pruOf(h) != null ? ` · PRU ${eur.format(pruOf(h))}` : ""}${pruLocalOf(h) ? ` · ${localMoney(pruLocalOf(h).pru, pruLocalOf(h).currency)}` : ` · ${escapeHtml(h.sector || h.kind || "")}`}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
             <div class="right"><span class="price">${h.value != null ? eur.format(h.value) : "N/A"}</span>
               ${portfolioView.sort === "day"
                 ? `<span class="pill-gain ${signClass(dayOf(h)?.change)}">${dayOf(h) ? `${pctFmt.format(dayOf(h).pct ?? 0)} · ${signedEur(dayOf(h).change)}` : "N/A"}</span>`
@@ -1731,15 +1749,15 @@
       const a = portfolioAnalyses[h.yahoo_ticker];
       const day = daily?.lines?.[dailyKey(h)], fx = daily?.currency?.lines?.[dailyKey(h)];
       const cell = (k, v, cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
-      const pru = pruOf(h);
+      const pru = pruOf(h), local = pruLocalOf(h);
       return `<div class="poscard"><h3>Ta position${h.envelope ? ` · ${escapeHtml(h.envelope)}` : ""}</h3>
           <div class="stat">
             ${cell("Valeur", h.value != null ? eur.format(h.value) : "N/A")}
             ${cell("Plus-value latente", h.gain != null ? `${signedEur(h.gain)}${h.gain_pct != null ? ` · ${pctFmt.format(h.gain_pct)}` : ""}` : "N/A", signClass(h.gain))}
             ${cell("Investi", h.invested != null ? eur.format(h.invested) : "N/A")}
             ${(h.quantity ?? a?.quantity) != null ? cell("Quantité", hideable(num(h.quantity ?? a.quantity, 6))) : ""}
-            ${pru != null ? cell(`<span data-term="PRU">PRU</span>`, eur.format(pru)) : ""}
-            ${pru != null && h.value != null ? cell("Cours actuel", eur.format(h.value / h.quantity), signClass(h.value / h.quantity - pru)) : ""}
+            ${pru != null ? cell(`<span data-term="PRU">PRU</span>`, `${eur.format(pru)}${local ? `<div class="muted">${localMoney(local.pru, local.currency)}</div>` : ""}`) : ""}
+            ${pru != null && h.value != null ? cell("Cours actuel", `${eur.format(h.value / h.quantity)}${local?.price != null ? `<div class="muted">${localMoney(local.price, local.currency)}</div>` : ""}`, signClass(h.value / h.quantity - pru)) : ""}
             ${r ? cell("Gain total", signedEur(r.gain), signClass(r.gain)) : ""}
             ${label ? cell(label.term, label.text, signClass(r.xirr)) : ""}
             ${day ? cell(`<span data-term="Variation du jour">Aujourd'hui</span>`, `${signedEur(day.change)}${day.pct != null ? ` · ${pctFmt.format(day.pct)}` : ""}`, signClass(day.change)) : ""}
