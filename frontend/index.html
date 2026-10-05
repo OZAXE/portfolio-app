@@ -1688,6 +1688,12 @@
       if (a?.valuation) return analysisToRecord(a, a.ticker);
       return market?.stocks.find((x) => x.ticker === h.yahoo_ticker) || null;
     }
+    // PRU en euros, frais inclus = investi ÷ quantité (colonnes G et E de l'onglet Positions, la F rejoue les opérations) :
+    // Air Liquide, 10 actions pour 1 523 € investis -> PRU 152,30 €. En euros même pour une action en dollars, comme
+    // l'investi et la plus-value (le taux de change du jour d'achat est dans le coût). Ancien Sheet sans quantité : rien
+    function pruOf(h) {
+      return h.quantity > 0 && h.invested != null ? h.invested / h.quantity : null;
+    }
     function renderPositions() {
       let list = overview.holdings.filter((h) => !portfolioView.envelope || h.envelope === portfolioView.envelope);
       const dayOf = (h) => daily?.lines?.[dailyKey(h)];
@@ -1706,7 +1712,7 @@
         return `<button class="mrow" data-position="${escapeHtml(h.ticker)}" data-envelope="${escapeHtml(h.envelope || "")}">
             ${avatar({ ticker: h.ticker, name, sector: rec?.sector || h.sector })}
             <div style="min-width:0"><div class="name">${escapeHtml(name)}</div>
-              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
+              <div class="sub"><span style="color:${color}">●</span> ${escapeHtml(h.envelope || "")}${pruOf(h) != null ? ` · PRU ${eur.format(pruOf(h))}` : ""} · ${escapeHtml(h.sector || h.kind || "")}${h.quote_source ? ` · <span title="Google Finance ne donne pas de cours pour ce titre : valeur calculée sur la dernière clôture Yahoo">cours ${escapeHtml(h.quote_source)}</span>` : ""}</div></div>
             <div class="right"><span class="price">${h.value != null ? eur.format(h.value) : "N/A"}</span>
               ${portfolioView.sort === "day"
                 ? `<span class="pill-gain ${signClass(dayOf(h)?.change)}">${dayOf(h) ? `${pctFmt.format(dayOf(h).pct ?? 0)} · ${signedEur(dayOf(h).change)}` : "N/A"}</span>`
@@ -1725,12 +1731,15 @@
       const a = portfolioAnalyses[h.yahoo_ticker];
       const day = daily?.lines?.[dailyKey(h)], fx = daily?.currency?.lines?.[dailyKey(h)];
       const cell = (k, v, cls = "") => `<div><div class="k">${k}</div><div class="v ${cls}">${v}</div></div>`;
+      const pru = pruOf(h);
       return `<div class="poscard"><h3>Ta position${h.envelope ? ` · ${escapeHtml(h.envelope)}` : ""}</h3>
           <div class="stat">
             ${cell("Valeur", h.value != null ? eur.format(h.value) : "N/A")}
             ${cell("Plus-value latente", h.gain != null ? `${signedEur(h.gain)}${h.gain_pct != null ? ` · ${pctFmt.format(h.gain_pct)}` : ""}` : "N/A", signClass(h.gain))}
             ${cell("Investi", h.invested != null ? eur.format(h.invested) : "N/A")}
-            ${a?.quantity != null ? cell("Quantité", hideable(num(a.quantity, 6))) : ""}
+            ${(h.quantity ?? a?.quantity) != null ? cell("Quantité", hideable(num(h.quantity ?? a.quantity, 6))) : ""}
+            ${pru != null ? cell(`<span data-term="PRU">PRU</span>`, eur.format(pru)) : ""}
+            ${pru != null && h.value != null ? cell("Cours actuel", eur.format(h.value / h.quantity), signClass(h.value / h.quantity - pru)) : ""}
             ${r ? cell("Gain total", signedEur(r.gain), signClass(r.gain)) : ""}
             ${label ? cell(label.term, label.text, signClass(r.xirr)) : ""}
             ${day ? cell(`<span data-term="Variation du jour">Aujourd'hui</span>`, `${signedEur(day.change)}${day.pct != null ? ` · ${pctFmt.format(day.pct)}` : ""}`, signClass(day.change)) : ""}
