@@ -176,7 +176,7 @@ def default_tabs(today: date) -> dict:
             [serial(d), 4400 + i * 5, 4152, 1300 + i * 3, 1200, None, None, None] for i, d in enumerate(history_days)],
         "Positions": [],
         "Épargne": [workbook.SAVINGS_HEADERS],
-        "Watchlist": [["TICKER", "AJOUTÉ LE"]],
+        "Watchlist": [["TICKER", "AJOUTÉ LE"], ["ESE.PA", "2026-09-01"]],  # ETF hors screener : trouvable par la recherche
         "Allocation": [workbook.ALLOCATION_HEADERS],
         "Journal": [journal.JOURNAL_HEADERS,
                     ["AI.PA", "Leader des gaz industriels", 200, 150, "Long", (today - timedelta(days=15)).isoformat(), "", ""]],
