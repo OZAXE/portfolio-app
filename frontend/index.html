@@ -4112,6 +4112,11 @@
       }
       button.disabled = false;
       button.innerHTML = watchlist.has(ticker) ? '<span class="star">★</span> Surveillée' : '<span class="star off">☆</span> Surveiller';
+      // Action analysée en direct, hors des grands indices : le calcul de nuit l'ajoute au screener (followed.py)
+      if (!watched && watchlist.has(ticker) && market && !market.stocks.some((s) => s.ticker === ticker)
+          && !button.nextElementSibling?.classList.contains("watch-note")) {
+        button.insertAdjacentHTML("afterend", `<p class="help watch-note">Elle n'est pas dans le screener : le calcul de cette nuit l'y ajoute (score, prix juste, alertes, historique). Elle en sortira si tu ne la surveilles plus.</p>`);
+      }
       renderWatchlist();
     }
 

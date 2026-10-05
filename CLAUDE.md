@@ -184,6 +184,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
     positions et watchlist hors screener (ETF, crypto, ADR), recherche seule sans filtre ; une position ouvre sa fiche
     (`openPosition`), un titre de la watchlist l'analyse en direct, fiche réduite si Yahoo dit ETF (`quote_type`).
     « Analyser en direct » seulement pour un texte à la forme d'un ticker que rien de trouvé n'explique ;
+  - titres suivis hors univers (octobre 2026, demande d'Enzo) : `screener/followed.py` ajoute chaque nuit à la liste de
+    `run.py` les actions des watchlists de tous les utilisateurs (`/notifications/users`, code administrateur) absentes de
+    `universe.csv`, au plus `MAX_FOLLOWED` = 200 ; cryptos, indices et devises écartés d'après le ticker, région et pays
+    d'après le suffixe (`place`). Fiche marquée `followed` ; un ETF ou autre non-action est mis en erreur (`pas une action
+    (ETF)`), donc absent du Marché mais trouvable dans « Tes autres titres ». Sortie de la liste quand plus personne ne la
+    suit ; API injoignable -> titres suivis la veille gardés (`previous_entries`). `financials.py` les prend aussi (PER
+    historique, ROIC). Journaux publics : « titre suivi » à la place du ticker ; screener.json étant public, un titre
+    suivi y est visible (sans dire par qui). Message sous « Surveiller » dans la fiche (`watch-note`) ;
   - mode Simple / Détaillé (`settings.marketDensity`) : Détaillé ajoute les chiffres aux lignes et ouvre toutes
     les rubriques des fiches, Simple ajoute une phrase d'explication sous chaque ratio ;
   - fiche action plein écran (`openStock`, vue `view-stock`, retour du téléphone géré par `history.pushState`) :

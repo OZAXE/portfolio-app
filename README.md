@@ -47,7 +47,8 @@ frontend/ (site statique sur Render, installable sur téléphone)
   envoie toutes les opérations à Plus > Budget (code d'accès dans `PORTFOLIO_CODE` ou `code_acces.txt`, jamais dans le dépôt).
 - **`frontend/index.html`** : toute l'appli (HTML, CSS, JS, graphiques Chart.js).
 - **`screener/`** : scripts du calcul nocturne. `build_universe.py` construit la liste des actions
-  (`universe.csv`) à partir des indices ; à relancer à la main de temps en temps.
+  (`universe.csv`) à partir des indices ; à relancer à la main de temps en temps. `followed.py` y ajoute
+  chaque nuit les actions des watchlists absentes des indices.
 - **`tests/`** : tests automatiques, lancés par GitHub à chaque modification (`.github/workflows/tests.yml`).
 
 ### Sources de données

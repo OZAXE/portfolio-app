@@ -37,6 +37,7 @@ from app.sectors import normalize_sector  # noqa: E402
 from app.valuation import RELIABLE_RATIO_MAX, RELIABLE_RATIO_MIN, blend_fair_value, evaluate_company  # noqa: E402
 from app.metrics import fcf_yield  # noqa: E402
 from translate_profiles import keep_translation  # noqa: E402
+from followed import load_followed  # noqa: E402
 
 UNIVERSE = Path(__file__).with_name("universe.csv")
 OUTPUT_NAME = "screener.json"
@@ -124,7 +125,13 @@ def analyze(entry: dict, data_dir: Path | None = None) -> dict:
         "fundamentals_updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "error": cf.raw_error,
     }
-    if cf.raw_error:
+    if entry.get("followed"):
+        record["followed"] = True  # titre de watchlist hors univers (followed.py), retiré quand plus personne ne le suit
+        # Un ETF mis en watchlist n'a pas de comptes d'entreprise : fiche en erreur, que le Marché n'affiche pas (il
+        # le trouve dans « Tes autres titres ») ; elle garde sa date pour ne pas repasser en tête chaque nuit
+        if cf.quote_type and cf.quote_type != "EQUITY" and not cf.raw_error:
+            record["error"] = f"pas une action ({cf.quote_type})"
+    if record["error"]:
         return record
     archive = load_archive(data_dir, entry["ticker"])
     v = evaluate_company(cf, archive.get("pe_history"), archive.get("years"))
@@ -274,7 +281,11 @@ def main():
     out_path = Path(args.data_dir) / OUTPUT_NAME
     universe = load_universe()
     previous = load_previous(out_path)
+    universe += load_followed(previous, {e["ticker"] for e in universe})
     stocks = {e["ticker"]: previous.get(e["ticker"], {"ticker": e["ticker"]}) for e in universe}
+    for e in universe:
+        if e.get("followed"):  # même avant sa première analyse réussie : la liste de secours de followed.py le lit
+            stocks[e["ticker"]]["followed"] = True
     for record in stocks.values():
         for field in TRACKED_FIELDS:
             if field in record:
@@ -298,7 +309,8 @@ def main():
         try:
             record = analyze(entry, Path(args.data_dir))
         except Exception as e:  # une donnée inattendue sur une action ne doit pas arrêter tout le screener
-            log.warning("%s : analyse en erreur (%s)", entry["ticker"], e)
+            # Journaux publics : le ticker d'une watchlist n'y apparaît pas
+            log.warning("%s : analyse en erreur (%s)", "titre suivi" if entry.get("followed") else entry["ticker"], e)
             # L'analyse précédente reste affichée si elle existe ; la date avance pour passer à la suite
             record = {**stocks[entry["ticker"]], "fundamentals_updated": datetime.now(timezone.utc).isoformat(timespec="seconds")}
             if record.get("price") is None:
