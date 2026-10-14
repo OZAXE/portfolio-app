@@ -4167,6 +4167,9 @@
       const todo = (budget?.operations || []).filter((o) => o.kind === "a_categoriser").length;
       if (todo) items.push({ icon: "🧾", tone: "warn", go: "budget", key: `budget:${budget.sent}`, text: `${todo} opération${todo > 1 ? "s" : ""} à catégoriser dans ton budget`,
         sub: "Elles se règlent avec ta tâche du mois" });
+      const brief = freshBrief();
+      if (brief) items.push({ icon: "📰", tone: "info", go: "briefs", key: `brief:${brief.id}`, text: "Nouveau brief à lire",
+        sub: `Le point marchés de la semaine du ${briefWeek(brief)}` });
       const held = new Set((overview?.holdings || []).map((h) => (h.yahoo_ticker || "").toUpperCase()));
       for (const st of market?.stocks || []) {
         if (!held.has(st.ticker)) continue;
@@ -4220,7 +4223,11 @@
       }
       const row = e.target.closest(".watch-main");
       if (!row) return;
-      if (row.dataset.watchGo === "budget") {
+      if (row.dataset.watchGo === "briefs") {
+        document.getElementById("briefs-reader").hidden = true;
+        document.getElementById("briefs-list-view").hidden = false;
+        showView("briefs");
+      } else if (row.dataset.watchGo === "budget") {
         showView("settings");
         openSettingsPage("budget");
       } else if (row.dataset.watchGo === "concentration") {
@@ -6245,22 +6252,59 @@
       tab.hidden = !briefs.length;
       if (tab.hidden && location.hash === "#briefs") showView("home");
       status.hidden = true;
-      // Briefs lus d'un dossier qui n'existent plus (supprimés du Drive) : oubliés, la liste ne grossit pas sans fin
-      const ids = new Set(briefs.map((b) => b.id));
-      const kept = Object.fromEntries(Object.entries(settings.readBriefs || {}).filter(([id]) => ids.has(id)));
-      if (Object.keys(kept).length !== Object.keys(settings.readBriefs || {}).length) { settings.readBriefs = kept; saveSettings(); }
       renderBriefs();
+      loadBriefReads();
     }
 
-    // Case « Lu » (demande d'Enzo, octobre 2026) : mémorisée sur l'appareil (settings.readBriefs, id -> date de lecture),
-    // comme les lignes masquées de « À regarder ». Cochée à la main : ouvrir un brief pour y jeter un œil ne le marque pas lu.
+    // Case « Lu » (demande d'Enzo, octobre 2026) : rangée dans le Sheet (onglet « Briefs lus », routes /briefs/read),
+    // donc la même sur le téléphone et le PC. settings.readBriefs (id -> date de lecture) en garde une copie pour
+    // afficher tout de suite, avant la réponse de Render qui peut dormir. Cochée à la main : ouvrir un brief pour y
+    // jeter un œil ne le marque pas lu.
     const isBriefRead = (id) => Boolean(settings.readBriefs?.[id]);
-    function setBriefRead(id, read) {
-      const marks = { ...(settings.readBriefs || {}) };
-      if (read) marks[id] = new Date().toISOString().slice(0, 10); else delete marks[id];
+    function storeBriefReads(marks) {
       settings.readBriefs = marks;
       saveSettings();
       renderBriefs();
+      renderAlertsList();
+    }
+    async function loadBriefReads() {
+      try {
+        let marks = await api("/briefs/read");
+        // Première fois : les cases cochées sur cet appareil avant le Sheet (première version, octobre 2026) y passent
+        if (!settings.readBriefsSynced) {
+          const ids = new Set(briefs.map((b) => b.id));
+          for (const id of Object.keys(settings.readBriefs || {})) {
+            if (ids.has(id) && !marks[id]) marks = await postJson("/briefs/read", { id, read: true });
+          }
+          settings.readBriefsSynced = true;
+        }
+        storeBriefReads(marks);
+      } catch { /* Sheet injoignable : la copie de l'appareil reste affichée */ }
+    }
+    async function setBriefRead(id, read) {
+      const before = settings.readBriefs || {};
+      const marks = { ...before };
+      if (read) marks[id] = new Date().toISOString().slice(0, 10); else delete marks[id];
+      storeBriefReads(marks);  // tout de suite, sans attendre le Sheet
+      try {
+        storeBriefReads(await postJson("/briefs/read", { id, read }));
+      } catch (e) {
+        storeBriefReads(before);
+        const status = document.getElementById("briefs-status");
+        status.hidden = false;
+        status.textContent = "Case non enregistrée : " + e.message;
+      }
+    }
+    // « Semaine du 5 octobre » : le brief est publié le samedi, il parle de la semaine commencée le lundi
+    function briefWeek(b) {
+      const day = new Date(b.date + "T12:00:00");
+      const monday = new Date(day.getTime() - ((day.getDay() + 6) % 7) * 864e5);
+      return monday.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    }
+    // Le plus récent, publié il y a moins de 8 jours et pas encore lu : badge « Nouveau » et ligne de « À regarder »
+    function freshBrief() {
+      const b = briefs?.[0];
+      return b && !isBriefRead(b.id) && Date.now() - new Date(b.date + "T12:00:00").getTime() < 8 * 864e5 ? b : null;
     }
 
     function renderBriefs() {
@@ -6270,11 +6314,9 @@
         ? `Le point marchés de la semaine · ${unread} à lire` : "Le point marchés de la semaine · tout est lu";
       document.getElementById("briefs-list").innerHTML = briefs.map((b, i) => {
         const day = new Date(b.date + "T12:00:00");
-        const monday = new Date(day.getTime() - ((day.getDay() + 6) % 7) * 864e5);
         const read = isBriefRead(b.id);
-        // « Nouveau » : le plus récent, publié il y a moins de 8 jours, et pas encore lu
-        const fresh = i === 0 && !read && Date.now() - day.getTime() < 8 * 864e5;
-        const week = monday.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+        const fresh = i === 0 && freshBrief() === b;
+        const week = briefWeek(b);
         return `
         <div class="card brief-item${read ? " read" : ""}">
           <button class="brief-open" data-id="${escapeHtml(b.id)}" title="${escapeHtml(longDate.format(day))}">

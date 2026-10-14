@@ -26,6 +26,8 @@ Endpoints prévus pour le MVP :
 - GET /budget, POST /budget/import -> comptes du mois envoyés par scripts/envoyer_budget.py (admin)
 - GET /briefs               -> liste des briefs hebdo (dossier Drive "Briefs")
 - GET /briefs/{id}          -> contenu HTML d'un brief
+- GET /briefs/read          -> briefs cochés « Lu » (onglet « Briefs lus » du Sheet)
+- POST /briefs/read         -> coche ou décoche un brief ({id, read})
 """
 
 import copy
@@ -309,6 +311,27 @@ def get_briefs(user: User = Depends(require_access)):
     if not user.briefs_folder:
         return []
     return _briefs_errors(lambda: list_briefs(user.briefs_folder))
+
+
+# Case « Lu » de chaque brief, rangée dans le Sheet (brief_reads.py) : la même sur tous les appareils
+@app.get("/briefs/read")
+def get_brief_reads(user: User = Depends(require_access)):
+    from .brief_reads import list_reads
+
+    return _sheet_call(lambda: list_reads(user.sheet_id))
+
+
+@app.post("/briefs/read")
+def post_brief_read(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .brief_reads import set_read
+
+    if not user.briefs_folder:
+        raise HTTPException(status_code=404, detail="Pas de dossier de briefs pour cet utilisateur")
+    brief_id = str(payload.get("id") or "")
+    brief = next((b for b in _briefs_errors(lambda: list_briefs(user.briefs_folder)) if b["id"] == brief_id), None)
+    if brief is None:
+        raise HTTPException(status_code=404, detail="Brief introuvable")
+    return _sheet_call(lambda: set_read(user.sheet_id, brief, bool(payload.get("read"))))
 
 
 @app.get("/briefs/{brief_id}", response_class=HTMLResponse)

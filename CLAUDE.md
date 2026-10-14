@@ -491,9 +491,13 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   de Render ni d'écriture par le compte de service. Version publique soumise à une liste de contrôle d'anonymat
   (`docs/ajouter-un-ami.md`), relue par Enzo les premières semaines. Tests : `tests/test_briefs.py`.
   Case « Lu » (octobre 2026, demande d'Enzo) : sur chaque ligne de la liste et sous le brief dans le lecteur, cochée
-  à la main (ouvrir ne marque pas lu). Mémorisée **sur l'appareil** (`settings.readBriefs`, id -> date, ids disparus du
-  Drive oubliés), pas dans le Sheet : un brief lu sur le téléphone reste à lire sur le PC. Un brief lu perd « Nouveau » ;
-  l'entrée de Plus dit « n à lire » (`renderBriefs`).
+  à la main (ouvrir ne marque pas lu). Rangée dans le Sheet (choix d'Enzo : la même sur téléphone et PC) : onglet
+  « Briefs lus » créé au premier brief coché (`brief_reads.py`, une ligne par brief lu, décocher la supprime), routes
+  `GET` / `POST /briefs/read` ; le serveur ne garde que les identifiants présents dans la liste Drive (rien d'inventé
+  écrit dans le Sheet). Le front affiche d'abord sa copie (`settings.readBriefs`), puis celle du Sheet ; les cases
+  cochées sur l'appareil avant (première version, locale) passent une fois dans le Sheet (`readBriefsSynced`). Un brief
+  lu perd « Nouveau » ; l'entrée de Plus dit « n à lire » (`renderBriefs`) ; « Nouveau brief à lire » dans À regarder
+  tant que le brief de moins de 8 jours n'est pas coché (`freshBrief`, clé `brief:<id>`).
 
 ## Tester le front (banc Playwright)
 
