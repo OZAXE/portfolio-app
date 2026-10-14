@@ -490,6 +490,10 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Google Drive** du compte propriétaire, `disableConversionToGoogleType: true` (sinon Google Doc ignoré) ; pas besoin
   de Render ni d'écriture par le compte de service. Version publique soumise à une liste de contrôle d'anonymat
   (`docs/ajouter-un-ami.md`), relue par Enzo les premières semaines. Tests : `tests/test_briefs.py`.
+  Case « Lu » (octobre 2026, demande d'Enzo) : sur chaque ligne de la liste et sous le brief dans le lecteur, cochée
+  à la main (ouvrir ne marque pas lu). Mémorisée **sur l'appareil** (`settings.readBriefs`, id -> date, ids disparus du
+  Drive oubliés), pas dans le Sheet : un brief lu sur le téléphone reste à lire sur le PC. Un brief lu perd « Nouveau » ;
+  l'entrée de Plus dit « n à lire » (`renderBriefs`).
 
 ## Tester le front (banc Playwright)
 

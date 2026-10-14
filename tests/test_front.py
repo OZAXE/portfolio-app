@@ -197,6 +197,24 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.go_back()
     page.wait_for_selector("#settings-home:not([hidden])")
 
+    # Plus > Briefs : case « Lu » dans la liste et dans le lecteur, le compte « à lire » de Plus suit
+    assert "2 à lire" in page.inner_text("#briefs-entry")
+    page.click("#briefs-entry [data-goto=briefs]")
+    page.wait_for_selector("#briefs-list .brief-item")
+    assert visible_count(page, "#briefs-list .new") == 1
+    page.check('#briefs-list [data-read="b1"]')
+    assert visible_count(page, "#briefs-list .new") == 0  # lu : plus « Nouveau »
+    assert "1 à lire" in page.inner_text("#briefs-entry-sub")
+    page.click('#briefs-list .brief-open[data-id="b2"]')
+    page.wait_for_selector("#briefs-reader:not([hidden])")
+    assert not page.is_checked("#brief-read-box")
+    page.check("#brief-read-box")
+    page.click("#briefs-back")
+    assert page.is_checked('#briefs-list [data-read="b2"]') and "tout est lu" in page.inner_text("#briefs-entry-sub")
+    page.uncheck('#briefs-list [data-read="b1"]')
+    assert "1 à lire" in page.inner_text("#briefs-entry-sub")
+    page.click("#tabbar [data-view=settings]")
+
     # Essentiel masque l'onglet Perf., Complet le remet
     page.click("#detail-mode [data-detail=essentiel]")
     page.click("#tabbar [data-view=portfolio]")
@@ -214,4 +232,4 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     server_errors = [c for c in api_calls if c[2] >= 500]
     assert server_errors == [], f"erreurs 500 de l'API : {server_errors}"
     called = {re.sub(r"\?.*", "", path) for _, path, _ in api_calls}
-    assert {"/portfolio/overview", "/portfolio/dividends", "/transactions", "/journal", "/budget"} <= called
+    assert {"/portfolio/overview", "/portfolio/dividends", "/transactions", "/journal", "/budget", "/briefs"} <= called
