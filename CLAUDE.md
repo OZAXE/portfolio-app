@@ -500,6 +500,10 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   tant que le brief de moins de 8 jours n'est pas coché (`freshBrief`, clé `brief:<id>`).
   Sous le brief, à côté de la case, un second bouton « ← Tous les briefs » (classe `briefs-back`, demande d'Enzo) :
   plus besoin de remonter un long brief pour revenir à la liste, ramenée en haut de page.
+  Section « Fiscalité : ce qui bouge » (octobre 2026, choix d'Enzo) : consigne de la tâche planifiée dans
+  `docs/consigne-fiscalite-briefs.md` (rien dans l'appli). Chaque semaine avant l'agenda, perso et publique à
+  l'identique ; 3 nouveautés au plus (épargne, ménages, entreprises cotées, énergie), votées ou en débat avec leur
+  stade, reprises les semaines calmes ; « Comprendre » sur la nouveauté principale, sinon programme en rotation.
 
 ## Tester le front (banc Playwright)
 
