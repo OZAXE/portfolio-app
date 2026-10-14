@@ -286,7 +286,12 @@ def make_client(monkeypatch, tabs=None):
     client = type("Client", (), {"open_by_key": lambda self, key: sheet})()
     monkeypatch.setattr(sheets, "sheets_client", lambda write=False: client)
     monkeypatch.setattr(workbook, "sheets_client", sheets.sheets_client)
-    user = User("Enzo", None, "s", admin=True)
+    # Deux briefs hebdo (dossier Drive remplacé) : le plus récent publié samedi dernier
+    saturday = date.today() - timedelta(days=(date.today().weekday() - 5) % 7)
+    listed = [{"id": "b1", "date": saturday.isoformat()}, {"id": "b2", "date": (saturday - timedelta(days=7)).isoformat()}]
+    monkeypatch.setattr(main, "list_briefs", lambda folder: listed)
+    monkeypatch.setattr(main, "get_brief_html", lambda folder, i: f"<html><head></head><body><h1>Brief {i}</h1></body></html>")
+    user = User("Enzo", None, "s", admin=True, briefs_folder="briefs")
     monkeypatch.setattr(main, "resolve", lambda token: user)
     sheets.clear_sheet_cache()
     return TestClient(main.app), sheet
