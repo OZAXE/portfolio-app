@@ -501,9 +501,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Sous le brief, à côté de la case, un second bouton « ← Tous les briefs » (classe `briefs-back`, demande d'Enzo) :
   plus besoin de remonter un long brief pour revenir à la liste, ramenée en haut de page.
   Section « Fiscalité : ce qui bouge » (octobre 2026, choix d'Enzo) : consigne de la tâche planifiée dans
-  `docs/consigne-fiscalite-briefs.md` (rien dans l'appli). Chaque semaine avant l'agenda, perso et publique à
-  l'identique ; 3 nouveautés au plus (épargne, ménages, entreprises cotées, énergie), votées ou en débat avec leur
-  stade, reprises les semaines calmes ; « Comprendre » sur la nouveauté principale, sinon programme en rotation.
+  `docs/consigne-fiscalite-briefs.md` (rien dans l'appli ; la consigne complète de la tâche contient des identifiants
+  Drive, jamais dans le dépôt). Section 7, juste avant « À surveiller », perso et publique à l'identique (au « on ») ;
+  3 nouveautés au plus (épargne, ménages, entreprises cotées, énergie), votées ou en débat avec leur stade, reprises les
+  semaines calmes ; « Comprendre » sur la nouveauté principale, sinon programme en rotation ; mémoire = journal local
+  de la tâche et son « JOURNAL DE L'ÉDITION » ; 300 à 400 mots (brief limité à 5-7 min de lecture, 40 Ko).
 
 ## Tester le front (banc Playwright)
 
