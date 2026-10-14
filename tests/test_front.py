@@ -82,6 +82,7 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.wait_for_function("document.getElementById('alerts').textContent.includes('à catégoriser dans ton budget')")
     page.wait_for_selector("#home-tiles .tile")
     assert "Revenu sur 12 mois" in page.inner_text("#home-tiles")
+    page.wait_for_function("document.getElementById('alerts').textContent.includes('Nouveau brief à lire')")
 
     # Masquer une ligne de « À regarder », puis tout réafficher
     before = page.locator("#alerts .watch-row").count()
@@ -197,14 +198,17 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.go_back()
     page.wait_for_selector("#settings-home:not([hidden])")
 
-    # Plus > Briefs : case « Lu » dans la liste et dans le lecteur, le compte « à lire » de Plus suit
+    # Briefs : la ligne « Nouveau brief à lire » de l'Accueil ouvre la liste ; case « Lu » dans la liste et dans le
+    # lecteur, le compte « à lire » de Plus suit, et la ligne de l'Accueil disparaît une fois le brief lu
     assert "2 à lire" in page.inner_text("#briefs-entry")
-    page.click("#briefs-entry [data-goto=briefs]")
-    page.wait_for_selector("#briefs-list .brief-item")
+    page.click("#tabbar [data-view=home]")
+    page.click("#alerts .watch-main:has-text('Nouveau brief')")
+    page.wait_for_selector("#view-briefs:not([hidden]) #briefs-list .brief-item")
     assert visible_count(page, "#briefs-list .new") == 1
     page.check('#briefs-list [data-read="b1"]')
     assert visible_count(page, "#briefs-list .new") == 0  # lu : plus « Nouveau »
     assert "1 à lire" in page.inner_text("#briefs-entry-sub")
+    assert "Nouveau brief" not in page.inner_text("#alerts")
     page.click('#briefs-list .brief-open[data-id="b2"]')
     page.wait_for_selector("#briefs-reader:not([hidden])")
     assert not page.is_checked("#brief-read-box")
@@ -212,7 +216,18 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click("#briefs-back")
     assert page.is_checked('#briefs-list [data-read="b2"]') and "tout est lu" in page.inner_text("#briefs-entry-sub")
     page.uncheck('#briefs-list [data-read="b1"]')
-    assert "1 à lire" in page.inner_text("#briefs-entry-sub")
+    page.wait_for_function("document.getElementById('briefs-entry-sub').textContent.includes('1 à lire')")
+    # Rangé dans le Sheet : sans la copie de l'appareil, la page rechargée retrouve b2 lu et b1 à lire
+    for _ in range(100):  # trois cases enregistrées (b1 coché, b2 coché, b1 décoché) avant de recharger
+        if sum(1 for c in api_calls if c[:2] == ("POST", "/briefs/read") and c[2] == 200) == 3:
+            break
+        page.wait_for_timeout(100)
+    page.evaluate("""() => { const k = 'portfolio-insights-settings'; const s = JSON.parse(localStorage.getItem(k));
+                             delete s.readBriefs; localStorage.setItem(k, JSON.stringify(s)); }""")
+    page.reload()
+    page.wait_for_selector("#view-briefs:not([hidden]) #briefs-list .brief-item")
+    page.wait_for_function("document.querySelector('#briefs-list [data-read=\"b2\"]').checked")
+    assert not page.is_checked('#briefs-list [data-read="b1"]')
     page.click("#tabbar [data-view=settings]")
 
     # Essentiel masque l'onglet Perf., Complet le remet
