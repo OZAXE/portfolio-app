@@ -498,6 +498,8 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   cochées sur l'appareil avant (première version, locale) passent une fois dans le Sheet (`readBriefsSynced`). Un brief
   lu perd « Nouveau » ; l'entrée de Plus dit « n à lire » (`renderBriefs`) ; « Nouveau brief à lire » dans À regarder
   tant que le brief de moins de 8 jours n'est pas coché (`freshBrief`, clé `brief:<id>`).
+  Sous le brief, à côté de la case, un second bouton « ← Tous les briefs » (classe `briefs-back`, demande d'Enzo) :
+  plus besoin de remonter un long brief pour revenir à la liste, ramenée en haut de page.
 
 ## Tester le front (banc Playwright)
 
