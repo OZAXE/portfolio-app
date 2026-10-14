@@ -213,7 +213,8 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.wait_for_selector("#briefs-reader:not([hidden])")
     assert not page.is_checked("#brief-read-box")
     page.check("#brief-read-box")
-    page.click("#briefs-back")
+    page.click("#briefs-back-bottom")  # bouton sous le brief, le même que celui du haut
+    page.wait_for_selector("#briefs-list-view:not([hidden])")
     assert page.is_checked('#briefs-list [data-read="b2"]') and "tout est lu" in page.inner_text("#briefs-entry-sub")
     page.uncheck('#briefs-list [data-read="b1"]')
     page.wait_for_function("document.getElementById('briefs-entry-sub').textContent.includes('1 à lire')")

@@ -524,7 +524,9 @@
     .brief-read { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; font-size: 12px; color: var(--muted); cursor: pointer; }
     .brief-read input, .reader-read input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); cursor: pointer; }
     .brief-item.read .title, .brief-item.read .bdate b { color: var(--muted); }
-    .reader-read { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 8px 0 16px; font-size: 14px; cursor: pointer; }
+    .reader-read { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; cursor: pointer; }
+    .reader-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 0 16px; }
+    .reader-foot .btn { margin-top: 0; }
     .brief-item .bdate { background: var(--card-2); border-radius: 10px; text-align: center; padding: 6px 0; line-height: 1.1; }
     .brief-item .bdate b { display: block; font-size: 18px; }
     .brief-item .bdate span { font-size: 12px; color: var(--muted); text-transform: uppercase; }
@@ -1006,12 +1008,16 @@
       </div>
       <div id="briefs-reader" hidden>
         <header class="reader-head">
-          <button class="btn" id="briefs-back">← Tous les briefs</button>
+          <button class="btn briefs-back" id="briefs-back">← Tous les briefs</button>
           <span class="muted" id="briefs-reader-date"></span>
         </header>
         <iframe id="brief-frame" title="Brief hebdo" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
         <!-- Sous le brief : c'est là qu'on arrive une fois la lecture finie -->
-        <label class="reader-read"><input type="checkbox" id="brief-read-box"> J'ai lu ce brief</label>
+        <footer class="reader-foot">
+          <label class="reader-read"><input type="checkbox" id="brief-read-box"> J'ai lu ce brief</label>
+          <!-- Même bouton qu'en haut : pas besoin de remonter tout le brief pour revenir à la liste (demande d'Enzo) -->
+          <button class="btn briefs-back" id="briefs-back-bottom">← Tous les briefs</button>
+        </footer>
       </div>
     </section>
 
@@ -6367,10 +6373,13 @@
       if (e.target.dataset.read) setBriefRead(e.target.dataset.read, e.target.checked);
     });
     document.getElementById("brief-read-box").addEventListener("change", (e) => setBriefRead(e.target.dataset.id, e.target.checked));
-    document.getElementById("briefs-back").addEventListener("click", () => {
+    // Retour à la liste : bouton du haut et bouton sous le brief. Remis en haut de page, sinon on arrive au milieu de la
+    // liste en venant du bas d'un long brief.
+    document.querySelectorAll(".briefs-back").forEach((button) => button.addEventListener("click", () => {
       document.getElementById("briefs-reader").hidden = true;
       document.getElementById("briefs-list-view").hidden = false;
-    });
+      window.scrollTo(0, 0);
+    }));
 
     // --- Lexique : explication de chaque indicateur (toucher un libellé, ou Réglages > Lexique) ---
     const GLOSSARY = [
