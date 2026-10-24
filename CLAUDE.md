@@ -166,6 +166,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   d'Enzo) = colonnes investi de l'onglet Historique (prix payé pour les titres détenus ce jour-là, frais
   compris, pas les versements en espèces que l'appli ne suit pas) : une courbe en pointillés par enveloppe
   affichée, de sa couleur ; grisée en mode Performance et sur un historique à l'ancien format.
+  Période (octobre 2026, demande d'Enzo) : boutons 1S / 1M / 6M / 1A / Tout sous la courbe (`HISTORY_PERIODS`,
+  `inPeriod`, `settings.historyPeriod`, « Tout » par défaut), aussi en comparaison à un indice ; le dernier relevé
+  d'avant la période sert de point de départ. Pas de « 1 jour » : un relevé par jour de bourse (2 points) ; la variation
+  du jour est la ligne « Aujourd'hui » de l'Accueil. En mode Performance, le % reste la plus-value depuis l'achat
+  (pas la performance de la période, qui est dans Perf.).
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont

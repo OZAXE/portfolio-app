@@ -273,7 +273,8 @@
     .price-box { position: relative; height: 200px; margin-top: 8px; }
     .price-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; color: var(--muted); padding: 0 12px; }
     .price-status[hidden] { display: none; }
-    .price-card .segmented { display: flex; margin-top: 8px; }
+    .price-card .segmented, .segmented.chart-periods { display: flex; margin-top: 8px; }
+    .segmented.chart-periods button { flex: 1; }
     .price-card .segmented button { flex: 1; }
     .price-card .hypotheses { margin-top: 6px; font-size: 13px; color: var(--muted); }
     /* Puces des graphiques de la fiche : allumée = courbe affichée, grisée = impossible à tracer */
@@ -787,6 +788,7 @@
           </div>
           <div class="line-chips" id="chart-legend" style="margin-top:10px"></div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
+          <div class="segmented chart-periods" id="history-periods"></div>
           <p class="help" id="bench-summary" style="margin-top:8px"></p>
           <p class="help" id="history-auto-status" style="margin-top:6px"></p>
         </div>
@@ -1529,7 +1531,7 @@
         }
       }
       const data = benchmarkData[benchmarkKey];
-      const pts = data.points;
+      const pts = inPeriod(data.points);
       if (!pts.length) { summary.textContent = "Aucune opération datée à comparer."; return; }
       const pct = chartMode === "pct";
       const series = [
@@ -1597,12 +1599,39 @@
       }];
     }
 
+    // Période de la courbe (demande d'Enzo : tout l'historique seulement, illisible pour voir la dernière semaine).
+    // Pas de « 1 jour » : un relevé par jour de bourse, la courbe d'un jour n'aurait que 2 points (hier soir et
+    // maintenant) ; la variation du jour est sur la ligne « Aujourd'hui » de l'Accueil (/portfolio/daily).
+    const HISTORY_PERIODS = [["1S", 0, 7], ["1M", 1], ["6M", 6], ["1A", 12], ["Tout"]];
+    function periodStart(key) {
+      const [, months, days] = HISTORY_PERIODS.find(([k]) => k === key) || [];
+      if (months == null) return null;
+      const d = new Date();
+      if (days) d.setDate(d.getDate() - days); else d.setMonth(d.getMonth() - months);
+      return d.toLocaleDateString("sv-SE");
+    }
+    // Garde le dernier relevé d'avant la période comme point de départ : sur 1S un lundi, la courbe part de la
+    // clôture du lundi précédent au lieu du mardi. Moins de 2 points dans la période (historique récent) : tout
+    function inPeriod(points) {
+      const since = periodStart(settings.historyPeriod || "Tout");
+      if (!since) return points;
+      const from = points.findIndex((p) => p.date >= since);
+      if (from < 0) return points.slice(-2);
+      return from > 0 ? points.slice(from - (points[from].date > since ? 1 : 0)) : points;
+    }
+    function renderHistoryPeriods() {
+      const current = settings.historyPeriod || "Tout";
+      document.getElementById("history-periods").innerHTML = HISTORY_PERIODS.map(([key]) =>
+        `<button data-period="${key}" class="${key === current ? "active" : ""}" aria-pressed="${key === current}">${key}</button>`).join("");
+    }
+
     const livePointTime = (points) => { const last = points[points.length - 1]; return last?.live ? new Date(last.date).getTime() : null; };
 
     function renderChart() {
+      renderHistoryPeriods();
       if (benchmarkKey) { renderBenchmarkChart(); return; }
       document.getElementById("bench-summary").textContent = "";
-      const points = withLivePoint(overview.history);
+      const points = inPeriod(withLivePoint(overview.history));
       // Montant investi (prix payé pour les titres détenus ce jour-là, frais compris) : une courbe en pointillés
       // par enveloppe affichée, de sa couleur ; l'écart avec la valeur est la plus-value latente.
       // Absent des historiques à l'ancien format (sans colonnes « investi ») et sans objet en Performance
@@ -1678,6 +1707,14 @@
       const chip = e.target.closest("button[data-line]");
       if (!chip) return;
       toggleLine(chip.dataset.line);
+      renderChart();
+    });
+
+    document.getElementById("history-periods").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-period]");
+      if (!b) return;
+      settings.historyPeriod = b.dataset.period;
+      saveSettings();
       renderChart();
     });
 
