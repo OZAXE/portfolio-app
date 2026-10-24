@@ -94,6 +94,16 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     # Portefeuille : trois lignes, puis les sous-onglets Perf. et Répartition
     page.click("#tabbar [data-view=portfolio]")
     page.wait_for_function("document.querySelectorAll('#positions [data-position]').length === 3")
+    # Période de la courbe : historique des 40 derniers jours (jours ouvrés, jusqu'à la veille) + point en direct.
+    # « Tout » les garde tous ; « 1S » ne garde que la dernière semaine, plus le relevé d'avant comme départ (6 à 7 points)
+    total_points = "chart.data.datasets[0].data.length"
+    page.click("#history-periods [data-period=Tout]")
+    full = page.evaluate(total_points)
+    assert full >= 25
+    page.click("#history-periods [data-period='1S']")
+    assert 5 <= page.evaluate(total_points) <= 8
+    page.click("#history-periods [data-period=Tout]")
+    assert page.evaluate(total_points) == full
     page.click("#portfolio-tabs [data-ptab=performance]")
     page.wait_for_function("!/Chargement|Ouvre cet onglet/.test(document.getElementById('stats-periods').textContent)")
     page.click("#portfolio-tabs [data-ptab=repartition]")
