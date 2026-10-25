@@ -183,6 +183,11 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Perf. ; % = indice pondéré par le temps de la période ; PEA et CTO en dessous quand leurs puces sont allumées.
   « depuis le <date> » si l'historique commence après le début de la période. En comparaison : portefeuille et
   indice « avec le même argent », flux = écart du montant investi de `/portfolio/performance`.
+  Mini-courbe de l'Accueil (octobre 2026, demande d'Enzo) : mêmes boutons de période (`#spark-periods`,
+  `settings.sparkPeriod`, 1 an par défaut, indépendante du Portefeuille) et gain de la période en euros dessous ;
+  couleur d'après ce gain (achats retirés). `inPeriod` / `periodGain` / `periodWhen` prennent la période en paramètre.
+  Bug corrigé au passage : `el.hidden = false` ne fait rien sur un SVG (pas de propriété `hidden`), la mini-courbe
+  n'était jamais affichée ; utiliser `toggleAttribute("hidden", ...)` sur un élément SVG.
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont

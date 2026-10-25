@@ -578,7 +578,11 @@
     #home-hello { font-size: 24px; margin-top: 2px; }
     .hero-home .day { font-size: 16px; margin-top: 6px; }
     .hero-home .spark { display: block; width: 100%; height: 56px; margin: 10px 0 4px; overflow: visible; }
-    .hero-home .spark[hidden] { display: none; }
+    .hero-home .spark[hidden], .hero-home .chart-periods[hidden] { display: none; }
+    .hero-home .chart-periods { margin: 4px 0 8px; }
+    .spark-change { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .spark-change:empty { display: none; }
+    .spark-change .when { font-weight: 400; color: var(--muted); }
     .hero-home .gain { font-size: 14px; }
     .link-btn { background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; min-height: 36px; padding: 0 0 0 12px; cursor: pointer; }
     .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 10px; }
@@ -716,6 +720,8 @@
           <div class="value" id="total-value"></div>
           <div class="day" id="day-change" hidden></div>
           <svg class="spark" id="home-spark" viewBox="0 0 300 56" preserveAspectRatio="none" aria-hidden="true" hidden></svg>
+          <div class="segmented chart-periods" id="spark-periods" hidden></div>
+          <div class="spark-change" id="spark-change"></div>
           <div class="gain" id="total-gain"></div>
           <div class="returns" id="total-returns" hidden></div>
         </div>
@@ -1456,7 +1462,7 @@
       settings.privacy = !settings.privacy;
       saveSettings();
       applyPrivacy();
-      if (overview) { renderChart(); renderProjection(); }
+      if (overview) { renderChart(); renderSpark(); renderProjection(); }
       if (settingsPage === "budget" && budget) renderBudget();  // axe du graphique en texte SVG
     });
     applyPrivacy();
@@ -1616,17 +1622,18 @@
     }
     // Garde le dernier relevé d'avant la période comme point de départ : sur 1S un lundi, la courbe part de la
     // clôture du lundi précédent au lieu du mardi. Moins de 2 points dans la période (historique récent) : tout
-    function inPeriod(points) {
-      const since = periodStart(settings.historyPeriod || "Tout");
+    const historyPeriod = () => settings.historyPeriod || "Tout";
+    function inPeriod(points, key = historyPeriod()) {
+      const since = periodStart(key);
       if (!since) return points;
       const from = points.findIndex((p) => p.date >= since);
       if (from < 0) return points.slice(-2);
       return from > 0 ? points.slice(from - (points[from].date > since ? 1 : 0)) : points;
     }
+    const periodButtons = (current) => HISTORY_PERIODS.map(([key]) =>
+      `<button data-period="${key}" class="${key === current ? "active" : ""}" aria-pressed="${key === current}">${key}</button>`).join("");
     function renderHistoryPeriods() {
-      const current = settings.historyPeriod || "Tout";
-      document.getElementById("history-periods").innerHTML = HISTORY_PERIODS.map(([key]) =>
-        `<button data-period="${key}" class="${key === current ? "active" : ""}" aria-pressed="${key === current}">${key}</button>`).join("");
+      document.getElementById("history-periods").innerHTML = periodButtons(historyPeriod());
     }
 
     // Mode Performance (demande d'Enzo) : la courbe part de 0 % au début de la période choisie. Pas valeur / investi - 1
@@ -1641,7 +1648,7 @@
       perfIndexLoading = api("/portfolio/index")
         .then((data) => { perfIndex = data?.envelopes ? data : { failed: "historique à l'ancien format" }; })
         .catch((e) => { perfIndex = { failed: e.message }; })
-        .finally(() => { perfIndexLoading = null; if (!benchmarkKey) renderChart(); });
+        .finally(() => { perfIndexLoading = null; renderSpark(); if (!benchmarkKey) renderChart(); });
     }
 
     // Variation de la période en euros (demande d'Enzo) au-dessus de la courbe, en Valeur comme en Performance :
@@ -1649,17 +1656,19 @@
     // « Gain » de l'onglet Perf. Exemple : 10 000 € au départ, 11 500 € à la fin dont 1 000 € achetés -> +500 €.
     // Le % est la performance pondérée par le temps de la période (celle du mode Performance)
     const HISTORY_PERIOD_LABELS = { "1S": "sur 1 semaine", "1M": "sur 1 mois", "6M": "sur 6 mois", "1A": "sur 1 an" };
-    function periodGain(rows) {
-      const kept = inPeriod(rows);
+    function periodGain(rows, key = historyPeriod()) {
+      const kept = inPeriod(rows, key);
       if (kept.length < 2) return null;
       const first = kept[0], last = kept[kept.length - 1];
       return { gain: last.value - first.value - (last.flow - first.flow), pct: last.idx / first.idx - 1, from: first.date };
     }
-    function periodWhen(from) {
-      const key = settings.historyPeriod || "Tout", since = periodStart(key);
+    function periodWhen(from, key = historyPeriod()) {
+      const since = periodStart(key);
       if (!since || from > since) return `depuis le ${dayFmt.format(new Date(from + "T12:00:00"))}`;
       return HISTORY_PERIOD_LABELS[key];
     }
+    const envelopeGain = (name, key) => periodGain((perfIndex.envelopes[name] || [])
+      .map(([date, idx, value, flow]) => ({ date, idx, value, flow })), key);
     const gainHtml = (g) => `<span class="${g.gain >= 0 ? "positive" : "negative"}">${signedEur(g.gain)}</span> `
       + `<span class="muted">(${pctFmt.format(g.pct)})</span>`;
     function renderHistoryChange(benchData) {
@@ -1675,7 +1684,7 @@
         return;
       }
       if (!perfIndex?.envelopes) { el.innerHTML = ""; if (!perfIndex) loadPerfIndex(); return; }
-      const of = (name) => periodGain((perfIndex.envelopes[name] || []).map(([date, idx, value, flow]) => ({ date, idx, value, flow })));
+      const of = (name) => envelopeGain(name);
       const total = of("Total");
       if (!total) { el.innerHTML = ""; return; }
       const parts = [["p-pea", "PEA"], ["p-cto", "CTO"]].filter(([key, name]) => lineShown(key) && perfIndex.envelopes[name])
@@ -4378,19 +4387,39 @@
       }
     });
 
-    // Mini-courbe de l'Accueil : valeur totale sur un an (onglet Historique + point du jour), verte si elle monte
+    // Mini-courbe de l'Accueil : valeur totale (onglet Historique + point du jour) sur la période choisie sous la
+    // courbe (demande d'Enzo, 1 an par défaut comme avant, `settings.sparkPeriod`, indépendante de celle du Portefeuille),
+    // avec le gain de la période en euros. Couleur d'après ce gain, achats et ventes retirés : avant, un versement de
+    // 1 000 € dans une semaine de baisse mettait la courbe en vert. Sans /portfolio/index : d'après la valeur
+    const sparkPeriod = () => settings.sparkPeriod || "1A";
     function renderSpark() {
-      const el = document.getElementById("home-spark");
-      const since = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
-      const pts = withLivePoint(overview.history || []).filter((p) => p.date >= since && p.total_value != null);
-      if (pts.length < 2) { el.hidden = true; return; }
+      const el = document.getElementById("home-spark"), periods = document.getElementById("spark-periods");
+      const change = document.getElementById("spark-change");
+      if (!overview) return;
+      const pts = inPeriod(withLivePoint(overview.history || []).filter((p) => p.total_value != null), sparkPeriod());
+      periods.innerHTML = periodButtons(sparkPeriod());
+      periods.hidden = (overview.history || []).length < 2;
+      // toggleAttribute et pas el.hidden : la propriété hidden n'existe pas sur un élément SVG, « el.hidden = false »
+      // laissait l'attribut du HTML en place et la mini-courbe n'était jamais affichée
+      if (pts.length < 2) { el.toggleAttribute("hidden", true); change.innerHTML = ""; return; }
       const values = pts.map((p) => p.total_value);
+      const gain = perfIndex?.envelopes ? envelopeGain("Total", sparkPeriod()) : null;
+      if (!perfIndex) loadPerfIndex();
+      change.innerHTML = gain ? `${gainHtml(gain)} <span class="when">${periodWhen(gain.from, sparkPeriod())}</span>` : "";
       const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
       const coords = values.map((v, k) => `${(k / (values.length - 1) * 300).toFixed(1)},${(52 - (v - lo) / span * 48).toFixed(1)}`).join(" ");
-      const color = values[values.length - 1] >= values[0] ? "var(--accent)" : "var(--accent-neg)";
-      el.innerHTML = `<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
-      el.hidden = false;
+      const up = gain ? gain.gain >= 0 : values[values.length - 1] >= values[0];
+      el.innerHTML = `<polyline points="${coords}" fill="none" stroke="${up ? "var(--accent)" : "var(--accent-neg)"}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+      el.toggleAttribute("hidden", false);
     }
+
+    document.getElementById("spark-periods").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-period]");
+      if (!b) return;
+      settings.sparkPeriod = b.dataset.period;
+      saveSettings();
+      renderSpark();
+    });
 
     // Tuiles de l'Accueil : prochain dividende attendu (estimé d'après les versements passés) et revenu sur 12 mois
     function renderHomeTiles() {

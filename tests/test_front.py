@@ -84,6 +84,14 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     assert "Revenu sur 12 mois" in page.inner_text("#home-tiles")
     page.wait_for_function("document.getElementById('alerts').textContent.includes('Nouveau brief à lire')")
 
+    # Mini-courbe : 1 an par défaut, mais l'historique simulé n'a que 40 jours -> « depuis le … » ; sur 1 semaine,
+    # le gain en euros est la valeur en direct moins le relevé de départ (aucune opération dans la semaine)
+    page.wait_for_function("document.getElementById('spark-change').textContent.includes('depuis le')")
+    page.click("#spark-periods [data-period='1S']")
+    assert "sur 1 semaine" in page.inner_text("#spark-change")
+    assert page.is_visible("#home-spark")
+    page.click("#spark-periods [data-period='1A']")
+
     # Masquer une ligne de « À regarder », puis tout réafficher
     before = page.locator("#alerts .watch-row").count()
     page.click("#alerts .watch-hide >> nth=0")
