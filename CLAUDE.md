@@ -241,8 +241,15 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Courbe en tête de fiche (`priceChartBlock`, `drawPriceChart`) : 10 ans de clôtures quotidiennes via
     l'API `/prices/{ticker}` (`prices.py`, API chart de Yahoo, qui répond sur Render ; gardées 6 h). Cours non
     ajustés des dividendes (comme un courtier), divisions corrigées, pence de Londres ramenés en livres
-    (`MINOR_CURRENCIES`). Périodes 1M à 10A mémorisées (`settings.pricePeriod`), variation colorée sur la
-    période, moyenne 200 jours et phrase de tendance (±2 % autour de la moyenne = « sans tendance
+    (`MINOR_CURRENCIES`). Périodes mémorisées (`settings.pricePeriod`) : 1S, 1M, 6M, YTD (depuis la clôture du
+    31/12), 1A, 5A, 10A, Tout (octobre 2026, demande d'Enzo : 1S, YTD, Tout ; `priceStart`, départ = dernière clôture à
+    la date de départ ou avant). « Tout » : `/prices` ajoute une clôture par mois avant les 10 ans quotidiens
+    (`with_monthly_past`, `daily_from` = nombre de points mensuels) ; moyennes mobiles et analyse technique calculées sur
+    la seule partie quotidienne. Fiche ouverte depuis une position (`openPosition` -> `nextLine` / `openedLine`) : « Ta
+    ligne PEA : +x € sur la période, dividendes compris » sous la variation (`renderLineGain`, route `/portfolio/line`,
+    `stats.line_gains` = `compute_attribution` sur la seule ligne, cours réels en euros comme Perf., gardée 10 min ;
+    période commencée avant le premier achat -> « depuis ton premier achat » ; période sans cours de départ omise).
+    Variation colorée sur la période, moyenne 200 jours et phrase de tendance (±2 % autour de la moyenne = « sans tendance
     nette »), prix juste actuel en pointillés seulement s'il reste entre 0,8 × le plus bas et 1,25 × le plus
     haut de la période (sinon il écraserait la courbe : cité dans la légende).
   - Puces sous les graphiques de la fiche (`lineChip`, choix d'Enzo) pour afficher / masquer chaque courbe :

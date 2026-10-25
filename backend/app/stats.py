@@ -346,6 +346,78 @@ def index_summary(sheet_id: str, today: date | None = None) -> dict | None:
     return {"envelopes": index_series(overview.history, operations, ledger.envelopes, overview.holdings, today)}
 
 
+# Périodes de la courbe de cours d'une fiche (boutons du front) : gain de ta ligne sur chacune
+LINE_PERIODS = ("1S", "1M", "6M", "YTD", "1A", "5A", "10A", "Tout")
+
+
+def _months_back(day: date, months: int) -> date:
+    month = day.month - months
+    year, month = day.year + (month - 1) // 12, (month - 1) % 12 + 1
+    for d in (day.day, 30, 29, 28):
+        try:
+            return date(year, month, d)
+        except ValueError:
+            continue
+
+
+def line_period_base(key: str, today: date) -> date | None:
+    """Date de départ d'une période de la fiche ; la ligne part de sa valeur à la clôture de ce jour (ou avant)."""
+    if key == "1S":
+        return today - timedelta(days=7)
+    if key in ("1M", "6M"):
+        return _months_back(today, int(key[0]))
+    if key == "YTD":
+        return date(today.year - 1, 12, 31)
+    if key in ("1A", "5A", "10A"):
+        return _years_back(today, int(key[:-1]))
+    return None
+
+
+def line_gains(operations, envelopes: dict[str, str], holdings, closes: dict[str, _Lookup],
+               ticker: str, envelope: str, today: date) -> dict:
+    """Gain en euros d'une ligne (enveloppe, titre) sur chaque période de la fiche, comme la contribution de
+    l'onglet Perf. : valeur actuelle - quantité au départ x clôture en euros de ce jour - achats + ventes +
+    dividendes de la période. Une période qui commence avant le premier achat devient « depuis le premier achat »."""
+    key = (envelope.upper(), ticker.upper())
+    ops = [op for op in operations if (envelopes.get(op.account, "CTO"), op.ticker.upper()) == key]
+    current, _ = _live_values(holdings)
+    if not ops or key not in current:
+        return {"periods": {}}
+    first = min(op.day for op in ops)
+    periods = {}
+    for period in LINE_PERIODS:
+        base = line_period_base(period, today)
+        since_first = base is None or base < first
+        result = compute_attribution(ops, envelopes, {key: current[key]}, closes, None if since_first else base,
+                                     today, {})
+        if result["missing"]:
+            continue  # pas de cours ce jour-là (Yahoo) : rien plutôt qu'un gain faux
+        periods[period] = {"gain": result["total"], "from": result["from"], "since_first": since_first}
+    return {"periods": periods, "first": first.isoformat()}
+
+
+def line_summary(sheet_id: str, ticker: str, envelope: str, today: date | None = None) -> dict:
+    from .performance import eur_closes
+    from .realized import read_ledger
+    from .sheets import get_overview
+
+    today = today or date.today()
+    ledger = read_ledger(sheet_id)
+    # Quantités telles que saisies (divisions comprises) et cours réels, comme stats_summary
+    operations = [op for op in ledger.raw if op.kind in ("Achat", "Vente", "Dividende", *SHARE_TYPES)
+                  and op.ticker.upper() == ticker.upper()]
+    if not operations:
+        return {"periods": {}}
+    start = max(min(op.day for op in operations), _years_back(today, 10)) - timedelta(days=10)
+    currencies = {t.upper(): c for t, c in ledger.currencies.items()}
+    try:
+        frame = eur_closes([ticker.upper()], currencies, start.isoformat())
+        closes = {t: _Lookup([(d.date(), float(v)) for d, v in frame[t].dropna().items()]) for t in frame.columns}
+    except Exception:
+        closes = {}  # Yahoo injoignable : seul « depuis le premier achat » reste calculable (sans cours de départ)
+    return line_gains(operations, ledger.envelopes, get_overview(sheet_id).holdings, closes, ticker, envelope, today)
+
+
 def stats_summary(sheet_id: str, benchmark: str, today: date | None = None) -> dict | None:
     """None pour un Sheet à l'ancien format. Sans réponse de Yahoo, les périodes et le risque restent
     calculés (onglet Historique), sans indice ni contribution sur les périodes qui ont un point de départ."""

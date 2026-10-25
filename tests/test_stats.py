@@ -3,10 +3,12 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.prices import with_monthly_past
 from app.realized import Operation
 from app.sheets import HistoryPoint
 from app.stats import (Flow, _Lookup, compute_attribution, compute_periods, compute_risk, drawdown,
-                       index_series, operation_flows, period_base, portfolio_stats, twr_index)
+                       index_series, line_gains, operation_flows, period_base, portfolio_stats,
+                       twr_index)
 
 ENVELOPES = {"PEA Boursorama": "PEA", "CTO Trade Republic": "CTO"}
 
@@ -180,3 +182,26 @@ def test_indice_de_la_courbe_en_mode_performance():
                                ["2026-01-07", 1.152381, 2200.0, 2000.0]]
     assert result["PEA"] == result["Total"]
     assert "CTO" not in result  # jamais ouvert
+
+
+def test_gain_d_une_ligne_sur_les_periodes_de_la_fiche():
+    # 10 AAA achetées 1 000 € le 05/01/2026, dividende net de 5 € le 05/03, valeur actuelle 1 200 €, le 10/03.
+    # 1S : départ le 03/03 à 110 € -> 1 200 - 10 x 110 + 5 (dividende, argent sorti) = 105 €.
+    # YTD et Tout commencent avant l'achat -> depuis le premier achat : 1 200 - 1 000 + 5 = 205 €
+    ops = [op("2026-01-05", "PEA Boursorama", "Achat", "AAA", 10, 1000.0),
+           op("2026-03-05", "PEA Boursorama", "Dividende", "AAA", 10, 5.0),
+           op("2026-02-02", "CTO Trade Republic", "Achat", "AAA", 1, 100.0)]  # autre enveloppe : ignorée
+    holdings = [SimpleNamespace(envelope="PEA", value=1200.0, yahoo_ticker="AAA", ticker="AAA"),
+                SimpleNamespace(envelope="CTO", value=120.0, yahoo_ticker="AAA", ticker="AAA")]
+    closes = {"AAA": _Lookup([(d("2026-01-05"), 100.0), (d("2026-03-03"), 110.0)])}
+    result = line_gains(ops, ENVELOPES, holdings, closes, "aaa", "PEA", d("2026-03-10"))["periods"]
+    assert result["1S"] == {"gain": 105.0, "from": "2026-03-03", "since_first": False}
+    assert result["YTD"] == result["Tout"] == {"gain": 205.0, "from": "2026-01-05", "since_first": True}
+    assert set(result) == {"1S", "1M", "6M", "YTD", "1A", "5A", "10A", "Tout"}
+
+
+def test_points_mensuels_avant_les_quotidiens():
+    # Le mois du premier cours quotidien (mars 2016) est déjà couvert : seuls janvier et février restent
+    monthly = [["2016-01-01", 10.0], ["2016-02-01", 11.0], ["2016-03-01", 12.0]]
+    daily = [["2016-03-14", 12.5], ["2016-03-15", 12.6]]
+    assert with_monthly_past(monthly, daily) == ([["2016-01-01", 10.0], ["2016-02-01", 11.0]] + daily, 2)
