@@ -107,6 +107,13 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     # Mode Performance sur 1 mois : indice pondéré par le temps de /portfolio/index, qui repart de 0 % au début
     # de la période. Pas d'opération dans le mois (historique simulé de 4 400 € + 5 € par jour) : simple évolution
     page.click("#history-periods [data-period='1M']")
+    # Variation de la période en euros au-dessus de la courbe : pas d'opération dans le mois, donc gain = valeur en
+    # direct (6 346,80 €) - valeur au départ. Relevé n° i simulé : PEA 4 400 + 5i, CTO 1 300 + 3i, total 5 700 + 8i,
+    # i de 0 à 27 (28 jours ouvrés) : le départ d'il y a un mois est entre 5 700 et 5 700 + 8 x 27
+    page.wait_for_function("document.getElementById('history-change').textContent.includes('sur 1 mois')")
+    change = page.inner_text("#history-change").replace("\u202f", " ").replace("\xa0", " ")
+    gain = float(re.search(r"\+([\d ]+,\d\d) €", change).group(1).replace(" ", "").replace(",", "."))
+    assert 6346.80 - 5700 - 8 * 27 <= gain <= 6346.80 - 5700 and "dividendes compris" in change
     page.click("#chart-mode [data-mode=pct]")
     page.wait_for_function("chart && chart.data.datasets[0].data.length > 5")
     assert page.evaluate("chart.data.datasets[0].data[0].y") == 0
@@ -115,6 +122,7 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.select_option("#bench-select", "world")
     page.wait_for_function("document.getElementById('bench-summary').textContent.includes('achats et ventes neutralisés')")
     assert page.evaluate("chart.data.datasets.map((d) => d.data[0].y)") == [0, 0]
+    assert "avec le même argent" in page.inner_text("#history-change")
     page.select_option("#bench-select", "")
     page.click("#chart-mode [data-mode=value]")
     page.click("#history-periods [data-period=Tout]")
