@@ -254,11 +254,8 @@ def compute_attribution(operations, envelopes: dict[str, str], current: dict[tup
             "capital": round(capital, 2), "total": round(sum(r["gain"] for r in rows), 2)}
 
 
-def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, names: dict[str, str],
-                    today: date, closes: dict[str, _Lookup] | None, bench: _Lookup | None) -> dict:
-    """history : relevés de l'onglet Historique ; holdings : lignes actuelles de l'onglet Positions (valeur
-    en euros), qui donnent le point « en direct » du jour quand tous les cours sont lisibles."""
-    flows = operation_flows(operations, envelopes)
+def _live_values(holdings) -> tuple[dict[tuple[str, str], float], bool]:
+    """Valeur actuelle de chaque ligne (enveloppe, titre) ; False si un cours manque (pas de point du jour)."""
     current = defaultdict(float)
     live_ok = True
     for h in holdings:
@@ -269,8 +266,12 @@ def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, na
             live_ok = False
         else:
             current[(envelope, (h.yahoo_ticker or h.ticker).upper())] += h.value
+    return current, live_ok
 
-    result = {"as_of": today.isoformat(), "risk_free": RISK_FREE, "envelopes": {}}
+
+def envelope_indexes(history, flows: list[Flow], current: dict, live_ok: bool, today: date) -> dict:
+    """Pour Total, PEA et CTO : (points de twr_index, flux de l'enveloppe), point du jour compris."""
+    result = {}
     for envelope in ("Total", "PEA", "CTO"):
         field = {"Total": "total_value", "PEA": "pea_value", "CTO": "cto_value"}[envelope]
         series = [(date.fromisoformat(p.date), float(getattr(p, field))) for p in history
@@ -284,7 +285,18 @@ def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, na
             series.pop(0)
         if len(series) < 2:
             continue
-        points = twr_index(series, [f for f in env_flows if f.day > series[0][0]] if series else [])
+        result[envelope] = (twr_index(series, [f for f in env_flows if f.day > series[0][0]]), env_flows)
+    return result
+
+
+def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, names: dict[str, str],
+                    today: date, closes: dict[str, _Lookup] | None, bench: _Lookup | None) -> dict:
+    """history : relevés de l'onglet Historique ; holdings : lignes actuelles de l'onglet Positions (valeur
+    en euros), qui donnent le point « en direct » du jour quand tous les cours sont lisibles."""
+    flows = operation_flows(operations, envelopes)
+    current, live_ok = _live_values(holdings)
+    result = {"as_of": today.isoformat(), "risk_free": RISK_FREE, "envelopes": {}}
+    for envelope, (points, env_flows) in envelope_indexes(history, flows, current, live_ok, today).items():
         result["envelopes"][envelope] = {"periods": compute_periods(points, env_flows, today, bench),
                                          "risk": compute_risk(points, today, bench)}
 
@@ -298,6 +310,30 @@ def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, na
         attribution = compute_attribution(operations, envelopes, current, closes or {}, base_day, today, names)
         result["attribution"][key] = attribution | {"label": label}
     return result
+
+
+def index_series(history, operations, envelopes: dict[str, str], holdings, today: date) -> dict:
+    """Indice de performance jour par jour de chaque enveloppe ([date, indice], 1 au premier relevé), pour la
+    courbe en mode Performance : le front le divise par sa valeur au début de la période choisie, ce qui fait
+    partir la courbe de 0 % sans compter un achat ou une vente comme un gain ou une perte."""
+    current, live_ok = _live_values(holdings)
+    indexes = envelope_indexes(history, operation_flows(operations, envelopes), current, live_ok, today)
+    return {envelope: [[p["date"].isoformat(), round(p["index"], 6)] for p in points]
+            for envelope, (points, _) in indexes.items()}
+
+
+def index_summary(sheet_id: str, today: date | None = None) -> dict | None:
+    """Comme stats_summary, sans Yahoo (onglet Historique et opérations seulement) : répond vite."""
+    from .realized import read_ledger
+    from .sheets import _open_sheet, get_overview, is_v2
+
+    if not is_v2(_open_sheet(sheet_id)):
+        return None
+    today = today or date.today()
+    ledger = read_ledger(sheet_id)
+    operations = [op for op in ledger.operations if op.kind in ("Achat", "Vente", "Dividende")]
+    overview = get_overview(sheet_id)
+    return {"envelopes": index_series(overview.history, operations, ledger.envelopes, overview.holdings, today)}
 
 
 def stats_summary(sheet_id: str, benchmark: str, today: date | None = None) -> dict | None:

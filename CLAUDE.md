@@ -169,8 +169,14 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Période (octobre 2026, demande d'Enzo) : boutons 1S / 1M / 6M / 1A / Tout sous la courbe (`HISTORY_PERIODS`,
   `inPeriod`, `settings.historyPeriod`, « Tout » par défaut), aussi en comparaison à un indice ; le dernier relevé
   d'avant la période sert de point de départ. Pas de « 1 jour » : un relevé par jour de bourse (2 points) ; la variation
-  du jour est la ligne « Aujourd'hui » de l'Accueil. En mode Performance, le % reste la plus-value depuis l'achat
-  (pas la performance de la période, qui est dans Perf.).
+  du jour est la ligne « Aujourd'hui » de l'Accueil.
+  Mode Performance (octobre 2026, demande d'Enzo) : repart de 0 % au début de la période, sur toutes les périodes.
+  Indice pondéré par le temps de l'onglet Perf. (`stats.envelope_indexes`, route légère `/portfolio/index` sans Yahoo,
+  gardée 10 min, `perfIndex` relu à chaque `loadPortfolio`) divisé par sa valeur au départ (`rebased`). Les flux viennent
+  de l'onglet Opérations : l'écart d'investi de l'Historique compterait une vente au prix d'achat. Indice indisponible
+  (ancien Sheet, erreur) : ancienne courbe valeur / investi - 1, signalée. En comparaison à un indice, `chainedIndex`
+  enchaîne côté front avec flux = écart du montant investi de `/portfolio/performance` (achats moins ventes au prix de
+  vente) : la courbe de l'indice devient sa simple évolution ; dividendes non comptés dans cette comparaison.
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont

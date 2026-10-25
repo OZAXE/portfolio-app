@@ -1535,19 +1535,21 @@
       if (!pts.length) { summary.textContent = "Aucune opération datée à comparer."; return; }
       const pct = chartMode === "pct";
       const series = [
-        ["p-total", "Mon portefeuille", (p) => (pct ? p.value / p.invested - 1 : p.value), "--series-total", []],
-        ["p-bench", `Même argent dans : ${data.benchmark}`, (p) => (p.benchmark == null ? null : pct ? p.benchmark / p.invested - 1 : p.benchmark), "--series-cto", []],
+        ["p-total", "Mon portefeuille", (p) => p.value, "--series-total", []],
+        ["p-bench", `Même argent dans : ${data.benchmark}`, (p) => p.benchmark, "--series-cto", []],
         ["p-invested", "Montant investi", (p) => p.invested, "--muted", [4, 4]],
       ];
+      const asPoints = ([, , get]) => (pct ? rebased(chainedIndex(data.points, get)) : pts.map((p) => ({ date: p.date, y: get(p) })));
       document.getElementById("chart-legend").innerHTML = series.map(([key, label, , color]) =>
         lineChip(key, escapeHtml(label), cssVar(color), key === "p-invested" && pct ? "Seulement en mode Valeur" : "")).join("");
       const drawn = series.filter(([key]) => lineShown(key) && !(key === "p-invested" && pct)).map(([, ...rest]) => rest);
       drawLineChart(drawn.map(([label, get, color, dash]) => ({
-        label, data: pts.map((p) => ({ x: new Date(p.date).getTime(), y: get(p) })), color, dash, width: label === "Mon portefeuille" ? 2.5 : 1.8, points: 0,
+        label, data: asPoints([, , get]).map((p) => ({ x: new Date(p.date).getTime(), y: p.y })), color, dash, width: label === "Mon portefeuille" ? 2.5 : 1.8, points: 0,
       })), pct);
       const s = data.summary;
       summary.textContent = s
         ? `Depuis ta première opération : ton portefeuille ${pctFmt.format(s.portfolio_pct)}, ${data.benchmark} ${s.benchmark_pct != null ? pctFmt.format(s.benchmark_pct) : "N/A"}, à montants et dates identiques. Cours de clôture, dividendes réinvestis pour les ETF de capitalisation.`
+          + (pct ? " Courbe en performance depuis le début de la période, achats et ventes neutralisés (hors dividendes)." : "")
         : "";
     }
 
@@ -1625,6 +1627,39 @@
         `<button data-period="${key}" class="${key === current ? "active" : ""}" aria-pressed="${key === current}">${key}</button>`).join("");
     }
 
+    // Mode Performance (demande d'Enzo) : la courbe part de 0 % au début de la période choisie. Pas valeur / investi - 1
+    // (plus-value depuis l'achat, qui ne repart jamais de zéro), mais l'indice pondéré par le temps de l'onglet Perf. :
+    // chaque jour, variation de valeur corrigée des achats et ventes, rendements enchaînés, puis indice ÷ indice au
+    // départ - 1. Exemple : 10 000 € le 1er, 10 500 € le 15 dont 1 000 € achetés ce jour-là -> (10 500 - 1 000) / 10 000 - 1 = -5 %, pas +5 %.
+    // Les flux viennent de l'onglet Opérations (/portfolio/index) : l'écart d'investi de l'onglet Historique
+    // compterait une vente au prix d'achat, donc sa plus-value comme une perte.
+    let perfIndex = null, perfIndexLoading = null;
+    function loadPerfIndex() {
+      if (perfIndexLoading) return;
+      perfIndexLoading = api("/portfolio/index")
+        .then((data) => { perfIndex = data?.envelopes ? data : { failed: "historique à l'ancien format" }; })
+        .catch((e) => { perfIndex = { failed: e.message }; })
+        .finally(() => { perfIndexLoading = null; if (chartMode === "pct" && !benchmarkKey) renderChart(); });
+    }
+    // Points [{date, idx}] -> performance depuis le premier point de la période
+    function rebased(points) {
+      const kept = inPeriod(points), base = kept[0]?.idx;
+      return base ? kept.map((p) => ({ date: p.date, y: p.idx / base - 1 })) : [];
+    }
+    // Comparaison à un indice : ici le montant investi est la somme des achats moins les ventes (au prix de vente),
+    // donc son écart d'un jour à l'autre est bien le flux du jour. Même enchaînement pour le portefeuille fantôme :
+    // il donne la simple évolution de l'indice
+    function chainedIndex(points, get) {
+      let idx = 1, prev = null;
+      return points.map((p) => {
+        const v = get(p);
+        if (v == null) return { date: p.date, idx: null };
+        if (prev && get(prev) > 0) idx *= (v - (p.invested - prev.invested)) / get(prev);
+        prev = p;
+        return { date: p.date, idx };
+      }).filter((p) => p.idx != null);
+    }
+
     const livePointTime = (points) => { const last = points[points.length - 1]; return last?.live ? new Date(last.date).getTime() : null; };
 
     function renderChart() {
@@ -1646,11 +1681,26 @@
         document.getElementById("bench-summary").textContent = "La courbe se remplira toute seule : un relevé est ajouté chaque nuit après un jour de bourse.";
         return;
       }
+      if (!value && !perfIndex) {
+        loadPerfIndex();
+        if (chart) { chart.destroy(); chart = null; }
+        document.getElementById("bench-summary").textContent = "Calcul de la performance…";
+        return;
+      }
+      // Indice indisponible (ancien Sheet, serveur injoignable) : ancienne courbe, plus-value depuis l'achat
+      const twr = !value && perfIndex.envelopes;
+      if (!value) document.getElementById("bench-summary").innerHTML = twr
+        ? `<span data-term="Performance pondérée">Performance</span> depuis le début de la période : achats et ventes ne comptent pas comme un gain, les dividendes oui (comme l'onglet Perf.).`
+        : `Plus-value depuis l'achat (performance de la période indisponible : ${escapeHtml(perfIndex.failed)}).`;
       if (withInvested) document.getElementById("bench-summary").innerHTML = `Pointillés : <span data-term="Investi">montant investi</span> dans les titres détenus ce jour-là. L'écart avec la valeur est ta plus-value latente.`;
       const x = (p) => new Date(p.date).getTime();
+      const names = { total: "Total", pea: "PEA", cto: "CTO" };
+      const twrData = (prefix) => rebased((perfIndex.envelopes[names[prefix]] || []).map(([date, idx]) => ({ date, idx })))
+        .map((p) => ({ x: x(p), y: p.y }));
       const line = (label, key, color, extra) => ({
         label,
-        data: points.filter((p) => p[key] != null).map((p) => ({ x: x(p), y: p[key] })),
+        data: twr && key.endsWith("_pct") ? twrData(key.split("_")[0])
+          : points.filter((p) => p[key] != null).map((p) => ({ x: x(p), y: p[key] })),
         borderColor: cssVar(color),
         backgroundColor: cssVar(color),
         pointRadius: points.length > 60 ? 0 : 2.5,
@@ -1685,7 +1735,7 @@
           scales: {
             x: {
               type: "linear",
-              min: x(points[0]),
+              min: Math.min(x(points[0]), ...datasets.map((d) => d.data[0]?.x ?? Infinity)),
               max: x(points[points.length - 1]),
               ticks: { color: cssVar("--muted"), maxTicksLimit: 5, callback: (v) => dateFmt.format(new Date(v)) },
               grid: { display: false },
@@ -2711,6 +2761,7 @@
       }
       try {
         overview = await api("/portfolio/overview");
+        perfIndex = null;  // relu à la prochaine courbe en mode Performance (opération saisie, nouveau relevé)
       } catch (e) {
         if (snap && e.status !== 401) { showStale(`${since} · ${navigator.onLine ? `serveur injoignable (${e.message})` : "hors ligne"}`, false); return; }
         overview = null;

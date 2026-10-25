@@ -11,6 +11,7 @@ Endpoints prévus pour le MVP :
 - GET /alerts               -> alertes du jour et opportunités sur les positions et la watchlist
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/stats      -> performance par période (TWR), risque, contribution de chaque ligne
+- GET /portfolio/index      -> indice de performance (TWR) jour par jour, courbe en mode Performance
 - GET /portfolio/cash       -> espèces de chaque compte (versements, retraits, intérêts, opérations)
 - GET /news/{ticker}        -> actualités récentes (Google Actualités en français, sinon Yahoo)
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
@@ -582,6 +583,29 @@ def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
     if len(_stats_cache) > 200:  # anciennes clés (générations, jours passés)
         _stats_cache.clear()
     _stats_cache[key] = (time.monotonic(), result)
+    return result
+
+
+_index_cache: dict[tuple, tuple[float, dict | None]] = {}
+
+
+@app.get("/portfolio/index")
+def get_index(user: User = Depends(require_access)):
+    """Indice de performance jour par jour (TWR) de chaque enveloppe, pour la courbe en mode Performance."""
+    from datetime import date
+
+    from . import sheets
+    from .stats import index_summary
+
+    key = (user.sheet_id, sheets.cache_generation(), date.today())
+    cached = _index_cache.get(key)
+    # Gardé 10 min comme la variation du jour : le dernier point suit les cours de l'onglet Positions
+    if cached and time.monotonic() - cached[0] < DAILY_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: index_summary(user.sheet_id))
+    if len(_index_cache) > 200:
+        _index_cache.clear()
+    _index_cache[key] = (time.monotonic(), result)
     return result
 
 
