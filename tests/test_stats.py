@@ -175,6 +175,8 @@ def test_indice_de_la_courbe_en_mode_performance():
     ops = [op("2026-01-05", "PEA Boursorama", "Achat", "AAA", 10, 1000.0),
            op("2026-01-06", "PEA Boursorama", "Achat", "AAA", 10, 1000.0)]
     result = index_series(history, ops, ENVELOPES, [], d("2026-01-08"))
-    assert result["Total"] == [["2026-01-05", 1.0], ["2026-01-06", 1.1], ["2026-01-07", 1.152381]]
+    # Flux cumulés 1 000 puis 2 000 : gain du 5 au 7 = (2 200 - 1 000) - (2 000 - 1 000) = 200 €
+    assert result["Total"] == [["2026-01-05", 1.0, 1000.0, 1000.0], ["2026-01-06", 1.1, 2100.0, 2000.0],
+                               ["2026-01-07", 1.152381, 2200.0, 2000.0]]
     assert result["PEA"] == result["Total"]
     assert "CTO" not in result  # jamais ouvert

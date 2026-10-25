@@ -313,13 +313,23 @@ def portfolio_stats(history, operations, envelopes: dict[str, str], holdings, na
 
 
 def index_series(history, operations, envelopes: dict[str, str], holdings, today: date) -> dict:
-    """Indice de performance jour par jour de chaque enveloppe ([date, indice], 1 au premier relevé), pour la
-    courbe en mode Performance : le front le divise par sa valeur au début de la période choisie, ce qui fait
-    partir la courbe de 0 % sans compter un achat ou une vente comme un gain ou une perte."""
+    """Pour la courbe du portefeuille, chaque enveloppe jour par jour : [date, indice, valeur, flux cumulés].
+    Indice de performance (1 au premier relevé) : le front le divise par sa valeur au début de la période choisie,
+    ce qui fait partir la courbe de 0 % sans compter un achat ou une vente comme un gain ou une perte.
+    Flux cumulés (achats - ventes - dividendes depuis le début) : gain de la période en euros = écart de valeur -
+    écart de flux, comme le gain de compute_periods (dividendes compris)."""
     current, live_ok = _live_values(holdings)
     indexes = envelope_indexes(history, operation_flows(operations, envelopes), current, live_ok, today)
-    return {envelope: [[p["date"].isoformat(), round(p["index"], 6)] for p in points]
-            for envelope, (points, _) in indexes.items()}
+    result = {}
+    for envelope, (points, env_flows) in indexes.items():
+        rows, cumulated, f = [], 0.0, 0
+        for p in points:
+            while f < len(env_flows) and env_flows[f].day <= p["date"]:
+                cumulated += env_flows[f].amount
+                f += 1
+            rows.append([p["date"].isoformat(), round(p["index"], 6), round(p["value"], 2), round(cumulated, 2)])
+        result[envelope] = rows
+    return result
 
 
 def index_summary(sheet_id: str, today: date | None = None) -> dict | None:

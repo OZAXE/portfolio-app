@@ -786,7 +786,8 @@
               <option value="cac40">Comparer au CAC 40</option>
             </select>
           </div>
-          <div class="line-chips" id="chart-legend" style="margin-top:10px"></div>
+          <div class="price-change" id="history-change" style="margin-top:10px"></div>
+          <div class="line-chips" id="chart-legend" style="margin-top:6px"></div>
           <div class="chart-box"><canvas id="history-chart"></canvas></div>
           <div class="segmented chart-periods" id="history-periods"></div>
           <p class="help" id="bench-summary" style="margin-top:8px"></p>
@@ -1531,6 +1532,7 @@
         }
       }
       const data = benchmarkData[benchmarkKey];
+      renderHistoryChange(data);
       const pts = inPeriod(data.points);
       if (!pts.length) { summary.textContent = "Aucune opération datée à comparer."; return; }
       const pct = chartMode === "pct";
@@ -1639,7 +1641,47 @@
       perfIndexLoading = api("/portfolio/index")
         .then((data) => { perfIndex = data?.envelopes ? data : { failed: "historique à l'ancien format" }; })
         .catch((e) => { perfIndex = { failed: e.message }; })
-        .finally(() => { perfIndexLoading = null; if (chartMode === "pct" && !benchmarkKey) renderChart(); });
+        .finally(() => { perfIndexLoading = null; if (!benchmarkKey) renderChart(); });
+    }
+
+    // Variation de la période en euros (demande d'Enzo) au-dessus de la courbe, en Valeur comme en Performance :
+    // gain = écart de valeur - écart des flux (achats - ventes - dividendes), donc dividendes compris, comme le
+    // « Gain » de l'onglet Perf. Exemple : 10 000 € au départ, 11 500 € à la fin dont 1 000 € achetés -> +500 €.
+    // Le % est la performance pondérée par le temps de la période (celle du mode Performance)
+    const HISTORY_PERIOD_LABELS = { "1S": "sur 1 semaine", "1M": "sur 1 mois", "6M": "sur 6 mois", "1A": "sur 1 an" };
+    function periodGain(rows) {
+      const kept = inPeriod(rows);
+      if (kept.length < 2) return null;
+      const first = kept[0], last = kept[kept.length - 1];
+      return { gain: last.value - first.value - (last.flow - first.flow), pct: last.idx / first.idx - 1, from: first.date };
+    }
+    function periodWhen(from) {
+      const key = settings.historyPeriod || "Tout", since = periodStart(key);
+      if (!since || from > since) return `depuis le ${dayFmt.format(new Date(from + "T12:00:00"))}`;
+      return HISTORY_PERIOD_LABELS[key];
+    }
+    const gainHtml = (g) => `<span class="${g.gain >= 0 ? "positive" : "negative"}">${signedEur(g.gain)}</span> `
+      + `<span class="muted">(${pctFmt.format(g.pct)})</span>`;
+    function renderHistoryChange(benchData) {
+      const el = document.getElementById("history-change");
+      if (benchData) {
+        // Comparaison : flux = écart du montant investi (achats - ventes au prix de vente), dividendes non comptés
+        const byDate = new Map(benchData.points.map((p) => [p.date, p]));
+        const rows = (get) => chainedIndex(benchData.points, get)
+          .map((p) => ({ ...p, value: get(byDate.get(p.date)), flow: byDate.get(p.date).invested }));
+        const mine = periodGain(rows((p) => p.value)), bench = periodGain(rows((p) => p.benchmark));
+        el.innerHTML = mine ? `${gainHtml(mine)} <span class="when">${periodWhen(mine.from)}</span>`
+          + (bench ? `<div class="when">${escapeHtml(benchData.benchmark)} avec le même argent : ${gainHtml(bench)}</div>` : "") : "";
+        return;
+      }
+      if (!perfIndex?.envelopes) { el.innerHTML = ""; if (!perfIndex) loadPerfIndex(); return; }
+      const of = (name) => periodGain((perfIndex.envelopes[name] || []).map(([date, idx, value, flow]) => ({ date, idx, value, flow })));
+      const total = of("Total");
+      if (!total) { el.innerHTML = ""; return; }
+      const parts = [["p-pea", "PEA"], ["p-cto", "CTO"]].filter(([key, name]) => lineShown(key) && perfIndex.envelopes[name])
+        .map(([, name]) => [name, of(name)]).filter(([, g]) => g);
+      el.innerHTML = `${gainHtml(total)} <span class="when">${periodWhen(total.from)}, dividendes compris</span>`
+        + (parts.length > 1 ? `<div class="when">${parts.map(([name, g]) => `${name} ${gainHtml(g)}`).join(" · ")}</div>` : "");
     }
     // Points [{date, idx}] -> performance depuis le premier point de la période
     function rebased(points) {
@@ -1665,6 +1707,7 @@
     function renderChart() {
       renderHistoryPeriods();
       if (benchmarkKey) { renderBenchmarkChart(); return; }
+      renderHistoryChange();
       document.getElementById("bench-summary").textContent = "";
       const points = inPeriod(withLivePoint(overview.history));
       // Montant investi (prix payé pour les titres détenus ce jour-là, frais compris) : une courbe en pointillés

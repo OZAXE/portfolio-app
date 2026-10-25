@@ -177,6 +177,12 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (ancien Sheet, erreur) : ancienne courbe valeur / investi - 1, signalée. En comparaison à un indice, `chainedIndex`
   enchaîne côté front avec flux = écart du montant investi de `/portfolio/performance` (achats moins ventes au prix de
   vente) : la courbe de l'indice devient sa simple évolution ; dividendes non comptés dans cette comparaison.
+  Variation de la période en euros (octobre 2026, demande d'Enzo) au-dessus de la courbe, en Valeur et en Performance
+  (`renderHistoryChange`, `periodGain`) : gain = écart de valeur - écart des flux cumulés (`/portfolio/index` renvoie
+  [date, indice, valeur, flux cumulés] : achats - ventes - dividendes), donc dividendes compris comme le « Gain » de
+  Perf. ; % = indice pondéré par le temps de la période ; PEA et CTO en dessous quand leurs puces sont allumées.
+  « depuis le <date> » si l'historique commence après le début de la période. En comparaison : portefeuille et
+  indice « avec le même argent », flux = écart du montant investi de `/portfolio/performance`.
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont
