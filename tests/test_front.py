@@ -104,6 +104,20 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     assert 5 <= page.evaluate(total_points) <= 8
     page.click("#history-periods [data-period=Tout]")
     assert page.evaluate(total_points) == full
+    # Mode Performance sur 1 mois : indice pondéré par le temps de /portfolio/index, qui repart de 0 % au début
+    # de la période. Pas d'opération dans le mois (historique simulé de 4 400 € + 5 € par jour) : simple évolution
+    page.click("#history-periods [data-period='1M']")
+    page.click("#chart-mode [data-mode=pct]")
+    page.wait_for_function("chart && chart.data.datasets[0].data.length > 5")
+    assert page.evaluate("chart.data.datasets[0].data[0].y") == 0
+    assert "depuis le début de la période" in page.inner_text("#bench-summary")
+    # Comparaison à un indice, même règle : les deux courbes partent de 0 %
+    page.select_option("#bench-select", "world")
+    page.wait_for_function("document.getElementById('bench-summary').textContent.includes('achats et ventes neutralisés')")
+    assert page.evaluate("chart.data.datasets.map((d) => d.data[0].y)") == [0, 0]
+    page.select_option("#bench-select", "")
+    page.click("#chart-mode [data-mode=value]")
+    page.click("#history-periods [data-period=Tout]")
     page.click("#portfolio-tabs [data-ptab=performance]")
     page.wait_for_function("!/Chargement|Ouvre cet onglet/.test(document.getElementById('stats-periods').textContent)")
     page.click("#portfolio-tabs [data-ptab=repartition]")

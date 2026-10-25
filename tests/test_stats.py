@@ -6,7 +6,7 @@ import pytest
 from app.realized import Operation
 from app.sheets import HistoryPoint
 from app.stats import (Flow, _Lookup, compute_attribution, compute_periods, compute_risk, drawdown,
-                       operation_flows, period_base, portfolio_stats, twr_index)
+                       index_series, operation_flows, period_base, portfolio_stats, twr_index)
 
 ENVELOPES = {"PEA Boursorama": "PEA", "CTO Trade Republic": "CTO"}
 
@@ -164,3 +164,17 @@ def test_statistiques_completes_avec_point_du_jour():
     # Sans cours Yahoo, seule la contribution depuis le début reste calculable
     assert list(result["attribution"]) == ["all"]
     assert result["attribution"]["all"]["lines"][0]["gain"] == pytest.approx(50.0)
+
+
+def test_indice_de_la_courbe_en_mode_performance():
+    # 1 000 € le 5, 2 100 € le 6 dont 1 000 € achetés ce jour-là, 2 200 € le 7 :
+    # indice 1 ; (2 100 - 1 000) / 1 000 = 1,1 ; 1,1 x 2 200 / 2 100 = 1,152381. Sans positions : pas de point du jour
+    history = [HistoryPoint(date="2026-01-05", pea_value=1000.0, cto_value=0.0, total_value=1000.0),
+               HistoryPoint(date="2026-01-06", pea_value=2100.0, cto_value=0.0, total_value=2100.0),
+               HistoryPoint(date="2026-01-07", pea_value=2200.0, cto_value=0.0, total_value=2200.0)]
+    ops = [op("2026-01-05", "PEA Boursorama", "Achat", "AAA", 10, 1000.0),
+           op("2026-01-06", "PEA Boursorama", "Achat", "AAA", 10, 1000.0)]
+    result = index_series(history, ops, ENVELOPES, [], d("2026-01-08"))
+    assert result["Total"] == [["2026-01-05", 1.0], ["2026-01-06", 1.1], ["2026-01-07", 1.152381]]
+    assert result["PEA"] == result["Total"]
+    assert "CTO" not in result  # jamais ouvert
