@@ -12,6 +12,7 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/returns    -> rendement annualisé (TRI) et gain total, dividendes compris
 - GET /portfolio/stats      -> performance par période (TWR), risque, contribution de chaque ligne
 - GET /portfolio/index      -> indice de performance (TWR) jour par jour, courbe en mode Performance
+- GET /portfolio/line       -> gain en euros d'une ligne sur chaque période de la courbe de sa fiche
 - GET /portfolio/cash       -> espèces de chaque compte (versements, retraits, intérêts, opérations)
 - GET /news/{ticker}        -> actualités récentes (Google Actualités en français, sinon Yahoo)
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
@@ -606,6 +607,32 @@ def get_index(user: User = Depends(require_access)):
     if len(_index_cache) > 200:
         _index_cache.clear()
     _index_cache[key] = (time.monotonic(), result)
+    return result
+
+
+_line_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+@app.get("/portfolio/line")
+def get_line(ticker: str, envelope: str, user: User = Depends(require_access)):
+    """Gain en euros d'une ligne (titre, enveloppe) sur chaque période de la courbe de cours de sa fiche."""
+    from datetime import date
+
+    from . import sheets
+    from .stats import line_summary
+
+    ticker = _checked_ticker(ticker)
+    if envelope.upper() not in ("PEA", "CTO"):
+        raise HTTPException(status_code=400, detail="Enveloppe inconnue (PEA ou CTO)")
+    # Gardé 10 min comme la variation du jour : la valeur actuelle suit les cours de l'onglet Positions
+    key = (user.sheet_id, ticker, envelope.upper(), sheets.cache_generation(), date.today())
+    cached = _line_cache.get(key)
+    if cached and time.monotonic() - cached[0] < DAILY_CACHE_SECONDS:
+        return cached[1]
+    result = _sheet_call(lambda: line_summary(user.sheet_id, ticker, envelope))
+    if len(_line_cache) > 500:
+        _line_cache.clear()
+    _line_cache[key] = (time.monotonic(), result)
     return result
 
 

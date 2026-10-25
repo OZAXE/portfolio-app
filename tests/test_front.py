@@ -148,6 +148,18 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.wait_for_selector("#view-stock:not([hidden])")
     card = page.locator(".poscard", has_text="Ta position").inner_text().replace("\u202f", " ")
     assert "136,43" in card and "Cours actuel" in card and "$" not in card  # action en euros : pas de seconde devise
+    # Périodes de la courbe de cours (cours simulés sur 2 ans) : 1 semaine, depuis le 1er janvier, tout l'historique,
+    # et le gain de la ligne en euros. Air Liquide achetée en janvier 2025 (3 001,50 €), vaut 22 x 180 = 3 960 € :
+    # sur « Tout », depuis le premier achat, 3 960 - 3 001,50 = +958,50 € (pas de dividende saisi)
+    page.wait_for_selector("#price-periods [data-period=YTD]")
+    page.click("#price-periods [data-period='1S']")
+    page.wait_for_function("document.getElementById('price-change').textContent.includes('sur 1 semaine')")
+    page.click("#price-periods [data-period=YTD]")
+    page.wait_for_function("document.getElementById('price-change').textContent.includes('depuis le 1er janvier')")
+    page.click("#price-periods [data-period=Tout]")
+    page.wait_for_function("document.getElementById('price-line-gain').textContent.includes('premier achat')")
+    assert "+958,50" in page.inner_text("#price-line-gain").replace("\u202f", " ").replace("\xa0", " ")
+    page.click("#price-periods [data-period='1A']")
     page.go_back()
     page.wait_for_selector("#view-portfolio:not([hidden])")
 

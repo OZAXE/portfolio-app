@@ -1,5 +1,7 @@
 """
-Courbe de cours d'une action pour la fiche de l'appli : clôtures quotidiennes sur 10 ans.
+Courbe de cours d'une action pour la fiche de l'appli : clôtures quotidiennes sur 10 ans, précédées d'une
+clôture par mois jusqu'à l'introduction en bourse (période « Tout » : Air Liquide depuis 1962 en quotidien ferait
+16 000 points à envoyer au téléphone, 700 en mensuel).
 
 Vient de l'API chart de Yahoo (history), qui répond même quand quoteSummary est bloqué sur Render.
 Cours non ajustés des dividendes (auto_adjust=False), comme chez un courtier : le cours affiché un
@@ -25,6 +27,17 @@ def closes_to_points(closes: pd.Series) -> list[list]:
     return points
 
 
+def with_monthly_past(monthly: list[list], daily: list[list]) -> tuple[list[list], int]:
+    """Points mensuels antérieurs au premier cours quotidien, suivis des quotidiens, et le nombre de points
+    mensuels : le front ne calcule les moyennes mobiles (200 jours) que sur la partie quotidienne."""
+    if not daily:
+        return monthly, len(monthly)
+    older = [p for p in monthly if p[0] < daily[0][0]]
+    # Le mois du premier cours quotidien est déjà couvert par les quotidiens (Yahoo date le point du 1er du mois)
+    older = [p for p in older if p[0][:7] < daily[0][0][:7]]
+    return older + daily, len(older)
+
+
 def fetch_price_history(ticker: str) -> dict:
     """Cours en unité principale, comme la fiche : Yahoo cote Londres en pence (GBp), ramenés en livres."""
     import yfinance as yf
@@ -37,13 +50,22 @@ def fetch_price_history(ticker: str) -> dict:
         raise ValueError(f"Pas de cours disponibles pour {ticker}")
     currency = (getattr(t, "history_metadata", None) or {}).get("currency")
     closes = history["Close"]
+    factor = 1
     if currency in MINOR_CURRENCIES:
         currency, factor = MINOR_CURRENCIES[currency]
         closes = closes / factor
     points = closes_to_points(closes)
     if len(points) < 2:
         raise ValueError(f"Pas assez de cours pour tracer la courbe de {ticker}")
-    return {"ticker": ticker, "currency": currency, "points": points}
+    monthly = []
+    try:
+        older = t.history(period="max", interval="1mo", auto_adjust=False)
+        if older is not None and not older.empty and "Close" in older:
+            monthly = closes_to_points(older["Close"] / factor)
+    except Exception:
+        pass  # sans le passé lointain, « Tout » s'arrête à 10 ans
+    points, daily_from = with_monthly_past(monthly, points)
+    return {"ticker": ticker, "currency": currency, "points": points, "daily_from": daily_from}
 
 
 # --- Cours de secours quand GOOGLEFINANCE n'en donne pas (onglet Positions) ---

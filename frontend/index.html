@@ -276,6 +276,9 @@
     .price-card .segmented, .segmented.chart-periods { display: flex; margin-top: 8px; }
     .segmented.chart-periods button { flex: 1; }
     .price-card .segmented button { flex: 1; }
+    .price-card .price-periods button { padding: 6px 0; min-width: 0; }  /* 8 boutons sur 358 px */
+    .line-gain { font-size: 14px; font-weight: 400; margin-top: 2px; }
+    .line-gain:empty { display: none; }
     .price-card .hypotheses { margin-top: 6px; font-size: 13px; color: var(--muted); }
     /* Puces des graphiques de la fiche : allumée = courbe affichée, grisée = impossible à tracer */
     .line-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -1923,6 +1926,8 @@
       const h = overview.holdings.find((x) => x.ticker === ticker && (x.envelope || "") === envelope);
       if (!h) return;
       const rec = positionRecord(h);
+      nextLine = ["PEA", "CTO"].includes(String(h.envelope).toUpperCase())
+        ? { ticker: String(h.yahoo_ticker || h.ticker).toUpperCase(), envelope: String(h.envelope).toUpperCase() } : null;
       if (rec) { openStock(rec, positionCard(h), !portfolioAnalyses[h.yahoo_ticker]); return; }
       // ETF, crypto ou action hors screener sans analyse : fiche réduite à la position
       const note = h.kind === "Crypto" ? "Pas de valeur intrinsèque ni de score pour une crypto : elle n'a ni bénéfices ni cash-flows."
@@ -2814,6 +2819,7 @@
       try {
         overview = await api("/portfolio/overview");
         perfIndex = null;  // relu à la prochaine courbe en mode Performance (opération saisie, nouveau relevé)
+        for (const id in lineRequests) delete lineRequests[id];
       } catch (e) {
         if (snap && e.status !== 401) { showStale(`${since} · ${navigator.onLine ? `serveur injoignable (${e.message})` : "hors ligne"}`, false); return; }
         overview = null;
@@ -3434,7 +3440,19 @@
     // --- Courbe de cours de la fiche (10 ans de clôtures quotidiennes via l'API /prices) ---
     // Cours non ajustés des dividendes, comme chez un courtier. La moyenne 200 jours donne la tendance
     // de fond et le prix juste actuel sert de repère : « le cours est-il loin de ce que vaut l'action ? »
-    const PRICE_PERIODS = [["1M", 1, "1 mois"], ["6M", 6, "6 mois"], ["1A", 12, "1 an"], ["5A", 60, "5 ans"], ["10A", 120, "10 ans"]];
+    // [bouton, mois en arrière, libellé] ; 1S en jours, YTD depuis la clôture du 31/12, Tout depuis l'introduction en bourse
+    // (une clôture par mois avant les 10 dernières années, `daily_from` de /prices). Demande d'Enzo : 1S, YTD et Tout
+    const PRICE_PERIODS = [["1S", 0, "1 semaine"], ["1M", 1, "1 mois"], ["6M", 6, "6 mois"], ["YTD", null, "depuis le 1er janvier"],
+      ["1A", 12, "1 an"], ["5A", 60, "5 ans"], ["10A", 120, "10 ans"], ["Tout", null, ""]];
+    // Date de départ d'une période, comptée depuis le dernier cours (une fiche ouverte un dimanche part du vendredi)
+    function priceStart(key, lastDate) {
+      const d = new Date(lastDate + "T12:00:00");
+      if (key === "Tout") return null;
+      if (key === "YTD") return `${d.getFullYear() - 1}-12-31`;
+      const [, months] = PRICE_PERIODS.find(([k]) => k === key);
+      if (key === "1S") d.setDate(d.getDate() - 7); else d.setMonth(d.getMonth() - months);
+      return d.toLocaleDateString("sv-SE");
+    }
     const MA_DAYS = 200;
     const MAX_CHART_POINTS = 600;  // au-delà, un point sur k : 10 ans quotidiens (2 500 points) restent fluides sur téléphone
     const priceRequests = {};  // ticker -> promesse, pour ne pas réinterroger l'API en rouvrant la fiche
@@ -3463,7 +3481,7 @@
       return `<div class="price-card">
           <div class="price-change" id="price-change"></div>
           <div class="price-box"><canvas id="price-canvas" aria-label="Évolution du cours"></canvas><div class="price-status" id="price-status">Chargement des cours…</div></div>
-          <div class="segmented" id="price-periods">${PRICE_PERIODS.map(([key]) => `<button data-period="${key}" class="${key === period ? "active" : ""}">${key}</button>`).join("")}</div>
+          <div class="segmented price-periods" id="price-periods">${PRICE_PERIODS.map(([key]) => `<button data-period="${key}" class="${key === period ? "active" : ""}">${key}</button>`).join("")}</div>
           <div class="line-chips" id="price-lines"></div>
           <div class="hypotheses" id="price-legend"></div>
         </div>`;
@@ -3497,14 +3515,21 @@
     }
 
     function drawPriceChart(s, data) {
-      const [, months, label] = PRICE_PERIODS.find(([key]) => key === (settings.pricePeriod || "1A")) || PRICE_PERIODS[2];
+      const period = PRICE_PERIODS.find(([key]) => key === settings.pricePeriod) || PRICE_PERIODS[4];
+      const [key, , label] = period;
       const all = data.points;
       const closes = all.map((p) => p[1]);
-      const ma = movingAverage(closes, MA_DAYS);
-      const ma50 = movingAverage(closes, MA_SHORT_DAYS);
-      const start = new Date(all[all.length - 1][0]);
-      start.setMonth(start.getMonth() - months);
-      const from = Math.max(0, all.findIndex((p) => p[0] >= start.toISOString().slice(0, 10)));
+      // Moyennes mobiles sur les seuls cours quotidiens : avant `daily_from`, un point par mois
+      const dailyFrom = data.daily_from || 0, daily = all.slice(dailyFrom);
+      const pad = (values) => [...Array(dailyFrom).fill(null), ...values];
+      const ma = pad(movingAverage(daily.map((p) => p[1]), MA_DAYS));
+      const ma50 = pad(movingAverage(daily.map((p) => p[1]), MA_SHORT_DAYS));
+      const startIso = priceStart(key, all[all.length - 1][0]);
+      const start = startIso ? new Date(startIso + "T12:00:00") : null;
+      // Départ = dernière clôture à la date de départ ou avant (YTD : celle du 31/12 même si c'est un férié)
+      let from = startIso ? all.findIndex((p) => p[0] >= startIso) : 0;
+      if (from < 0) from = all.length - 2;
+      else if (from > 0 && all[from][0] > startIso) from -= 1;
       const step = Math.ceil((all.length - from) / MAX_CHART_POINTS);
       const idx = [];
       for (let i = all.length - 1; i >= from; i -= step) idx.unshift(i);  // le dernier cours est toujours gardé
@@ -3513,9 +3538,11 @@
       const cur = data.currency || s.currency || "";
 
       // Titre récent (introduction en bourse) : la période demandée n'est pas couverte en entier
-      const partial = new Date(all[from][0]) - start > 10 * 86400000;
+      const partial = !start || new Date(all[from][0] + "T12:00:00") - start > 10 * 86400000;
       document.getElementById("price-change").innerHTML = `<span class="${change >= 0 ? "positive" : "negative"}">${change >= 0 ? "+" : ""}${num(change * 100)} %</span>
-        <span class="when">${partial ? `depuis le ${dayFmt.format(new Date(all[from][0]))}` : `sur ${label}`}</span>`;
+        <span class="when">${partial ? `depuis le ${dayFmt.format(new Date(all[from][0]))}` : key === "YTD" ? label : `sur ${label}`}</span>
+        <div class="line-gain" id="price-line-gain"></div>`;
+      renderLineGain(s, key);
 
       // Prix juste tracé seulement s'il reste proche de la courbe : loin, il écraserait la courbe en une ligne plate
       const f = s.minimal ? null : fairValueOf(s);
@@ -3556,7 +3583,7 @@
           },
           scales: {
             x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 4, maxRotation: 0,
-              callback(v) { const d = new Date(this.getLabelForValue(v)); return months <= 6 ? dateFmt.format(d) : monthFmt.format(d); } },
+              callback(v) { const d = new Date(this.getLabelForValue(v)); return all.length - from < 140 ? dateFmt.format(d) : monthFmt.format(d); } },
               grid: { display: false } },
             y: { position: "right", ticks: { color: cssVar("--muted"), maxTicksLimit: 5 }, grid: { color: cssVar("--line") } },
           },
@@ -3579,9 +3606,33 @@
       closeCurrencies[s.yahoo_ticker || s.ticker] = cur;
       if (techFor !== s) {
         techFor = s;
-        document.getElementById("stock-tech").innerHTML = techBlock(technicals(all), cur);
+        document.getElementById("stock-tech").innerHTML = techBlock(technicals(daily), cur);
         if (s.minimal || s.price == null || !s.currency) renderJournalCard(s);  // cours et devise de la courbe
       }
+    }
+
+    // Fiche ouverte depuis une position (demande d'Enzo) : gain de ta ligne en euros sur la période de la courbe,
+    // calculé par le serveur (/portfolio/line) comme la contribution de l'onglet Perf. : valeur actuelle - valeur au
+    // départ (quantité détenue x clôture en euros) - achats + ventes + dividendes de la période. Exemple : 10 Air
+    // Liquide à 160 € il y a un mois, 2 achetées depuis pour 340 €, valeur 2 040 € -> 2 040 - 1 600 - 340 = +100 €
+    let nextLine = null, openedLine = null;
+    const lineRequests = {};
+    function renderLineGain(s, key) {
+      const el = document.getElementById("price-line-gain");
+      if (!el || !openedLine || openedStock !== s) return;
+      const id = `${openedLine.ticker}|${openedLine.envelope}`;
+      if (!lineRequests[id]) {
+        lineRequests[id] = api(`/portfolio/line?ticker=${encodeURIComponent(openedLine.ticker)}&envelope=${encodeURIComponent(openedLine.envelope)}`);
+        lineRequests[id].catch(() => delete lineRequests[id]);
+      }
+      const line = openedLine;
+      lineRequests[id].then((data) => {
+        const g = data?.periods?.[key];
+        if (openedLine !== line || openedStock !== s || !g) return;
+        const when = g.since_first ? `depuis ton premier achat (${dayFmt.format(new Date(g.from + "T12:00:00"))})` : "sur la période";
+        document.getElementById("price-line-gain").innerHTML = `Ta ligne ${escapeHtml(line.envelope)} : `
+          + `<b class="${g.gain >= 0 ? "positive" : "negative"}">${signedEur(g.gain)}</b> <span class="when">${when}, dividendes compris</span>`;
+      }).catch(() => {});
     }
 
     // --- Analyse technique : indicateurs usuels calculés sur les clôtures quotidiennes de la courbe ---
@@ -3908,6 +3959,8 @@
       }
       document.getElementById("stock-tick").textContent = s.ticker;
       openedStock = s;
+      openedLine = nextLine;
+      nextLine = null;
       if (priceChart) { priceChart.destroy(); priceChart = null; }
       document.getElementById("stock-body").innerHTML = `
         <div class="stock-head">${avatar(s)}<div style="min-width:0"><h1>${escapeHtml(s.name || s.ticker)}</h1>
