@@ -22,7 +22,7 @@ watchlist, alertes et briefs marchés hebdomadaires.
 Notifications sur le téléphone, envoyées par l'appli installée elle-même (Web Push, activées dans Plus >
 Notifications, iPhone avec l'appli sur l'écran d'accueil et iOS 16.4 ou plus) ou, au choix, par l'appli ntfy :
 chaque samedi matin le récap de la semaine (gain de la semaine et depuis le 1er janvier, achats et ventes non
-comptés comme un gain), le nouveau brief le soir de sa sortie (vers 18 h, `.github/workflows/notifications.yml`), et chaque matin les alertes (action sous sa valeur
+comptés comme un gain), le nouveau brief le soir de sa sortie (vers 18 h), et chaque matin vers 8 h les alertes de la nuit (action sous sa valeur
 intrinsèque, forte baisse, score en baisse, dividende réduit, mouvement d'un super investisseur, alertes de prix).
 
 ## Architecture
@@ -100,11 +100,14 @@ l'onglet « Utilisateurs » du Sheet du propriétaire.
 
 ## Workflows GitHub
 
-- **Screener** (planifié chaque nuit à 1 h UTC, lancé en pratique par GitHub vers 7 h - 8 h à Paris, ou à la main) : relevé du jour dans l'onglet Historique de chaque
-  utilisateur (`screener/snapshot.py`, plus-value de la semaine le vendredi), super investisseurs, screener, comptes annuels,
-  notifications, puis publication sur la branche `screener-data`. Dernière étape (`screener/night_report.py`) : si une
+- **Screener** (chaque soir à 21 h 47 UTC, soit 22 h 47 à Paris l'hiver et 23 h 47 l'été, ou à la main) : relevé du jour
+  dans l'onglet Historique de chaque utilisateur (`screener/snapshot.py`), super investisseurs, screener, comptes annuels,
+  puis publication sur la branche `screener-data`. Aucune notification d'ici (personne n'est réveillé à minuit). Dernière étape (`screener/night_report.py`) : si une
   étape a échoué (relevé refusé, screener planté, publication ratée), notification ntfy « Calcul de nuit : n étapes
   en échec » sur le sujet du secret `NTFY_TOPIC`, avec le lien du journal du workflow.
+- **Notifications** (`notifications.yml`, 7 h 07 et 17 h 07 UTC : 8 h et 18 h à Paris l'hiver, 9 h et 19 h l'été) : le matin,
+  nouveau brief, récap de la semaine le samedi et alertes de la nuit (`notify.py --morning`, qui attend jusqu'à 3 h les
+  données de la nuit si le calcul est en retard) ; le soir, le brief déposé dans la journée (`--briefs-only`).
 - **Tests** : à chaque modification de `main` et sur chaque PR : tests du backend, plus un test de fumée du front
   (`tests/test_front.py` : l'appli ouverte dans Chromium sur un faux portefeuille, les cinq onglets parcourus, échec à
   la moindre erreur JavaScript ou erreur 500 de l'API).

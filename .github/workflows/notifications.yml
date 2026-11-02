@@ -1,23 +1,37 @@
-# Annonce du nouveau brief en fin d'après-midi : le brief est déposé le samedi dans la journée, et le calcul
-# de nuit (screener.yml) ne l'annonçait qu'à sa fin, le lendemain vers 9-10 h. Léger : aucune donnée du
-# screener, seulement l'API (liste des briefs et réglages de notification de chaque utilisateur).
+# Envoi des notifications, à part du calcul (screener.yml, le soir) pour qu'elles arrivent à des heures
+# normales. Léger : l'API (réglages de chaque utilisateur, briefs, récap) et les données déjà publiées sur
+# la branche screener-data.
+#   - matin : nouveau brief, récap de la semaine le samedi, alertes de la nuit (attend les données de la
+#     nuit jusqu'à 3 h si GitHub a lancé le calcul en retard, puis échoue : mail de GitHub) ;
+#   - soir : nouveau brief déposé dans la journée (le samedi), annoncé le soir même.
+# Heures fixes en UTC : une heure de plus à Paris l'été. GitHub lance souvent ses tâches planifiées avec
+# quelques minutes à quelques heures de retard (surtout aux heures rondes très demandées, d'où les minutes 07).
 
-name: Notifications du soir
+name: Notifications
 
 on:
   schedule:
-    # 17 h 07 UTC : 18 h à Paris l'hiver, 19 h l'été (heure fixe en UTC), plus le retard de GitHub, qui lance
-    # ses tâches planifiées avec quelques minutes à plusieurs heures de décalage (calcul de nuit : 4 à 6 h)
-    - cron: "7 17 * * *"
+    - cron: "7 7 * * *"    # 8 h 07 à Paris l'hiver, 9 h 07 l'été
+    - cron: "7 17 * * *"   # 18 h 07 à Paris l'hiver, 19 h 07 l'été
   workflow_dispatch:
+    inputs:
+      passage:
+        description: "Passage à lancer"
+        type: choice
+        options: [matin, soir]
+        default: matin
 
 permissions:
   contents: read
 
+concurrency:
+  group: notifications
+  cancel-in-progress: false
+
 jobs:
-  briefs:
+  send:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,8 +40,14 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r backend/requirements.txt
-      - name: Annonce le nouveau brief
+      - name: Envoie les notifications
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: python screener/notify.py --briefs-only
+          PASSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.passage || (github.event.schedule == '7 17 * * *' && 'soir' || 'matin') }}
+        run: |
+          if [ "$PASSAGE" = "soir" ]; then
+            python screener/notify.py --briefs-only
+          else
+            python screener/notify.py --morning
+          fi
