@@ -1119,7 +1119,6 @@ def history_snapshot(day: str):
 
     from .history import record_snapshot
     from .notifications import get_topic
-    from .stats import weekly_summary_of
 
     try:
         when = date.fromisoformat(day)
@@ -1132,13 +1131,29 @@ def history_snapshot(day: str):
         except Exception as e:  # un Sheet illisible ou un cours en erreur ne bloque pas les autres
             result.append({"name": u.name, "admin": u.admin, "error": str(e)})
             continue
-        entry["push"] = _push_devices(u.sheet_id)
-        if when.weekday() == 4:  # vendredi : récap de la semaine et de l'année pour la notification
-            try:
-                entry["summary"] = weekly_summary_of(u.sheet_id, when)
-            except Exception:  # récap impossible : snapshot.py se rabat sur la plus-value de la semaine
-                entry["summary"] = None
         result.append(entry)
+    return result
+
+
+# Récap du samedi matin (screener/notify.py --morning) : semaine et année jusqu'au relevé du vendredi `day`
+@app.get("/notifications/weekly", dependencies=[Depends(require_admin)])
+def notification_weekly(day: str):
+    from datetime import date
+
+    from .notifications import get_topic
+    from .stats import weekly_summary_of
+
+    try:
+        when = date.fromisoformat(day)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date attendue au format AAAA-MM-JJ")
+    result = []
+    for u in users_config.all_users():
+        try:
+            result.append({"name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id),
+                           "push": _push_devices(u.sheet_id), "summary": weekly_summary_of(u.sheet_id, when)})
+        except Exception as e:  # un Sheet illisible ne prive pas les autres de leur récap
+            result.append({"name": u.name, "admin": u.admin, "error": str(e)})
     return result
 
 

@@ -6,9 +6,11 @@ name: Screener
 
 on:
   schedule:
-    # 3h à Paris (été) : après la clôture US, avant l'ouverture en Asie. En pratique GitHub le lance 4 à 6 h plus
-    # tard (octobre 2026 : départ entre 5 h 30 et 7 h UTC, fin vers 7 h - 9 h UTC), les notifications partent le matin
-    - cron: "0 1 * * *"
+    # 21 h 47 UTC : 22 h 47 à Paris l'hiver, 23 h 47 l'été, après la clôture de New York (22 h à Paris) et le délai
+    # des cours GOOGLEFINANCE. Avant (novembre 2026) : 1 h UTC, une heure très demandée que GitHub lançait avec
+    # 4 à 6 h de retard (fin du calcul entre 8 h 40 et 10 h à Paris). Les notifications ne partent pas d'ici mais
+    # du passage du matin (notifications.yml), pour ne réveiller personne : ce workflow ne fait que calculer
+    - cron: "47 21 * * *"
   workflow_dispatch:
     inputs:
       max_fundamentals:
@@ -48,13 +50,12 @@ jobs:
             mkdir -p data
           fi
 
-      # En premier : les cours de la veille sont prêts et la notification de la semaine part tôt
-      - name: Relevé quotidien du patrimoine et plus-value de la semaine
+      # En premier : les cours de clôture du jour sont prêts (relevé daté par snapshot.market_day)
+      - name: Relevé quotidien du patrimoine
         id: snapshot
         continue-on-error: true
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NIGHT_REPORT: ${{ runner.temp }}/rapport-nuit.txt
         run: python screener/snapshot.py
 
@@ -88,14 +89,6 @@ jobs:
         id: financials
         continue-on-error: true
         run: python screener/financials.py --data-dir data --max 400 --time-budget-min 30
-
-      - name: Notifications des alertes (ntfy)
-        id: notify
-        continue-on-error: true
-        env:
-          APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: python screener/notify.py --data-dir data
 
       # Publié même si une étape a échoué : le travail déjà fait n'est pas perdu
       - name: Publie sur la branche screener-data
@@ -134,6 +127,5 @@ jobs:
             Contenu des ETF=${{ steps.lookthrough.outcome }};
             Frais des ETF=${{ steps.etf_fees.outcome }};
             Historique financier=${{ steps.financials.outcome }};
-            Notifications des alertes=${{ steps.notify.outcome }};
             Publication des données=${{ steps.publish.outcome }}
         run: python screener/night_report.py

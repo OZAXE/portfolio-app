@@ -7,7 +7,7 @@ from app import history, main, notifications, users
 from app.history import SnapshotError, history_row, snapshot_totals, weekly_gain
 from app.sheets import SHEETS_EPOCH, parse_history_v2
 from app.users import User
-from snapshot import market_day, weekly_message
+from snapshot import market_day
 
 HEADER = ["TICKER", "NOM", "TYPE", "ENVELOPPE", "QUANTITÉ", "PRU", "INVESTI", "COURS", "DEVISE", "TAUX", "VALEUR"]
 
@@ -78,12 +78,13 @@ def test_market_day_skips_weekend():
     assert market_day(datetime(2026, 10, 6, 3)) == date(2026, 10, 5)
 
 
-def test_weekly_message():
-    title, message, tag = weekly_message({"gain": 70, "gain_pct": 70 / 1500, "value": 1770, "contributions": 200})
-    assert title == "Ta semaine en bourse : en hausse" and tag == "chart_with_upwards_trend"
-    assert message == "+70,00 € (+4,7 %) de plus-value cette semaine.\nValeur du portefeuille : 1 770 €.\nVersements de la semaine (200 €) non comptés."
-    title, message, tag = weekly_message({"gain": -1234.5, "gain_pct": -0.02, "value": 60000, "contributions": 0})
-    assert title.endswith("en baisse") and message.startswith("-1 234 € (-2,0 %)")
+def test_relevé_du_soir_daté_du_jour_même():
+    # Calcul planifié à 21 h 47 UTC : le vendredi 06/11/2026 à 22 h 47 à Paris = 16 h 47 à New York, clôture passée
+    assert market_day(datetime(2026, 11, 6, 22, 47)) == date(2026, 11, 6)
+    # Lancé par GitHub avec retard, à 2 h du matin le samedi à Paris = 20 h le vendredi à New York : toujours vendredi
+    assert market_day(datetime(2026, 11, 7, 2, 0)) == date(2026, 11, 6)
+    # Avant la clôture (vendredi 21 h à Paris = 15 h à New York) : séance de la veille
+    assert market_day(datetime(2026, 11, 6, 21, 0)) == date(2026, 11, 5)
 
 
 class FakeWorksheet:

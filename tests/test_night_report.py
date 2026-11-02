@@ -78,7 +78,7 @@ def test_releve_impossible_fait_echouer_l_etape(tmp_path, monkeypatch):
     results = [{"name": "Evan", "admin": False, "error": "valeur illisible pour EWLD.PA"},
                {"name": "Enzo", "admin": True, "recorded": True, "reason": None, "weekly": None}]
     monkeypatch.setattr(snapshot.requests, "post", lambda *a, **k: FakeResponse(results))
-    monkeypatch.setattr("sys.argv", ["snapshot.py", "--day", "2026-09-29", "--dry-run"])
+    monkeypatch.setattr("sys.argv", ["snapshot.py", "--day", "2026-09-29"])
     with pytest.raises(SystemExit) as stop:
         snapshot.main()
     assert "1 relevé(s) impossible(s)" in str(stop.value)
@@ -90,5 +90,5 @@ def test_releve_reussi_ne_fait_pas_echouer_l_etape(monkeypatch):
     monkeypatch.setattr(snapshot, "api_get", lambda path, token: {"status": "ok"})
     results = [{"name": "Enzo", "admin": True, "recorded": False, "reason": "relevé déjà présent", "weekly": None}]
     monkeypatch.setattr(snapshot.requests, "post", lambda *a, **k: FakeResponse(results))
-    monkeypatch.setattr("sys.argv", ["snapshot.py", "--day", "2026-09-29", "--dry-run"])
+    monkeypatch.setattr("sys.argv", ["snapshot.py", "--day", "2026-09-29"])
     snapshot.main()

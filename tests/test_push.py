@@ -15,8 +15,8 @@ from app.notifications import brief_to_announce
 from app.operations import OperationError
 from app.stats import period_change, weekly_summary
 from app.users import User
-from notify import brief_message, user_topic
-from snapshot import summary_message
+import notify
+from notify import brief_message, summary_message, user_topic
 
 AUTH = "BTBZMqHH6r4Tts7J_aSIgg"
 P256DH = "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4"
@@ -201,3 +201,45 @@ def test_passage_du_soir_annonce_seulement_le_brief(monkeypatch):
     notify.announce_briefs(users_, "code", None, dry_run=False)
     assert sent == [("Enzo", "Nouveau brief : semaine du 26 octobre")]
     assert marked == [("/notifications/brief-sent", {"user": "Enzo", "id": "b2"})]
+
+
+def test_brief_du_matin_pas_annonce_deux_fois(monkeypatch):
+    sent = []
+    monkeypatch.setattr(notify, "deliver", lambda user, *a: sent.append(user["name"]) or ["appli"])
+    monkeypatch.setattr(notify, "api_post", lambda *a: None)
+    users_ = [{"name": "Enzo", "push": 1, "brief": BRIEFS[0]}]
+    notify.announce_briefs(users_, "code", None, dry_run=False)
+    notify.announce_briefs(users_, "code", None, dry_run=False)  # suite du même passage
+    assert sent == ["Enzo"] and users_[0]["brief"] is None
+
+
+class FakeResponse:
+    def __init__(self, data):
+        self.data, self.ok = data, True
+
+    def json(self):
+        return self.data
+
+
+def test_alertes_du_matin_seulement_sur_les_donnees_de_la_nuit(monkeypatch):
+    from datetime import datetime, timezone
+
+    published = {"generated_at": "2026-11-05T23:40:00+00:00", "stocks": []}  # calcul de la veille au soir
+    monkeypatch.setattr(notify.requests, "get", lambda url, timeout: FakeResponse(published if "screener" in url else {}))
+    morning = datetime(2026, 11, 6, 7, 10, tzinfo=timezone.utc)
+    assert notify.fresh_data(morning)[0] is published  # 7 h 30 d'âge : de la nuit
+    # Calcul d'hier soir pas encore fini : on a encore celui d'avant-hier (31 h), les alertes de la veille repartiraient
+    published["generated_at"] = "2026-11-05T00:10:00+00:00"
+    assert notify.fresh_data(morning, wait_minutes=0) is None
+
+
+def test_recap_du_samedi_envoye_a_chacun(monkeypatch):
+    sent = []
+    monkeypatch.setattr(notify, "api_get", lambda path, token: [
+        {"name": "Enzo", "admin": True, "push": 1, "summary": weekly_summary(ROWS, date(2026, 10, 30))},
+        {"name": "Paul", "push": 1, "summary": None},  # historique trop court : pas de récap
+        {"name": "Tom", "error": "Sheet illisible"},
+    ] if path == "/notifications/weekly?day=2026-10-30" else [])
+    monkeypatch.setattr(notify, "deliver", lambda user, token, topic, title, *a, **k: sent.append((user["name"], title)) or ["appli"])
+    notify.send_weekly("code", None, date(2026, 10, 30), dry_run=False)
+    assert sent == [("Enzo", "Ta semaine : +238 € (+1,8 %)")]
