@@ -21,8 +21,8 @@ watchlist, alertes et briefs marchés hebdomadaires.
 
 Notifications sur le téléphone, envoyées par l'appli installée elle-même (Web Push, activées dans Plus >
 Notifications, iPhone avec l'appli sur l'écran d'accueil et iOS 16.4 ou plus) ou, au choix, par l'appli ntfy :
-chaque vendredi soir le récap de la semaine (gain de la semaine et depuis le 1er janvier, achats et ventes non
-comptés comme un gain), le nouveau brief quand il sort, et chaque nuit les alertes (action sous sa valeur
+chaque samedi matin le récap de la semaine (gain de la semaine et depuis le 1er janvier, achats et ventes non
+comptés comme un gain), le nouveau brief le soir de sa sortie (vers 18 h, `.github/workflows/notifications.yml`), et chaque matin les alertes (action sous sa valeur
 intrinsèque, forte baisse, score en baisse, dividende réduit, mouvement d'un super investisseur, alertes de prix).
 
 ## Architecture
@@ -100,7 +100,7 @@ l'onglet « Utilisateurs » du Sheet du propriétaire.
 
 ## Workflows GitHub
 
-- **Screener** (chaque nuit vers 3 h, ou à la main) : relevé du jour dans l'onglet Historique de chaque
+- **Screener** (planifié chaque nuit à 1 h UTC, lancé en pratique par GitHub vers 7 h - 8 h à Paris, ou à la main) : relevé du jour dans l'onglet Historique de chaque
   utilisateur (`screener/snapshot.py`, plus-value de la semaine le vendredi), super investisseurs, screener, comptes annuels,
   notifications, puis publication sur la branche `screener-data`. Dernière étape (`screener/night_report.py`) : si une
   étape a échoué (relevé refusé, screener planté, publication ratée), notification ntfy « Calcul de nuit : n étapes

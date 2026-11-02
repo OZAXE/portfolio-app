@@ -6,7 +6,9 @@ name: Screener
 
 on:
   schedule:
-    - cron: "0 1 * * *"   # 3h à Paris (été) : après la clôture US, avant l'ouverture en Asie
+    # 3h à Paris (été) : après la clôture US, avant l'ouverture en Asie. En pratique GitHub le lance 4 à 6 h plus
+    # tard (octobre 2026 : départ entre 5 h 30 et 7 h UTC, fin vers 7 h - 9 h UTC), les notifications partent le matin
+    - cron: "0 1 * * *"
   workflow_dispatch:
     inputs:
       max_fundamentals:

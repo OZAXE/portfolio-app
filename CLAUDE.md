@@ -557,7 +557,12 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   - Front : `renderPushState` (iPhone dans Safari : pas de `PushManager`, message dédié), permission demandée au
     toucher du bouton ; service worker : `push` (toujours une notification affichée, sinon Chrome / Safari retirent
     l'abonnement) et `notificationclick` (appli ouverte : `postMessage({open: "#briefs"})`, sinon `openWindow`).
-    Envoi réel jamais testé depuis le conteneur (services de push bloqués) : vérifier avec « Envoyer un test ».
+    Envoi réel vérifié par Enzo sur son téléphone le 02/11/2026 (« Envoyer un test »).
+  - Horaires (novembre 2026) : le calcul de nuit planifié à 1 h UTC part en réalité 4 à 6 h plus tard (octobre 2026 :
+    départ 5 h 30 - 7 h UTC, fin 7 h - 9 h UTC). Récap du samedi (étape snapshot, au début) vers 7 h - 8 h à Paris,
+    alertes (étape notify, à la fin) vers 9 h - 10 h. Une heure fixe n'est pas garantissable : les données ne sont
+    prêtes qu'à la fin du calcul. Brief : `.github/workflows/notifications.yml` (`notify.py --briefs-only`, 17 h 07
+    UTC = 18 h l'hiver, 19 h l'été) l'annonce le soir de son dépôt du samedi ; le passage de nuit rattrape les autres.
 
 ## Tester le front (banc Playwright)
 

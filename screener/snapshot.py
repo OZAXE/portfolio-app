@@ -1,7 +1,8 @@
 """
 Relevé quotidien du patrimoine et notification de la plus-value de la semaine.
 
-Lancé par le workflow nocturne (vers 3 h à Paris), avant le screener :
+Lancé par le workflow nocturne, avant le screener (planifié à 1 h UTC, mais lancé par GitHub avec 4 à 6 h de
+retard : vers 7 h - 8 h à Paris en octobre 2026, donc le récap du samedi arrive le matin) :
     python screener/snapshot.py
 
 Les cours lus par GOOGLEFINANCE sont alors ceux de la clôture de la veille : le relevé est daté

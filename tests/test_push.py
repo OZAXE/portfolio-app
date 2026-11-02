@@ -184,3 +184,20 @@ def test_sujet_ntfy_du_proprietaire_seulement_sans_telephone_abonne():
     assert user_topic(enzo, "secret-ntfy") == "secret-ntfy"
     assert user_topic({**enzo, "push": 1}, "secret-ntfy") is None  # sinon tout arriverait en double
     assert user_topic({"admin": False, "topic": None, "push": 0}, "secret-ntfy") is None
+
+
+def test_passage_du_soir_annonce_seulement_le_brief(monkeypatch):
+    import notify
+
+    sent, marked = [], []
+    monkeypatch.setattr(notify, "deliver", lambda user, token, topic, title, text, *a: sent.append((user["name"], title)) or ["appli"])
+    monkeypatch.setattr(notify, "api_post", lambda path, token, payload: marked.append((path, payload)))
+    users_ = [
+        {"name": "Enzo", "admin": True, "push": 1, "brief": BRIEFS[0]},
+        {"name": "Paul", "push": 0, "topic": None, "brief": BRIEFS[0]},  # notifications pas activées : rien, pas marqué
+        {"name": "Lea", "push": 1, "brief": None},  # déjà annoncé ou lu
+        {"name": "Tom", "error": "Sheet illisible"},
+    ]
+    notify.announce_briefs(users_, "code", None, dry_run=False)
+    assert sent == [("Enzo", "Nouveau brief : semaine du 26 octobre")]
+    assert marked == [("/notifications/brief-sent", {"user": "Enzo", "id": "b2"})]
