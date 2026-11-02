@@ -1061,7 +1061,7 @@
       </div>
       <div class="group-title">Réglages</div><div class="group">
         <button class="setting" data-spage="accounts"><span class="ic" style="background:#0ea5e9"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></span><span style="min-width:0"><span class="t">Comptes et courtiers</span><span class="d">PEA, CTO et grilles de frais de tes courtiers</span></span><span class="chev" aria-hidden="true">›</span></button>
-        <button class="setting" data-spage="notifications"><span class="ic" style="background:#ef4444"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span style="min-width:0"><span class="t">Notifications ntfy</span><span class="d">Tes alertes de la nuit sur ton téléphone</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="notifications"><span class="ic" style="background:#ef4444"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span style="min-width:0"><span class="t">Notifications</span><span class="d">Récap de la semaine, nouveau brief, alertes</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="appearance"><span class="ic" style="background:#334155"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span style="min-width:0"><span class="t">Apparence et affichage</span><span class="d">Thème, couleur, taille du texte, mode Simple ou Détaillé</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="dcf"><span class="ic" style="background:#0f766e"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg></span><span style="min-width:0"><span class="t">Hypothèses du DCF</span><span class="d">Croissance, actualisation, croissance à long terme</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="advanced"><span class="ic" style="background:#64748b"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><span style="min-width:0"><span class="t">Opérations avancées</span><span class="d">Doublons, repartir de zéro, reconstituer l'historique</span></span><span class="chev" aria-hidden="true">›</span></button>
@@ -1129,8 +1129,18 @@
       </div>
       <div class="spage" data-page="notifications" hidden>
         <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Notifications</strong></div>
-      <div class="card">
-        <p class="help">Chaque nuit, l'appli t'envoie tes alertes (positions, watchlist, alertes de prix) avec <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
+      <div class="card" id="push-card">
+        <h3>Sur ce téléphone</h3>
+        <p class="help">L'appli te prévient directement, sans autre appli à installer : le <b>récap de ta semaine</b> le vendredi soir (gain de la semaine et depuis le 1er janvier), le <b>nouveau brief</b> quand il sort, et tes <b>alertes</b> de la nuit (positions, watchlist, alertes de prix). À activer sur chaque téléphone.</p>
+        <p class="help" id="push-state"></p>
+        <button class="btn" id="push-enable" hidden>Activer les notifications</button>
+        <button class="btn" id="push-disable" hidden>Désactiver sur ce téléphone</button>
+        <button class="btn" id="push-test" hidden>Envoyer un test</button>
+        <p class="help" id="push-status"></p>
+      </div>
+      <details class="card" id="ntfy-card">
+        <summary><b>Autre option : ntfy</b></summary>
+        <p class="help">Si tu préfères recevoir tes notifications dans <b>ntfy</b>, une appli gratuite et sans compte. 1. Installe ntfy (Play Store ou App Store). 2. Choisis ou génère ton sujet ci-dessous, puis enregistre. 3. Dans ntfy, abonne-toi à ce sujet (bouton +). Garde-le pour toi : quiconque le connaît peut lire tes notifications.</p>
         <input class="search" id="ntfy-topic" placeholder="Sujet ntfy, ex. portfolio-k3x9q2m1p8" autocomplete="off" />
         <button class="btn" id="ntfy-generate">Générer un sujet</button>
         <button class="btn" id="ntfy-save">Enregistrer</button>
@@ -1138,7 +1148,7 @@
         <p class="help"><a id="ntfy-link" target="_blank" rel="noopener" hidden></a></p>
         <p class="help" id="ntfy-default" hidden>Sans sujet enregistré ici, tes notifications partent sur le sujet du secret GitHub NTFY_TOPIC, comme avant.</p>
         <p class="help" id="ntfy-status"></p>
-      </div>
+      </details>
 
       </div>
       <div class="spage" data-page="appearance" hidden>
@@ -4997,9 +5007,9 @@
       try {
         const n = await api("/notifications/settings");
         notificationSettings = n;
-        document.getElementById("price-alerts-note").textContent = n.topic || n.admin
+        document.getElementById("price-alerts-note").textContent = n.topic || n.admin || n.push_endpoints?.length
           ? "Vérifiées chaque nuit sur le dernier cours de clôture, dans la devise de cotation. Une alerte déclenchée t'est notifiée une fois, puis reste ici jusqu'à ce que tu la réactives ou la supprimes."
-          : "Pour recevoir une notification quand une alerte se déclenche, choisis ton sujet ntfy dans Plus > Notifications.";
+          : "Pour recevoir une notification quand une alerte se déclenche, active les notifications dans Plus > Notifications.";
         renderNotificationSettings();
       } catch { /* réglages indisponibles : la liste reste utilisable */ }
     }
@@ -5043,6 +5053,7 @@
       input.value = notificationSettings.topic || "";
       updateNtfyLink();
       document.getElementById("ntfy-default").hidden = !(notificationSettings.admin && !notificationSettings.topic);
+      renderPushState();
     }
 
     function updateNtfyLink() {
@@ -5080,6 +5091,125 @@
         status.textContent = err.message;
       }
     });
+
+    // --- Plus > Notifications : notifications de l'appli installée (Web Push, voir backend/app/push.py) ---
+    // Le téléphone s'abonne auprès du service de push de son système (Google, Apple...) avec la clé publique VAPID
+    // du serveur, puis l'abonnement est rangé dans le Sheet (onglet Réglages) pour le job de nuit. Sur iPhone, seule
+    // l'appli ajoutée à l'écran d'accueil y a accès (iOS 16.4 et plus) : dans Safari, PushManager n'existe pas.
+    const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+    function vapidKeyBytes(key) {
+      const raw = atob((key + "=".repeat((4 - (key.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+      return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+    }
+
+    async function currentPushSubscription() {
+      if (!pushSupported()) return null;
+      const reg = await navigator.serviceWorker.getRegistration();
+      return reg ? reg.pushManager.getSubscription() : null;
+    }
+
+    async function renderPushState() {
+      const state = document.getElementById("push-state");
+      const show = (enable, disable, test) => {
+        document.getElementById("push-enable").hidden = !enable;
+        document.getElementById("push-disable").hidden = !disable;
+        document.getElementById("push-test").hidden = !test;
+      };
+      if (!pushSupported()) {
+        show(false, false, false);
+        state.textContent = /iPhone|iPad/.test(navigator.userAgent)
+          ? "Sur iPhone, ouvre l'appli depuis son icône sur l'écran d'accueil (pas dans Safari) pour activer les notifications. Il faut iOS 16.4 ou plus récent."
+          : "Ce navigateur ne gère pas les notifications. Ouvre l'appli installée sur ton téléphone.";
+        return;
+      }
+      if (!notificationSettings) {
+        state.textContent = "Chargement…";
+        show(false, false, false);
+        // Réglages lus avec les alertes de prix au chargement du portefeuille ; sinon (erreur, pas de portefeuille) ici
+        api("/notifications/settings").then((n) => { notificationSettings = n; renderNotificationSettings(); })
+          .catch((err) => { state.textContent = err.message; });
+        return;
+      }
+      if (!notificationSettings.push_key) {
+        show(false, false, false);
+        state.textContent = "Pas encore disponible : le serveur de l'appli n'est pas configuré pour les notifications.";
+        return;
+      }
+      if (Notification.permission === "denied") {
+        show(false, false, false);
+        state.textContent = "Notifications bloquées pour l'appli : autorise-les dans les réglages du téléphone (Notifications > Portfolio), puis reviens ici.";
+        return;
+      }
+      const sub = await currentPushSubscription().catch(() => null);
+      const known = sub && (notificationSettings.push_endpoints || []).includes(sub.endpoint);
+      const others = (notificationSettings.push_endpoints || []).length - (known ? 1 : 0);
+      state.textContent = (known ? "✅ Activées sur ce téléphone." : "Pas encore activées sur ce téléphone.")
+        + (others > 0 ? ` Aussi sur ${others} autre${others > 1 ? "s" : ""} appareil${others > 1 ? "s" : ""}.` : "");
+      show(!known, known, known || others > 0);
+    }
+
+    document.getElementById("push-enable").addEventListener("click", async (e) => {
+      const status = document.getElementById("push-status");
+      e.target.disabled = true;
+      status.textContent = "Activation…";
+      try {
+        // Demandée au toucher du bouton : iPhone refuse une demande qui ne vient pas d'un geste de l'utilisateur
+        if (await Notification.requestPermission() !== "granted") throw new Error("Notifications refusées : tu peux les autoriser dans les réglages du téléphone.");
+        const reg = await navigator.serviceWorker.ready;
+        const sub = (await reg.pushManager.getSubscription())
+          || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(notificationSettings.push_key) });
+        await apiSend("POST", "/notifications/push/subscribe", { subscription: sub.toJSON() });
+        notificationSettings = await api("/notifications/settings");
+        status.textContent = "C'est activé. Envoie un test pour vérifier.";
+      } catch (err) {
+        status.textContent = err.message || "Activation impossible";
+      }
+      e.target.disabled = false;
+      renderPushState();
+    });
+
+    document.getElementById("push-disable").addEventListener("click", async (e) => {
+      const status = document.getElementById("push-status");
+      e.target.disabled = true;
+      try {
+        const sub = await currentPushSubscription();
+        if (sub) {
+          await apiSend("POST", "/notifications/push/unsubscribe", { endpoint: sub.endpoint });
+          await sub.unsubscribe();
+        }
+        notificationSettings = await api("/notifications/settings");
+        status.textContent = "Désactivées sur ce téléphone.";
+      } catch (err) {
+        status.textContent = err.message;
+      }
+      e.target.disabled = false;
+      renderPushState();
+    });
+
+    document.getElementById("push-test").addEventListener("click", async () => {
+      const status = document.getElementById("push-status");
+      status.textContent = "Envoi…";
+      try {
+        await apiSend("POST", "/notifications/test");
+        status.textContent = "Notification envoyée : elle doit arriver dans quelques secondes.";
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    });
+
+    // Notification touchée alors que l'appli était ouverte : le service worker demande d'aller au bon onglet
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        const hash = typeof event.data?.open === "string" ? event.data.open : "";
+        if (!/^#[a-z]+$/.test(hash)) return;
+        if (hash === "#briefs") {  // la liste, avec le nouveau brief en tête, même si un ancien était ouvert
+          document.getElementById("briefs-reader").hidden = true;
+          document.getElementById("briefs-list-view").hidden = false;
+        }
+        showView(hash.slice(1));
+      });
+    }
 
     // --- Saisie d'une opération (achat, vente, dividende) dans le Sheet ---
     let opSettings = null;
@@ -6009,6 +6139,7 @@
       if (name === "advanced") prepareAdvancedTools();
       if (name === "appearance") syncDensityButtons();
       if (name === "budget") openBudget();
+      if (name === "notifications") renderPushState();
       if (PORTFOLIO_PAGES.includes(name)) {
         document.querySelector(`#view-settings .spage[data-page="${name}"] .needs-portfolio`).hidden = !!overview;
         if (overview && name === "projection") renderProjection();  // graphique dessiné page cachée : sans taille

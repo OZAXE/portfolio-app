@@ -17,11 +17,13 @@ watchlist, alertes et briefs marchés hebdomadaires.
 | **Suivi** | **Opérations** (toutes les opérations, à corriger, supprimer ou exporter en CSV), **Journal** de trading (thèse, objectif, stop, bilan de chaque titre), **Revenus** (dividendes à venir, rendement sur PRU de chaque ligne, revenu annuel perçu par année et projeté, résultats à venir), **Fiscalité** (plus-values, dividendes et intérêts, impôt restant estimé du CTO, récap des cases de la déclaration et export CSV, plafond PEA, frais). Bouton **Importer** : Trade Republic (PDF, CSV avec les espèces et les actions gratuites) et Boursorama. |
 | **Marché** | Accueil en sections (tes actions, watchlist, solides et sous-évaluées, plus solides, dividendes réguliers), screener (recherche, filtres région / secteur / DCF fiable / sous-évaluées / score / dividende / super investisseurs / watchlist, tris) et fiche par action : courbe du cours (1 mois à 10 ans, moyennes 50 et 200 jours, prix juste en repère), analyse technique (RSI, croisement des moyennes, plus haut / bas sur un an, momentum), ROIC, rendement du cash-flow libre, dette nette / EBITDA, couverture des intérêts, croissance du chiffre d'affaires et du BPA sur 5 ans (aussi en filtres et tris du screener), ton journal (thèse, objectif, stop), présentation de l'entreprise, ratios, score qualité calibré par secteur, prix juste avec verdict sous-évaluée / correcte / surévaluée (DCF, PER du secteur, PER historique de l'action, valeur comptable), consensus et objectif des analystes, date des résultats, actualités (Google Actualités en français), comparaison côte à côte de 4 actions, DCF, dividende et rachats, historique hebdomadaire, comptes annuels. Vue « Super investisseurs » (déclarations 13F de 27 fonds). |
 | **Guides** | [Guide d'utilisation](docs/guide-utilisation.md), [installation pour un nouvel utilisateur](docs/tutoriel-amis.md), [gestion des utilisateurs](docs/ajouter-un-ami.md). |
-| **Plus** | Affichage **Essentiel / Complet** (masque l'onglet Perf., l'exposition par entreprise et l'analyse technique, Marché en Simple) et taille du texte (A− / A+). **Mon patrimoine** : épargne saisie à la main (livrets, assurance-vie, PER, patrimoine financier), projection, allocation cible avec rééquilibrage (ventes choisies pour limiter l'impôt). **Briefs hebdo** (déposés par une tâche Claude Cowork dans un dossier Google Drive, visibles s'il y en a ; case « Lu » rangée dans l'onglet « Briefs lus » du Sheet, « Nouveau brief à lire » dans À regarder). Réglages : comptes et courtiers, notifications ntfy, apparence (thème, couleur, mode Simple / Détaillé, icône), hypothèses personnelles du DCF (recalcul instantané), opérations avancées (doublons, repartir de zéro, reconstituer l'historique), code d'accès, inscription, lexique, guides. | **Budget** (administrateur seulement) : dépenses et revenus du mois tirés du relevé du compte courant, envoyés par `scripts/envoyer_budget.py`.
+| **Plus** | Affichage **Essentiel / Complet** (masque l'onglet Perf., l'exposition par entreprise et l'analyse technique, Marché en Simple) et taille du texte (A− / A+). **Mon patrimoine** : épargne saisie à la main (livrets, assurance-vie, PER, patrimoine financier), projection, allocation cible avec rééquilibrage (ventes choisies pour limiter l'impôt). **Briefs hebdo** (déposés par une tâche Claude Cowork dans un dossier Google Drive, visibles s'il y en a ; case « Lu » rangée dans l'onglet « Briefs lus » du Sheet, « Nouveau brief à lire » dans À regarder). Réglages : comptes et courtiers, notifications (de l'appli installée, ou ntfy), apparence (thème, couleur, mode Simple / Détaillé, icône), hypothèses personnelles du DCF (recalcul instantané), opérations avancées (doublons, repartir de zéro, reconstituer l'historique), code d'accès, inscription, lexique, guides. | **Budget** (administrateur seulement) : dépenses et revenus du mois tirés du relevé du compte courant, envoyés par `scripts/envoyer_budget.py`.
 
-Notifications chaque nuit sur le téléphone (appli ntfy) : action sous sa valeur intrinsèque, forte baisse,
-score en baisse, dividende réduit, mouvement d'un super investisseur sur une action suivie, alertes de prix,
-et chaque vendredi soir la plus-value de la semaine (apports exclus).
+Notifications sur le téléphone, envoyées par l'appli installée elle-même (Web Push, activées dans Plus >
+Notifications, iPhone avec l'appli sur l'écran d'accueil et iOS 16.4 ou plus) ou, au choix, par l'appli ntfy :
+chaque vendredi soir le récap de la semaine (gain de la semaine et depuis le 1er janvier, achats et ventes non
+comptés comme un gain), le nouveau brief quand il sort, et chaque nuit les alertes (action sous sa valeur
+intrinsèque, forte baisse, score en baisse, dividende réduit, mouvement d'un super investisseur, alertes de prix).
 
 ## Architecture
 
@@ -75,6 +77,7 @@ frontend/ (site statique sur Render, installable sur téléphone)
 | `ALLOW_OPEN_API` | `1` pour laisser l'API répondre sans code d'accès (installation, essai en local). Jamais sur Render : sans elle, une API sans code configuré refuse tout. |
 | `SIGNUP_OPEN` | `0` ferme l'inscription libre (ouverte par défaut, 50 comptes au plus avec `MAX_SIGNUPS`). |
 | `SHEET_ID`, `BRIEFS_FOLDER` | Sheet et dossier Briefs du propriétaire, seulement sans `USERS_JSON`. |
+| `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY` | Clés des notifications de l'appli (Web Push), générées une fois par `cd backend && python -m app.push`. Sans elles, le bouton « Activer les notifications » n'apparaît pas. Les changer oblige chacun à réactiver ses notifications. |
 
 Commande de démarrage : `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (répertoire racine `backend`).
 Le frontend est un site statique Render (répertoire `frontend`, sans commande de build).
@@ -84,7 +87,7 @@ Le frontend est un site statique Render (répertoire `frontend`, sans commande d
 | Secret | Rôle |
 |---|---|
 | `APP_ACCESS_TOKEN` | Code d'accès du propriétaire, pour que le calcul nocturne lise positions et watchlist. |
-| `NTFY_TOPIC` | Nom du canal ntfy qui reçoit les notifications. |
+| `NTFY_TOPIC` | Sujet ntfy du propriétaire : rapport d'échec du calcul de nuit, et ses notifications tant qu'il n'a ni sujet dans l'appli ni téléphone abonné. |
 
 ### Google
 

@@ -86,3 +86,30 @@ self.addEventListener("fetch", (event) => {
   }
   // Le reste (API sur Render, ntfy...) passe directement par le réseau
 });
+
+// --- Notifications de l'appli (Web Push) : message chiffré envoyé par l'API (backend/app/push.py) ---
+// Contenu JSON : title, body, url (page de l'appli à ouvrir), tag (une notification du même tag remplace la
+// précédente : un seul récap de la semaine affiché, pas l'empilement des semaines passées)
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "" }; }
+  const options = { body: data.body || "", icon: "icon-192.png", badge: "icon-192.png", data: { url: data.url || "./" } };
+  if (data.tag) options.tag = data.tag;
+  // Toujours afficher quelque chose : Chrome et Safari retirent l'abonnement à une appli qui reçoit un push sans notification
+  event.waitUntil(self.registration.showNotification(data.title || "Portfolio Insights", options));
+});
+
+// Toucher la notification : l'appli déjà ouverte passe au bon onglet (message à la page), sinon elle s'ouvre dessus
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "./", self.registration.scope);
+  const sameApp = target.origin === self.location.origin;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+    const open = sameApp && windows.find((w) => new URL(w.url).origin === self.location.origin);
+    if (open) {
+      open.postMessage({ open: target.hash });
+      return open.focus();
+    }
+    return self.clients.openWindow(sameApp ? target.href : self.registration.scope);
+  }));
+});

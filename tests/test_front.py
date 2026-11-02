@@ -50,6 +50,7 @@ def app_page(monkeypatch):
             raise RuntimeError("Chart.js injoignable (jsDelivr)")
         pytest.skip("Chart.js injoignable : donner CHART_JS_PATH")
     client, _ = front_bench.make_client(monkeypatch)
+    monkeypatch.setenv("VAPID_PUBLIC_KEY", "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8")
     url, server = front_bench.serve_front()
     with sync_playwright() as pw:
         browser = launch_browser(pw)
@@ -215,6 +216,15 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
         page.wait_for_selector(f'.spage[data-page="{name}"]:not([hidden])')
         page.go_back()
         page.wait_for_selector("#settings-home:not([hidden])")
+
+    # Plus > Notifications : le bouton d'activation apparaît quand le serveur a sa clé VAPID (Chromium a PushManager)
+    # Chromium sans écran répond toujours « denied » : on simule un téléphone qui n'a pas encore été interrogé
+    page.evaluate("() => { Object.defineProperty(Notification, 'permission', { get: () => 'default' }); }")
+    page.click('#settings-home [data-spage="notifications"]')
+    page.wait_for_function("/activées sur ce téléphone/.test(document.getElementById('push-state').textContent)")
+    assert page.is_visible("#push-enable") and not page.is_visible("#push-disable")
+    page.go_back()
+    page.wait_for_selector("#settings-home:not([hidden])")
 
     # Plus > Budget (administrateur) : s'ouvre sur le dernier mois complet (1 500 - 780 = +720 €, 48 % mis de côté),
     # une catégorie se déplie jusqu'aux opérations, le mois suivant est marqué incomplet

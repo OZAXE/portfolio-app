@@ -90,15 +90,16 @@ versements.
 
 ## Étape 7 (facultatif) : les notifications
 
-Chaque nuit, l'appli peut t'envoyer tes alertes (forte baisse d'une position, action surveillée qui
-passe sous sa valeur intrinsèque, alertes de prix), et chaque vendredi soir ta plus-value de la
-semaine (sans compter l'argent versé entre-temps) :
+L'appli peut te prévenir : chaque vendredi soir le récap de ta semaine (gain de la semaine et depuis
+le 1er janvier, sans compter l'argent versé entre-temps), le nouveau brief quand il sort, et chaque nuit
+tes alertes (forte baisse d'une position, action surveillée qui passe sous sa valeur intrinsèque,
+alertes de prix) :
 
-1. Installe l'appli gratuite **ntfy** (Play Store ou App Store).
-2. Dans Portfolio Insights, **Plus > Notifications** : **Générer un sujet**, puis **Enregistrer**.
-3. Dans ntfy, bouton **+**, colle ce sujet et abonne-toi. **Envoyer un test** pour vérifier.
+1. Ouvre Portfolio Insights **depuis son icône sur l'écran d'accueil** (sur iPhone, pas dans Safari).
+2. **Plus > Notifications** : **Activer les notifications**, puis accepte la demande du téléphone.
+3. **Envoyer un test** pour vérifier.
 
-Garde ce sujet pour toi : quiconque le connaît peut lire tes notifications.
+Tu préfères l'appli ntfy ? L'option est en bas de la même page.
 Pour une alerte de prix : ouvre la fiche d'une action, bouton **🔔 Alerte de prix**.
 
 ## Et ensuite ?

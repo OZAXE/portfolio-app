@@ -410,9 +410,16 @@ de clôture.
 
 ### Recevoir les notifications sur ton téléphone
 
-Configure-les dans **Plus > Notifications ntfy** (voir le guide d'installation). Tu reçois alors chaque
-nuit tes alertes, et chaque vendredi soir ta **plus-value de la semaine** (l'argent versé pendant la semaine
-n'est pas compté).
+Dans **Plus > Notifications**, touche **Activer les notifications** puis accepte la demande du téléphone
+(à faire sur chaque téléphone ; sur iPhone, ouvre l'appli depuis son icône de l'écran d'accueil, pas dans Safari).
+Tu reçois alors :
+
+- chaque vendredi soir, le **récap de ta semaine** : gain de la semaine et depuis le 1er janvier, en euros et en %
+  (un achat ou une vente ne compte pas comme un gain, un dividende si), et la valeur de ton portefeuille ;
+- le **nouveau brief**, la nuit qui suit sa sortie (sauf si tu l'as déjà coché « Lu ») ;
+- chaque nuit, tes **alertes** (positions, watchlist, alertes de prix).
+
+Toucher la notification ouvre l'appli au bon endroit. Si tu préfères l'appli ntfy, l'option est en bas de la page.
 
 ---
 
@@ -437,7 +444,7 @@ Puis les rubriques, chacune ouvre sa page :
 - **Mon patrimoine** : Épargne et patrimoine, Projection, Objectifs et rééquilibrage (partie 3).
 - **Comptes et courtiers** : tes comptes (PEA, CTO) et les grilles de frais de tes banques.
 - **Opérations avancées** : doublons, repartir de zéro, reconstituer l'historique (partie 2).
-- **Notifications ntfy** : ton sujet de notifications.
+- **Notifications** : activer les notifications sur ce téléphone, envoyer un test (ou ntfy, en option).
 - **Apparence et affichage** : le thème (**Auto** suit le téléphone, **Sombre**, **Clair**, **Noir** pour les
   écrans OLED), la couleur, la taille du texte, le mode **Simple** ou **Détaillé** et l'icône de l'appli. Pour
   voir une nouvelle icône, retire l'appli de l'écran d'accueil puis ajoute-la à nouveau.

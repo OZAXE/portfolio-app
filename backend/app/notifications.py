@@ -3,7 +3,8 @@ Alertes de prix personnelles et réglages de notification, rangés dans le Googl
 utilisateur (onglets créés au premier usage, comme la Watchlist) :
 - « Alertes prix » : ID, TICKER, SENS (Sous / Au-dessus), PRIX (devise de cotation), NOTE,
   CRÉÉE LE, DÉCLENCHÉE LE. Une alerte déclenchée n'est plus vérifiée tant qu'on ne la réactive pas ;
-- « Réglages » : clé / valeur, dont ntfy_topic, le sujet ntfy.sh où envoyer ses notifications.
+- « Réglages » : clé / valeur, dont ntfy_topic (sujet ntfy.sh, facultatif), push (un abonnement aux
+  notifications de l'appli par appareil, voir push.py) et brief_notified (dernier brief annoncé).
 
 Le job nocturne (screener/notify.py) vérifie les alertes sur les cours de clôture et envoie les
 notifications de chaque utilisateur sur son propre sujet.
@@ -107,23 +108,32 @@ def set_alert_triggered(sheet_id: str, alert_ids: list[str], day: str | None) ->
     return list_price_alerts(sheet_id)
 
 
-def get_topic(sheet_id: str) -> str | None:
+def get_setting(sheet_id: str, key: str) -> str | None:
+    """Valeur d'une clé de l'onglet Réglages (None si absente ou vide)."""
     ws = _tab(sheet_id, SETTINGS_TAB, ["CLÉ", "VALEUR"], create=False)
     if ws is None:
         return None
-    return next((row[1].strip() for row in ws.get_values()[1:] if len(row) > 1 and row[0] == "ntfy_topic" and row[1].strip()), None)
+    return next((row[1].strip() for row in ws.get_values()[1:] if len(row) > 1 and row[0] == key and row[1].strip()), None)
+
+
+def set_setting(sheet_id: str, key: str, value: str | None) -> None:
+    ws = _tab(sheet_id, SETTINGS_TAB, ["CLÉ", "VALEUR"], create=True)
+    keys = ws.col_values(1)
+    if key in keys:
+        ws.update_cell(keys.index(key) + 1, 2, value or "")
+    else:
+        ws.append_row([key, value or ""], value_input_option="RAW")
+
+
+def get_topic(sheet_id: str) -> str | None:
+    return get_setting(sheet_id, "ntfy_topic")
 
 
 def set_topic(sheet_id: str, topic: str | None) -> str | None:
     topic = (topic or "").strip() or None
     if topic and not TOPIC_PATTERN.match(topic):
         raise OperationError("Sujet ntfy invalide ou trop facile à deviner : 20 à 64 caractères, lettres, chiffres, - ou _ (bouton « Générer un sujet »)")
-    ws = _tab(sheet_id, SETTINGS_TAB, ["CLÉ", "VALEUR"], create=True)
-    keys = ws.col_values(1)
-    if "ntfy_topic" in keys:
-        ws.update_cell(keys.index("ntfy_topic") + 1, 2, topic or "")
-    else:
-        ws.append_row(["ntfy_topic", topic or ""], value_input_option="RAW")
+    set_setting(sheet_id, "ntfy_topic", topic)
     return topic
 
 
@@ -134,3 +144,21 @@ def send_ntfy(topic: str, title: str, message: str, tags: str = "bell", click: s
     if click:
         payload["click"] = click
     requests.post("https://ntfy.sh", json=payload, timeout=30).raise_for_status()
+
+
+BRIEF_FRESH_DAYS = 8  # comme le badge « Nouveau » du front
+
+
+def brief_to_announce(briefs: list[dict], notified: str | None, reads: dict, today: date) -> dict | None:
+    """Brief à annoncer par notification : le plus récent, publié il y a moins de 8 jours, pas encore annoncé
+    ni coché « Lu ». Le brief du samedi 31/10 est annoncé la nuit suivante, une seule fois."""
+    if not briefs:
+        return None
+    latest = briefs[0]
+    try:
+        age = (today - date.fromisoformat(latest["date"])).days
+    except (KeyError, ValueError):
+        return None
+    if not 0 <= age < BRIEF_FRESH_DAYS or latest["id"] == notified or latest["id"] in reads:
+        return None
+    return {"id": latest["id"], "date": latest["date"]}

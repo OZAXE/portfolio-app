@@ -346,6 +346,38 @@ def index_summary(sheet_id: str, today: date | None = None) -> dict | None:
     return {"envelopes": index_series(overview.history, operations, ledger.envelopes, overview.holdings, today)}
 
 
+def period_change(rows: list[list], start: date) -> dict | None:
+    """Gain d'une période sur les lignes [date, indice, valeur, flux cumulés] d'index_series, comme la variation au-dessus
+    de la courbe du Portefeuille : gain = écart de valeur - écart des flux (un achat n'est pas un gain, un dividende si),
+    % = indice pondéré par le temps. Départ = dernier relevé à la date `start` ou avant ; historique commencé après :
+    départ au premier relevé, signalé par `since`."""
+    if len(rows) < 2:
+        return None
+    before = [r for r in rows if r[0] <= start.isoformat()]
+    base, end = (before[-1] if before else rows[0]), rows[-1]
+    if end[0] <= base[0]:
+        return None
+    return {"gain": round(end[2] - base[2] - (end[3] - base[3]), 2),
+            "pct": end[1] / base[1] - 1 if base[1] else None,
+            "since": None if before else base[0]}
+
+
+def weekly_summary(rows: list[list], end: date) -> dict | None:
+    """Récap de la notification du vendredi : semaine (depuis la clôture du vendredi d'avant) et année
+    (depuis la clôture du 31/12), valeur actuelle du portefeuille."""
+    if not rows:
+        return None
+    return {"value": round(rows[-1][2], 2), "week": period_change(rows, end - timedelta(days=7)),
+            "year": period_change(rows, date(end.year - 1, 12, 31))}
+
+
+def weekly_summary_of(sheet_id: str, day: date) -> dict | None:
+    """Récap de la semaine finissant le vendredi `day` (relevé de la nuit déjà ajouté à l'Historique)."""
+    summary = index_summary(sheet_id, today=day + timedelta(days=1))
+    rows = ((summary or {}).get("envelopes") or {}).get("Total") or []
+    return weekly_summary(rows, day)
+
+
 # Périodes de la courbe de cours d'une fiche (boutons du front) : gain de ta ligne sur chacune
 LINE_PERIODS = ("1S", "1M", "6M", "YTD", "1A", "5A", "10A", "Tout")
 
