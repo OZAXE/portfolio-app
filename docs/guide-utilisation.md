@@ -414,10 +414,10 @@ Dans **Plus > Notifications**, touche **Activer les notifications** puis accepte
 (à faire sur chaque téléphone ; sur iPhone, ouvre l'appli depuis son icône de l'écran d'accueil, pas dans Safari).
 Tu reçois alors :
 
-- chaque vendredi soir, le **récap de ta semaine** : gain de la semaine et depuis le 1er janvier, en euros et en %
+- chaque samedi matin, le **récap de ta semaine** : gain de la semaine et depuis le 1er janvier, en euros et en %
   (un achat ou une vente ne compte pas comme un gain, un dividende si), et la valeur de ton portefeuille ;
-- le **nouveau brief**, la nuit qui suit sa sortie (sauf si tu l'as déjà coché « Lu ») ;
-- chaque nuit, tes **alertes** (positions, watchlist, alertes de prix).
+- le **nouveau brief**, le soir de sa sortie vers 18 h (sauf si tu l'as déjà coché « Lu ») ;
+- chaque matin, tes **alertes** de la nuit (positions, watchlist, alertes de prix).
 
 Toucher la notification ouvre l'appli au bon endroit. Si tu préfères l'appli ntfy, l'option est en bas de la page.
 

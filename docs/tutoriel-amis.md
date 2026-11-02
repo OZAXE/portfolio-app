@@ -90,8 +90,8 @@ versements.
 
 ## Étape 7 (facultatif) : les notifications
 
-L'appli peut te prévenir : chaque vendredi soir le récap de ta semaine (gain de la semaine et depuis
-le 1er janvier, sans compter l'argent versé entre-temps), le nouveau brief quand il sort, et chaque nuit
+L'appli peut te prévenir : chaque samedi matin le récap de ta semaine (gain de la semaine et depuis
+le 1er janvier, sans compter l'argent versé entre-temps), le nouveau brief le soir de sa sortie, et chaque matin
 tes alertes (forte baisse d'une position, action surveillée qui passe sous sa valeur intrinsèque,
 alertes de prix) :
 

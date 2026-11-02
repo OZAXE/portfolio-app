@@ -147,10 +147,36 @@ def brief_message(brief: dict) -> tuple[str, str]:
     return f"Nouveau brief : semaine du {first} {MONTHS[monday.month - 1]}", "Le point marchés de la semaine est prêt à lire."
 
 
+def announce_brief(user: dict, token: str, default_topic: str | None, who: str) -> None:
+    """Annonce le nouveau brief (s'il y en a un pour cet utilisateur) puis le marque annoncé : plus jamais renvoyé.
+    Pas marqué si rien n'est parti (aucun canal) : annoncé au prochain passage, tant qu'il a moins de 8 jours."""
+    if not user.get("brief"):
+        return
+    title, text = brief_message(user["brief"])
+    if deliver(user, token, default_topic, title, text, "newspaper", f"{APP_ORIGIN}/#briefs", "brief"):
+        api_post("/notifications/brief-sent", token, {"user": user["name"], "id": user["brief"]["id"]})
+        log.info("%s : nouveau brief annoncé", who)
+
+
+def announce_briefs(users: list[dict], token: str, default_topic: str | None, dry_run: bool) -> None:
+    """Passage de 18 h : le brief déposé le samedi (dans la journée) est annoncé le soir même, pas le lendemain
+    matin à la fin du calcul de nuit. Le passage de nuit annonce ceux qui seraient arrivés après."""
+    for i, u in enumerate(users, 1):
+        who = f"utilisateur {i}/{len(users)}"
+        if u.get("error") or not u.get("brief"):
+            continue
+        if dry_run or not (u.get("push") or user_topic(u, default_topic)):
+            log.info("%s : brief à annoncer%s", who, " (notifications non activées)" if not dry_run else "")
+            continue
+        announce_brief(u, token, default_topic, who)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--dry-run", action="store_true", help="affiche les alertes sans les envoyer")
+    parser.add_argument("--briefs-only", action="store_true",
+                        help="annonce seulement le nouveau brief (passage de 18 h, workflow notifications.yml)")
     args = parser.parse_args()
 
     token, default_topic = os.environ.get("APP_ACCESS_TOKEN"), os.environ.get("NTFY_TOPIC")
@@ -158,12 +184,15 @@ def main():
         log.info("secret APP_ACCESS_TOKEN absent : pas de notification")
         return
 
+    users = api_get("/notifications/users", token)
+    if args.briefs_only:
+        announce_briefs(users, token, default_topic, args.dry_run)
+        return
+
     data_dir = Path(args.data_dir)
     screener = json.loads((data_dir / "screener.json").read_text(encoding="utf-8"))
     investors_path = data_dir / "superinvestors.json"
     investors = json.loads(investors_path.read_text(encoding="utf-8")) if investors_path.exists() else None
-
-    users = api_get("/notifications/users", token)
     alert_tickers = sorted({a["ticker"] for u in users for a in u.get("price_alerts", [])})
     prices = closing_prices(alert_tickers)
 
@@ -189,11 +218,7 @@ def main():
             notify(lambda title, text, tag: deliver(u, token, default_topic, title, text, tag), events + price_events)
         if price_events:  # une alerte de prix n'est envoyée qu'une fois : marquée déclenchée
             api_post("/notifications/triggered", token, {"user": u["name"], "ids": [e["id"] for e in price_events]})
-        if u.get("brief"):
-            title, text = brief_message(u["brief"])
-            if deliver(u, token, default_topic, title, text, "newspaper", f"{APP_ORIGIN}/#briefs", "brief"):
-                api_post("/notifications/brief-sent", token, {"user": u["name"], "id": u["brief"]["id"]})
-                log.info("%s : nouveau brief annoncé", who)
+        announce_brief(u, token, default_topic, who)
 
 
 if __name__ == "__main__":
