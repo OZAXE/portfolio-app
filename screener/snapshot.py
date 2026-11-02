@@ -7,7 +7,8 @@ Lancé par le workflow nocturne (vers 3 h à Paris), avant le screener :
 Les cours lus par GOOGLEFINANCE sont alors ceux de la clôture de la veille : le relevé est daté
 de la veille, et rien n'est enregistré le dimanche ni le lundi (pas de bourse samedi et dimanche).
 Le relevé du vendredi (fait dans la nuit de vendredi à samedi) déclenche la notification
-« ta semaine » sur le sujet ntfy de chaque utilisateur.
+« ta semaine » (gain de la semaine et depuis le 1er janvier) sur les téléphones de chaque utilisateur
+(notifications de l'appli) et sur son sujet ntfy s'il en a un.
 """
 
 import argparse
@@ -20,7 +21,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 from night_report import add_detail
-from notify import API_URL, api_get, send
+from notify import API_URL, MONTHS, api_get, deliver
 
 log = logging.getLogger("snapshot")
 
@@ -34,6 +35,32 @@ def market_day(now: datetime) -> date | None:
 def euros(x: float, signed: bool = False) -> str:
     text = f"{abs(x):,.0f}".replace(",", " ") + " €" if abs(x) >= 100 else f"{abs(x):.2f}".replace(".", ",") + " €"
     return ("+" if x >= 0 else "-") + text if signed else ("-" if x < 0 else "") + text
+
+
+def percent(x: float | None) -> str:
+    return f" ({x * 100:+.1f} %)".replace(".", ",") if x is not None else ""
+
+
+def since_label(start: str) -> str:
+    """« 12 mars » pour un historique commencé en cours d'année (1er pour le premier du mois)."""
+    d = date.fromisoformat(start)
+    return f"{'1er' if d.day == 1 else d.day} {MONTHS[d.month - 1]}"
+
+
+def summary_message(summary: dict | None) -> tuple[str, str, str] | None:
+    """Notification du vendredi d'après le récap de l'API (mêmes chiffres que la courbe du Portefeuille :
+    achats et ventes ne comptent pas comme un gain, dividendes oui). None : pas de semaine complète."""
+    week = (summary or {}).get("week")
+    if not week:
+        return None
+    year = summary.get("year")
+    title = f"Ta semaine : {euros(week['gain'], signed=True)}{percent(week.get('pct'))}"
+    lines = []
+    if year:
+        start = "le 1er janvier" if not year.get("since") else f"le {since_label(year['since'])}"
+        lines.append(f"Depuis {start} : {euros(year['gain'], signed=True)}{percent(year.get('pct'))}.")
+    lines.append(f"Ton portefeuille vaut {euros(summary['value'])}.")
+    return title, "\n".join(lines), "chart_with_upwards_trend" if week["gain"] >= 0 else "chart_with_downwards_trend"
 
 
 def weekly_message(weekly: dict) -> tuple[str, str, str]:
@@ -81,12 +108,11 @@ def main():
             failures += 1
             continue
         log.info("%s : %s", who, "relevé ajouté" if u["recorded"] else f"pas de relevé ({u['reason']})")
-        weekly, topic = u.get("weekly"), u.get("topic") or (default_topic if u.get("admin") else None)
-        if day.weekday() != 4 or not weekly or not topic or args.dry_run:
+        if day.weekday() != 4 or args.dry_run or not (u.get("push") or u.get("topic") or (u.get("admin") and default_topic)):
             continue
-        title, message, tag = weekly_message(weekly)
-        send(topic, title, message, tag)
-        log.info("%s : notification de la semaine envoyée", who)
+        message = summary_message(u.get("summary")) or (weekly_message(u["weekly"]) if u.get("weekly") else None)
+        if message and deliver(u, token, default_topic, *message, push_tag="semaine"):
+            log.info("%s : notification de la semaine envoyée", who)
     # Étape en échec (le workflow continue) : le rapport de la nuit prévient que la courbe n'a pas avancé
     if failures:
         sys.exit(f"{failures} relevé(s) impossible(s)")

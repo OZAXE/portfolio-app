@@ -18,7 +18,8 @@ Endpoints prévus pour le MVP :
 - GET /portfolio/dividends  -> dividendes à venir et revenus projetés sur 12 mois
 - POST /operations/import/preview, /operations/import -> import des relevés Trade Republic et Boursorama
 - GET / POST /price-alerts, DELETE /price-alerts/{id} -> alertes de prix (onglet Alertes prix du Sheet)
-- GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy de l'utilisateur
+- GET / POST /notifications/settings, POST /notifications/test -> sujet ntfy, notifications de l'appli
+- POST /notifications/push/subscribe, /notifications/push/unsubscribe -> notifications de l'appli (push.py)
 - GET /portfolio/costs      -> plafond du PEA, frais par année, frais courants des ETF
 - POST /settings/accounts, /settings/fees, /allocation -> comptes, frais et allocation cible
 - GET /portfolio/chart/{t}  -> cours d'une ligne avec ses achats, ventes et PRU
@@ -856,7 +857,8 @@ def import_budget(payload: dict = Body(...), user: User = Depends(require_admin)
 
 
 # --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---
-APP_URL = "https://portfolio-front-8t6m.onrender.com/#portfolio"
+APP_ORIGIN = "https://portfolio-front-8t6m.onrender.com"
+APP_URL = f"{APP_ORIGIN}/#portfolio"
 
 
 @app.get("/price-alerts")
@@ -891,8 +893,11 @@ def rearm_price_alert(alert_id: str, user: User = Depends(require_access)):
 @app.get("/notifications/settings")
 def get_notification_settings(user: User = Depends(require_access)):
     from .notifications import get_topic
+    from .push import list_subscriptions, vapid_public_key
 
-    return {"topic": _sheet_call(lambda: get_topic(user.sheet_id)), "admin": user.admin}
+    # push_key : clé publique VAPID dont le téléphone a besoin pour s'abonner (None : pas configuré sur Render)
+    return {"topic": _sheet_call(lambda: get_topic(user.sheet_id)), "admin": user.admin, "push_key": vapid_public_key(),
+            "push_endpoints": [s["endpoint"] for s in _sheet_call(lambda: list_subscriptions(user.sheet_id))]}
 
 
 @app.post("/notifications/settings")
@@ -902,15 +907,109 @@ def save_notification_settings(payload: dict = Body(...), user: User = Depends(r
     return {"topic": _operation_call(lambda: set_topic(user.sheet_id, payload.get("topic")))}
 
 
+@app.post("/notifications/push/subscribe")
+def push_subscribe(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .push import add_subscription
+
+    return {"devices": _operation_call(lambda: add_subscription(user.sheet_id, payload.get("subscription")))}
+
+
+@app.post("/notifications/push/unsubscribe")
+def push_unsubscribe(payload: dict = Body(...), user: User = Depends(require_access)):
+    from .push import remove_subscriptions
+
+    return {"removed": _operation_call(lambda: remove_subscriptions(user.sheet_id, {str(payload.get("endpoint") or "")}))}
+
+
+def _push_or_error(call) -> dict:
+    """Envoi d'une notification de l'appli : clés absentes -> 503 (configuration), service injoignable -> 502."""
+    from .operations import OperationError
+
+    def guarded():
+        try:
+            return call()
+        except OperationError as e:
+            raise HTTPException(status_code=503, detail=str(e))
+    return _sheet_call(guarded)
+
+
 @app.post("/notifications/test")
 def test_notification(user: User = Depends(require_access)):
     from .notifications import get_topic, send_ntfy
+    from .push import list_subscriptions, send_push
 
+    title = "Portfolio Insights"
+    text = f"Notifications activées pour {user.name}. Tu recevras ici ton récap de la semaine et tes alertes."
+    channels, push_failed = [], False
+    if _sheet_call(lambda: list_subscriptions(user.sheet_id)):
+        result = _push_or_error(lambda: send_push(user.sheet_id, title, text, APP_URL, "test"))
+        channels += ["appli"] if result["sent"] else []
+        push_failed = not result["sent"]
     topic = _sheet_call(lambda: get_topic(user.sheet_id))
-    if not topic:
-        raise HTTPException(status_code=400, detail="Enregistre d'abord ton sujet ntfy")
-    send_ntfy(topic, "Portfolio Insights", f"Notifications activées pour {user.name}. Tu recevras ici tes alertes de la nuit.", "white_check_mark", APP_URL)
-    return {"sent": True}
+    if topic:
+        send_ntfy(topic, title, text, "white_check_mark", APP_URL)
+        channels.append("ntfy")
+    if push_failed and not channels:
+        raise HTTPException(status_code=502, detail="Notification refusée par le service du téléphone : désactive puis réactive les notifications")
+    if not channels:
+        raise HTTPException(status_code=400, detail="Active d'abord les notifications sur ce téléphone (ou enregistre un sujet ntfy)")
+    return {"sent": True, "channels": channels}
+
+
+def _target_user(name) -> User:
+    target = next((u for u in users_config.all_users() if u.name == name), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Utilisateur inconnu")
+    return target
+
+
+# Réservé au job nocturne : notification de l'appli à un utilisateur (screener/notify.py, snapshot.py).
+# Envoyée d'ici et pas du job : la clé privée VAPID ne vit que sur Render
+@app.post("/notifications/send", dependencies=[Depends(require_admin)])
+def send_notification(payload: dict = Body(...)):
+    from .push import send_push
+
+    target = _target_user(payload.get("user"))
+    title, message = str(payload.get("title") or "")[:200], str(payload.get("message") or "")[:1500]
+    if not title:
+        raise HTTPException(status_code=400, detail="Titre manquant")
+    url = payload.get("url") if str(payload.get("url") or "").startswith(APP_ORIGIN) else APP_URL
+    return _push_or_error(lambda: send_push(target.sheet_id, title, message, url, payload.get("tag")))
+
+
+@app.post("/notifications/brief-sent", dependencies=[Depends(require_admin)])
+def brief_announced(payload: dict = Body(...)):
+    from .notifications import set_setting
+
+    target = _target_user(payload.get("user"))
+    _operation_call(lambda: set_setting(target.sheet_id, "brief_notified", str(payload.get("id") or "")))
+    return {"ok": True}
+
+
+def _push_devices(sheet_id: str) -> int:
+    """Nombre de téléphones abonnés ; 0 si l'onglet Réglages est illisible (le relevé ne doit pas échouer pour ça)."""
+    from .push import list_subscriptions
+
+    try:
+        return len(list_subscriptions(sheet_id))
+    except Exception:
+        return 0
+
+
+def _new_brief(u: User) -> dict | None:
+    """Brief de la semaine à annoncer à cet utilisateur (None : pas de dossier, déjà annoncé ou lu, Drive en panne)."""
+    from datetime import date
+
+    from .brief_reads import list_reads
+    from .notifications import brief_to_announce, get_setting
+
+    if not u.briefs_folder:
+        return None
+    try:
+        return brief_to_announce(list_briefs(u.briefs_folder), get_setting(u.sheet_id, "brief_notified"),
+                                 list_reads(u.sheet_id), date.today())
+    except Exception:  # Drive injoignable : les autres notifications partent quand même
+        return None
 
 
 # Réservé au job nocturne (code du propriétaire) : de quoi calculer les alertes de chaque utilisateur
@@ -923,9 +1022,11 @@ def notification_users():
         try:
             result.append({
                 "name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id),
+                "push": _push_devices(u.sheet_id),
                 "positions": sorted({p.ticker.upper() for p in get_portfolio_positions(u.sheet_id)}),
                 "watchlist": get_watchlist(u.sheet_id),
                 "price_alerts": [a for a in list_price_alerts(u.sheet_id) if not a["triggered"]],
+                "brief": _new_brief(u),
             })
         except Exception as e:  # un Sheet inaccessible ne bloque pas les autres
             result.append({"name": u.name, "admin": u.admin, "error": str(e)})
@@ -1018,6 +1119,7 @@ def history_snapshot(day: str):
 
     from .history import record_snapshot
     from .notifications import get_topic
+    from .stats import weekly_summary_of
 
     try:
         when = date.fromisoformat(day)
@@ -1026,9 +1128,17 @@ def history_snapshot(day: str):
     result = []
     for u in users_config.all_users():
         try:
-            result.append({"name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id), **record_snapshot(u.sheet_id, when)})
+            entry = {"name": u.name, "admin": u.admin, "topic": get_topic(u.sheet_id), **record_snapshot(u.sheet_id, when)}
         except Exception as e:  # un Sheet illisible ou un cours en erreur ne bloque pas les autres
             result.append({"name": u.name, "admin": u.admin, "error": str(e)})
+            continue
+        entry["push"] = _push_devices(u.sheet_id)
+        if when.weekday() == 4:  # vendredi : récap de la semaine et de l'année pour la notification
+            try:
+                entry["summary"] = weekly_summary_of(u.sheet_id, when)
+            except Exception:  # récap impossible : snapshot.py se rabat sur la plus-value de la semaine
+                entry["summary"] = None
+        result.append(entry)
     return result
 
 

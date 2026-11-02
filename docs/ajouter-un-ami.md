@@ -62,8 +62,8 @@ python -c "import secrets; print(secrets.token_urlsafe(18))"
   watchlist et leurs alertes, à partir de leur propre Sheet.
 - Le screener, les super investisseurs et les comptes annuels, communs à tous.
 - Les briefs publics (dossier « Briefs publics »), jamais tes briefs perso.
-- Leur relevé quotidien, leurs notifications de la nuit et leur plus-value de la semaine, sur le sujet
-  ntfy choisi dans Réglages > Notifications.
+- Leur relevé quotidien, leurs notifications de la nuit, le récap de leur semaine et l'annonce du nouveau
+  brief, sur les téléphones où ils ont activé Plus > Notifications (ou sur leur sujet ntfy).
 
 ## Le Sheet modèle (une seule fois)
 

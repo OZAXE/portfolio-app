@@ -536,6 +536,29 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   semaines calmes ; « Comprendre » sur la nouveauté principale, sinon programme en rotation ; mémoire = journal local
   de la tâche et son « JOURNAL DE L'ÉDITION » ; 300 à 400 mots (brief limité à 5-7 min de lecture, 40 Ko).
 
+- **Notifications de l'appli (novembre 2026, demande d'Enzo : ntfy « pas pratique », amis sur iPhone et Android,
+  appli installée sur l'écran d'accueil).** Web Push natif, ntfy gardé en option (repliée en bas de Plus >
+  Notifications) et pour le rapport d'échec de la nuit (`night_report.py`, canal indépendant de ce qu'il surveille).
+  - `backend/app/push.py` : chiffrement RFC 8291 (aes128gcm) et jeton VAPID RFC 8292 codés avec `cryptography`
+    (pywebpush ne s'installe pas dans le conteneur de dev : http-ece sans wheel, cryptography de Debian
+    impossible à remplacer, d'où `cryptography>=41.0` non épinglée). Test sur le vecteur de l'annexe A de la RFC.
+    Clés `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY` sur **Render seulement** (`python -m app.push` les génère) : le job
+    de nuit envoie par la route admin `/notifications/send`, la clé privée ne va pas sur GitHub.
+  - Abonnements dans l'onglet Réglages, clé `push`, une ligne JSON par appareil (RAW), 10 au plus, adresse limitée
+    aux services de push connus (`PUSH_HOSTS` : sinon Render ferait un POST vers n'importe quelle adresse) ; 404 / 410
+    du service = abonnement retiré. TTL 2 jours.
+  - Récap du vendredi (`stats.weekly_summary_of`, renvoyé par `/history/snapshot` dans `summary`) : semaine et depuis
+    le 1er janvier sur les lignes d'`index_series`, comme la variation au-dessus de la courbe (gain = écart de valeur -
+    écart des flux, % = indice pondéré par le temps) ; l'ancien `weekly_gain` (valeur - investi, qui perdait la
+    plus-value d'une vente) ne sert plus que de secours. Brief : `brief_to_announce` (le plus récent, moins de 8 jours,
+    ni annoncé ni lu), clé `brief_notified` du Réglages, annoncé par `notify.py` la nuit qui suit le dépôt.
+  - `screener/notify.py` `deliver` : téléphones puis ntfy, un canal en panne n'arrête pas l'autre. `NTFY_TOPIC`
+    ne sert au propriétaire que sans sujet ni téléphone abonné (sinon tout en double).
+  - Front : `renderPushState` (iPhone dans Safari : pas de `PushManager`, message dédié), permission demandée au
+    toucher du bouton ; service worker : `push` (toujours une notification affichée, sinon Chrome / Safari retirent
+    l'abonnement) et `notificationclick` (appli ouverte : `postMessage({open: "#briefs"})`, sinon `openWindow`).
+    Envoi réel jamais testé depuis le conteneur (services de push bloqués) : vérifier avec « Envoyer un test ».
+
 ## Tester le front (banc Playwright)
 
 Le banc réutilisable est dans le dépôt (`tests/front_bench.py`) : partir de lui pour vérifier un écran à la main
