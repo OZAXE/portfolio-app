@@ -529,6 +529,7 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   Estimation donnée à Enzo : 5 à 15 % des opérations d'un mois à ranger à la main (nouveaux commerces), davantage en voyage.
   `/budget/import` (ancien envoi d'`outputs.xlsx`) refusé une fois le dossier configuré, sauf `force` : la tâche Windows de
   21 h aurait remplacé l'onglet. L'ancienne section ci-dessus (PC, `envoyer_budget.py`) reste pour l'historique.
+  Carte Drive en haut de la page tant que le dossier n'est pas configuré, puis en bas, sous le budget (demande d'Enzo).
 
 - **Briefs hebdo (octobre 2026).** `briefs.py` lit le dossier Drive de l'utilisateur (`briefs_folder` de
   `USERS_JSON`, `PUBLIC_BRIEFS_FOLDER` pour les amis et inscrits), compte de service en `drive.readonly`. Brief = `.html`
