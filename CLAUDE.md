@@ -510,6 +510,26 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   chaque soir est sans effet quand rien n'a changé (l'onglet est remplacé). La tâche Claude lit seulement la fin de
   `envoi_budget.log` pour signaler un échec. Premier envoi réussi le 02/10/2026 : 892 opérations.
 
+- **Budget sans le PC (novembre 2026, demande d'Enzo).** Le budget n'avançait que si son PC tournait (rien du 06/10 au
+  05/11/2026). Désormais : Enzo dépose l'export Excel du CA dans un dossier Drive (depuis son téléphone), partagé en
+  lecture avec le compte de service ; lien saisi dans Plus > Budget (clé `budget_folder` de Réglages). `budget_import.sync`
+  (bouton « Chercher les nouveaux relevés », et `notify.py` matin et soir via `/budget/sync`) lit les fichiers pas encore
+  traités (clé `budget_files` : id -> date de modification, lecture seule sur Drive, rien n'est déplacé ; un Google Sheet
+  converti à l'envoi est exporté en xlsx), catégorise et **ajoute** à l'onglet Budget, qui devient la référence.
+  `budget_rules.py` = portage de `update_suivi.py` : clé du libellé (`extract_key`) **sans la date de fin** (avant, une règle
+  apprise « <commerce> 23/12 » ne reconnaissait que le paiement de ce jour-là), règles exactes puis motifs (regex) dans l'ordre de
+  l'onglet « Règles budget » (le premier gagne), virement perso reçu -> Revenus / Remboursement. Règles jamais dans le dépôt
+  (noms de proches) : onglet créé une fois depuis `regles_budget.json` du dossier (225 exactes + 75 motifs migrés le
+  06/11/2026, 905 des 909 opérations retrouvées dans la même catégorie ; les 4 autres, un même libellé rangé
+  différemment selon les fois, déjà ambiguës avant). Dédoublonnage par **nombre d'occurrences** de (date, libellé sans retours à la ligne, montant) :
+  deux virements identiques le même jour restent deux, deux exports qui se chevauchent ne doublent rien. Colonne H « Clé »
+  de l'onglet Budget pour une opération à catégoriser (le libellé de la colonne B a perdu ses retours à la ligne, dont
+  dépend la clé). Validation dans l'appli (`/budget/categorize`, ligne vérifiée par date / libellé / montant) :
+  catégories déjà utilisées proposées, « Toujours ainsi » ajoute une règle exacte et range les autres opérations de même clé.
+  Estimation donnée à Enzo : 5 à 15 % des opérations d'un mois à ranger à la main (nouveaux commerces), davantage en voyage.
+  `/budget/import` (ancien envoi d'`outputs.xlsx`) refusé une fois le dossier configuré, sauf `force` : la tâche Windows de
+  21 h aurait remplacé l'onglet. L'ancienne section ci-dessus (PC, `envoyer_budget.py`) reste pour l'historique.
+
 - **Briefs hebdo (octobre 2026).** `briefs.py` lit le dossier Drive de l'utilisateur (`briefs_folder` de
   `USERS_JSON`, `PUBLIC_BRIEFS_FOLDER` pour les amis et inscrits), compte de service en `drive.readonly`. Brief = `.html`
   / `.htm` dont le nom contient une date valide ; nom = **date de publication** (samedi), le front en déduit « Semaine

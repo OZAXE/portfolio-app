@@ -37,7 +37,7 @@ def op(d, account, kind, ticker, qty, price, cur="EUR", fx=1, fees=0, taxes=0, o
 class FakeWorksheet:
     def __init__(self, sheet, title, rows):
         self.sheet, self.title, self.rows, self.id = sheet, title, rows, abs(hash(title)) % 10000
-        self.row_count = 2000
+        self.row_count, self.col_count = 2000, 26
 
     def _values(self):
         if self.title == "Positions":
@@ -58,13 +58,20 @@ class FakeWorksheet:
 
     def update(self, range_name=None, values=None, value_input_option=None, **kw):
         from app import sheets
-        start = int("".join(c for c in range_name if c.isdigit()))
+        first = range_name.split(":")[0]  # « A1 », ou « D5 » pour écrire à partir de la colonne D (Budget)
+        start = int("".join(c for c in first if c.isdigit()))
+        col = ord(first[0].upper()) - ord("A")
         for i, v in enumerate(values):
             while len(self.rows) <= start - 1 + i:
                 self.rows.append([])
             v = list(v)
             if self.title == "Opérations" and v and isinstance(v[0], str) and v[0][:2] == "20":
                 v[0] = serial(date.fromisoformat(v[0]))  # USER_ENTERED : le Sheet lit la date
+            if col:
+                row = list(self.rows[start - 1 + i])
+                row += [""] * (col + len(v) - len(row))
+                row[col:col + len(v)] = v
+                v = row
             self.rows[start - 1 + i] = v
         sheets.clear_sheet_cache()
 

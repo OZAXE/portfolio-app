@@ -286,6 +286,21 @@ def send_alerts(users: list[dict], token: str, default_topic: str | None, screen
             api_post("/notifications/triggered", token, {"user": u["name"], "ids": [e["id"] for e in price_events]})
 
 
+def sync_budget(token: str, dry_run: bool) -> None:
+    """Relevés du compte courant déposés sur Drive -> onglet Budget de l'administrateur (budget_import.py), matin et
+    soir. Jamais bloquant pour les notifications ; journal sans nom de fichier ni montant (journaux GitHub publics)."""
+    if dry_run:
+        return
+    try:
+        result = api_post("/budget/sync", token, {})
+        log.info("budget : %d fichier(s) lu(s), %d opération(s) ajoutée(s), %d à catégoriser, %d fichier(s) illisible(s)",
+                 len(result.get("files", [])), result.get("added", 0), result.get("to_categorize", 0), len(result.get("errors", [])))
+    except requests.HTTPError as e:
+        log.info("budget non synchronisé (%s)", e.response.status_code if e.response is not None else "?")
+    except requests.RequestException:
+        log.info("budget non synchronisé (API injoignable)")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="data", help="données locales (sans --morning)")
@@ -302,6 +317,8 @@ def main():
         return
 
     users = api_get("/notifications/users", token)
+    if args.briefs_only or args.morning:
+        sync_budget(token, args.dry_run)
     if args.briefs_only:
         announce_briefs(users, token, default_topic, args.dry_run)
         return
