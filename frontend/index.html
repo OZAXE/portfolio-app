@@ -631,7 +631,7 @@
     .setting { min-height: 56px; }
     /* Mode Essentiel : les écrans gardent l'essentiel (valeur, positions, alertes, revenus) */
     html[data-detail="essentiel"] .adv { display: none !important; }
-    /* Plus > Budget (admin) : comptes du mois envoyés par la tâche mensuelle */
+    /* Plus > Budget (admin) : relevés du compte courant lus sur Drive */
     #budget { display: grid; gap: 12px; }
     .bud-nav { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; }
     .bud-nav button { height: 44px; border: 0; background: var(--card-2); color: var(--text); border-radius: 12px; font: inherit; font-size: 20px; cursor: pointer; }
@@ -670,6 +670,16 @@
     .bud-op .lib { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bud-op .sub { color: var(--muted); font-size: 12px; }
     .bud-op > span:last-child { font-variant-numeric: tabular-nums; }
+    /* À catégoriser : une carte par opération, catégorie + sous-catégorie + « toujours ainsi » */
+    .bud-todo { border-top: 1px solid var(--line); padding: 10px 0; }
+    .bud-todo:first-of-type { border-top: 0; }
+    .bud-todo .bud-op .lib { white-space: normal; }
+    .bud-todo-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+    .bud-todo-form select, .bud-todo-form input[type=text], .bud-drive input[type=text] { background: var(--card-2); border: 1px solid var(--line);
+      border-radius: 8px; color: var(--text); font: inherit; font-size: 15px; padding: 8px; width: 100%; min-width: 0; }
+    .bud-todo-form label { grid-column: 1 / -1; font-size: 13px; display: flex; gap: 6px; align-items: center; color: var(--muted); }
+    .bud-todo-form .btn { grid-column: 1 / -1; margin-top: 0; }
+    .bud-drive .btn { margin-top: 8px; }
     #budget .link-btn { justify-self: start; padding: 0; }
     .bud-chart svg { width: 100%; height: auto; display: block; }
     .bud-chart text { fill: var(--muted); font-size: 10px; }
@@ -4375,7 +4385,7 @@
       }
       const todo = (budget?.operations || []).filter((o) => o.kind === "a_categoriser").length;
       if (todo) items.push({ icon: "🧾", tone: "warn", go: "budget", key: `budget:${budget.sent}`, text: `${todo} opération${todo > 1 ? "s" : ""} à catégoriser dans ton budget`,
-        sub: "Elles se règlent avec ta tâche du mois" });
+        sub: "À ranger dans Plus > Budget, d'un toucher" });
       const brief = freshBrief();
       if (brief) items.push({ icon: "📰", tone: "info", go: "briefs", key: `brief:${brief.id}`, text: "Nouveau brief à lire",
         sub: `Le point marchés de la semaine du ${briefWeek(brief)}` });
@@ -6177,8 +6187,8 @@
     window.addEventListener("popstate", () => { if (!stockReturn && settingsPage) closeSettingsPage(); });
 
     // --- Plus > Budget (administrateur) : comptes du mois tirés du relevé du compte courant ---
-    // La tâche mensuelle d'Enzo catégorise sur son PC (outputs.xlsx), scripts/envoyer_budget.py envoie toutes les
-    // opérations, l'appli fait les mois d'après la date de chacune. Dépenses et revenus font le solde ; virements
+    // Relevés du compte courant déposés sur Drive (exports du Crédit Agricole), lus et catégorisés par le serveur
+    // (budget_import.py) chaque matin et soir ou au bouton ; l'appli fait les mois d'après la date de chaque opération. Dépenses et revenus font le solde ; virements
     // internes et investissement restent à part, comme dans le Résumé du fichier.
     const BUDGET_COLORS = { "Logement": "#3b82f6", "Courses": "#10b981", "Loisirs": "#ec4899", "Restaurant/Bar": "#f97316",
       "Shopping": "#8b5cf6", "Voiture": "#eab308", "Abonnements": "#06b6d4", "Transport": "#94a3b8", "Santé": "#ef4444",
@@ -6266,20 +6276,21 @@
     function renderBudget() {
       const el = document.getElementById("budget");
       if (!budget?.operations?.length) {
-        el.innerHTML = `<div class="card"><p class="help" style="margin:0">Rien de reçu pour l'instant. Ta tâche mensuelle envoie tes opérations avec
-          <code>python envoyer_budget.py outputs.xlsx</code> après la mise à jour de ton fichier (voir scripts/envoyer_budget.py).</p></div>`;
+        el.innerHTML = budgetDriveHtml() + `<div class="card"><p class="help" style="margin:0">Rien de reçu pour l'instant : dépose un export
+          Excel de ton compte dans ton dossier Drive, puis « Chercher les nouveaux relevés ».</p></div>`;
         return;
       }
       const { months, last } = budgetMonths();
       const complete = months.filter((m) => !m.partial);
       if (budgetMonth == null || !months.some((m) => m.key === budgetMonth)) budgetMonth = (complete.at(-1) || months.at(-1)).key;
       const head = `
-        <p class="help" style="margin:0">Envoyé par ta tâche « maj-suivi-bancaire »${budget.sent ? ` le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}` : ""}, relevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
+        ${budgetDriveHtml()}
+        <p class="help" style="margin:0">${budget.sent ? `Mis à jour le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}, r` : "R"}elevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
         <div class="seg seg-flat" role="radiogroup" aria-label="Période">
           <button data-bud-view="mois" role="radio" aria-checked="${!budgetYearView()}" class="${budgetYearView() ? "" : "active"}">Mois</button>
           <button data-bud-view="annee" role="radio" aria-checked="${budgetYearView()}" class="${budgetYearView() ? "active" : ""}">Année</button>
         </div>`;
-      el.innerHTML = head + (budgetYearView() ? budgetYearHtml(months, last) : budgetMonthHtml(months, last)) + budgetTodoHtml();
+      el.innerHTML = head + budgetTodoHtml() + (budgetYearView() ? budgetYearHtml(months, last) : budgetMonthHtml(months, last));
     }
 
     function budgetMonthHtml(months, last) {
@@ -6486,13 +6497,110 @@
           </div>
         </div>`;
     }
+    // Dossier Drive des relevés : réglage la première fois (lien + adresse à qui le partager), puis le bouton de lecture
+    let budgetSyncMsg = "";
+    function budgetDriveHtml() {
+      const d = budget?.drive || {};
+      const share = d.email ? `partage-le en <b>Lecteur</b> avec <code>${escapeHtml(d.email)}</code>` : "partage-le en Lecteur avec le compte de service de l'appli";
+      if (!d.folder) return `<div class="card bud-drive">
+          <div class="bud-h">Relevés depuis Google Drive</div>
+          <p class="help" style="margin:0 0 8px">Dépose les exports Excel de ton compte (CA&lt;date&gt;.xlsx) dans un dossier Drive, ${share}, puis colle ici son lien
+            (Partager &gt; Copier le lien). L'appli les lit chaque matin et chaque soir, sans ton PC.</p>
+          <input type="text" id="bud-folder" placeholder="https://drive.google.com/drive/folders/…" autocomplete="off">
+          <button class="btn" data-bud-folder>Enregistrer le dossier</button>
+          ${budgetSyncMsg ? `<p class="help" style="margin:8px 0 0">${budgetSyncMsg}</p>` : ""}
+        </div>`;
+      return `<div class="card bud-drive">
+          <p class="help" style="margin:0">Relevés lus dans ton dossier Drive chaque matin et chaque soir (dossier partagé avec ${d.email ? `<code>${escapeHtml(d.email)}</code>` : "l'appli"}).</p>
+          <button class="btn" data-bud-sync>Chercher les nouveaux relevés</button>
+          ${budgetSyncMsg ? `<p class="help" style="margin:8px 0 0" id="bud-sync-msg">${budgetSyncMsg}</p>` : ""}
+        </div>`;
+    }
+
+    // Catégories proposées : celles déjà utilisées dans tes relevés (et leurs sous-catégories), plus les trois à part.
+    // Un revenu est rangé avec sa sous-catégorie comme catégorie (Salaire...) : on le remet sous « Revenus » ici.
+    function budgetCategories() {
+      const subs = { "Revenus": new Set(), "Investissement": new Set(), "Virements internes": new Set() };
+      for (const o of budget.operations) {
+        if (o.kind === "a_categoriser") continue;
+        const [cat, sub] = o.kind === "revenu" ? ["Revenus", o.category] : [o.category, o.subcategory];
+        (subs[cat] ??= new Set());
+        if (sub) subs[cat].add(sub);
+      }
+      return subs;
+    }
     function budgetTodoHtml() {
       const todo = budget.operations.filter((o) => o.kind === "a_categoriser").sort((a, b) => b.date.localeCompare(a.date));
-      return todo.length ? `<div class="card">
+      if (!todo.length) return "";
+      const subs = budgetCategories();
+      const cats = Object.keys(subs).sort((a, b) => a.localeCompare(b, "fr"));
+      const lists = cats.map((c, i) => `<datalist id="bud-subs-${i}">${[...subs[c]].sort().map((v) => `<option value="${escapeHtml(v)}">`).join("")}</datalist>`).join("");
+      return `<div class="card">
           <div class="bud-h">À catégoriser (${todo.length})</div>
-          <div class="bud-ops" style="border:0;padding:0">${todo.map(budgetOpRow).join("")}</div>
-          <p class="help" style="margin:10px 0 0">Comptées dans les dépenses, catégorie « À catégoriser », en attendant. Elles se règlent avec ta tâche du mois : l'appli les montre, elle ne les classe pas.</p>
-        </div>` : "";
+          <p class="help" style="margin:0 0 4px">Aucune règle ne reconnaît ces opérations (nouveau commerce, virement inhabituel). Comptées dans les dépenses en attendant.
+            « Toujours ainsi » crée une règle : les prochaines du même libellé seront rangées toutes seules.</p>
+          ${todo.map((o) => `<div class="bud-todo" data-bud-todo="${o.row}">
+            ${budgetOpRow(o)}
+            <div class="bud-todo-form">
+              <select data-bud-cat aria-label="Catégorie"><option value="">Catégorie…</option>${cats.map((c, i) => `<option value="${escapeHtml(c)}" data-list="bud-subs-${i}">${escapeHtml(c)}</option>`).join("")}</select>
+              <input type="text" data-bud-sub placeholder="Sous-catégorie" aria-label="Sous-catégorie" autocomplete="off">
+              <label><input type="checkbox" data-bud-remember checked> Toujours ainsi pour « ${escapeHtml(o.key || o.label.slice(0, 40))} »</label>
+              <button class="btn" data-bud-save>Ranger</button>
+            </div>
+          </div>`).join("")}
+          ${lists}
+        </div>`;
+    }
+    async function budgetSave(box) {
+      const op = budget.operations.find((o) => String(o.row) === box.dataset.budTodo);
+      const category = box.querySelector("[data-bud-cat]").value, btn = box.querySelector("[data-bud-save]");
+      if (!op || !category) { box.querySelector("[data-bud-cat]").focus(); return; }
+      btn.disabled = true;
+      btn.textContent = "Enregistrement…";
+      try {
+        await apiSend("POST", "/budget/categorize", { row: op.row, date: op.date, label: op.label, amount: op.amount, category,
+          subcategory: box.querySelector("[data-bud-sub]").value, remember: box.querySelector("[data-bud-remember]").checked });
+        await loadBudget(true);
+        renderBudget();
+        renderAlertsList();
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "Ranger";
+        alert(e.message);
+      }
+    }
+    async function budgetSync(btn) {
+      btn.disabled = true;
+      btn.textContent = "Lecture du dossier…";
+      try {
+        const r = await apiSend("POST", "/budget/sync", {});
+        const files = r.files.length ? `${r.files.length} relevé${r.files.length > 1 ? "s" : ""} lu${r.files.length > 1 ? "s" : ""}, ` : "Aucun nouveau relevé. ";
+        budgetSyncMsg = escapeHtml(files + (r.files.length ? `${r.added} opération${r.added > 1 ? "s" : ""} ajoutée${r.added > 1 ? "s" : ""}`
+          + (r.to_categorize ? ` dont ${r.to_categorize} à catégoriser` : "") + "." : ""))
+          + r.errors.map((e) => `<br>Fichier ignoré : ${escapeHtml(e)}`).join("");
+        await loadBudget(true);
+      } catch (e) {
+        budgetSyncMsg = escapeHtml("Lecture impossible : " + e.message);
+      }
+      renderBudget();
+      renderAlertsList();
+    }
+    async function budgetSaveFolder(btn) {
+      const value = document.getElementById("bud-folder").value.trim();
+      if (!value) return;
+      btn.disabled = true;
+      try {
+        await apiSend("POST", "/budget/folder", { folder: value });
+        budgetSyncMsg = "";
+        await loadBudget(true);
+        renderBudget();
+        const sync = document.querySelector("#budget [data-bud-sync]");
+        if (sync) budgetSync(sync);
+      } catch (e) {
+        btn.disabled = false;
+        budgetSyncMsg = escapeHtml(e.message);
+        renderBudget();
+      }
     }
     function budgetOpRow(o) {
       const day = new Date(o.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -6542,7 +6650,18 @@
       return svg + (shown.some((m) => m.partial) ? `<p class="help" style="margin:4px 0 0">* mois incomplet</p>` : "");
     }
 
+    document.getElementById("budget").addEventListener("change", (e) => {
+      // Sous-catégories proposées selon la catégorie choisie
+      const select = e.target.closest("[data-bud-cat]");
+      if (select) select.parentElement.querySelector("[data-bud-sub]").setAttribute("list", select.selectedOptions[0]?.dataset.list || "");
+    });
     document.getElementById("budget").addEventListener("click", (e) => {
+      const save = e.target.closest("[data-bud-save]");
+      if (save) return budgetSave(save.closest("[data-bud-todo]"));
+      const sync = e.target.closest("[data-bud-sync]");
+      if (sync) return budgetSync(sync);
+      const folder = e.target.closest("[data-bud-folder]");
+      if (folder) return budgetSaveFolder(folder);
       const nav = e.target.closest("[data-bud-month]");
       const pick = e.target.closest("[data-bud-pick]");
       const ops = e.target.closest("[data-bud-ops]");

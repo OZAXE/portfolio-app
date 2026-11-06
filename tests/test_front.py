@@ -238,6 +238,15 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     page.click('#budget [data-bud-month="1"]')
     assert "Mois incomplet" in page.inner_text("#budget")
     assert "CB NOUVEAU COMMERCE" in page.inner_text("#budget")
+    # Relevés depuis Drive : dossier pas encore configuré, adresse du compte de service inconnue sur le banc
+    assert "Enregistrer le dossier" in page.inner_text("#budget .bud-drive")
+    # À catégoriser : rangée dans Courses (catégories déjà utilisées proposées), « Toujours ainsi » crée la règle
+    # dans l'onglet « Règles budget » ; elle reste une dépense, le total de la vue Année ci-dessous ne change pas
+    page.select_option("#budget [data-bud-todo] [data-bud-cat]", "Courses")
+    page.fill("#budget [data-bud-todo] [data-bud-sub]", "Épicerie")
+    page.click("#budget [data-bud-save]")
+    page.wait_for_function("!document.querySelector('#budget [data-bud-todo]')")
+    assert "CB NOUVEAU COMMERCE" not in page.inner_text("#budget")
     # Vue Année (année civile du mois affiché) : mois complets du banc dans cette année (+720 € chacun) et le mois en
     # cours (loyer 540 + 23,40 à catégoriser, sans revenu). En octobre : 2 x 720 - 563,40 = +876,60, affiché +877 €.
     today = date.today()

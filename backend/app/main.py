@@ -838,6 +838,8 @@ def delete_journal(ticker: str, user: User = Depends(require_access)):
 @app.get("/budget")
 def get_budget(user: User = Depends(require_admin)):
     from .budget import read_budget
+    from .budget_import import FOLDER_KEY, service_account_email
+    from .notifications import get_setting
     from .realized import read_cash
 
     def build():
@@ -845,15 +847,55 @@ def get_budget(user: User = Depends(require_admin)):
             cash = read_cash(user.sheet_id)
         except Exception:  # pas d'onglet Opérations lisible : le budget s'affiche sans la comparaison des versements
             cash = []
-        return read_budget(user.sheet_id, cash)
+        result = read_budget(user.sheet_id, cash)
+        result["drive"] = {"folder": get_setting(user.sheet_id, FOLDER_KEY), "email": service_account_email()}
+        return result
     return _sheet_call(build)
+
+
+@app.post("/budget/folder")
+def set_budget_folder(payload: dict = Body(...), user: User = Depends(require_admin)):
+    """Dossier Drive où Enzo dépose les exports du Crédit Agricole (lien ou identifiant, vide pour l'oublier)."""
+    from .budget_import import set_folder
+
+    return _operation_call(lambda: {"folder": set_folder(user.sheet_id, str(payload.get("folder") or ""))})
+
+
+@app.post("/budget/sync")
+def sync_budget(user: User = Depends(require_admin)):
+    """Lit les nouveaux relevés du dossier Drive (bouton de Plus > Budget, et notify.py matin et soir)."""
+    from .briefs import DriveAccessError
+    from .budget_import import sync
+
+    def run():
+        try:
+            return sync(user.sheet_id)
+        except DriveAccessError as e:
+            raise OperationError(str(e))
+    return _operation_call(run)
+
+
+@app.post("/budget/categorize")
+def categorize_budget(payload: dict = Body(...), user: User = Depends(require_admin)):
+    from .budget_import import categorize_operation
+
+    return _operation_call(lambda: categorize_operation(user.sheet_id, payload))
 
 
 @app.post("/budget/import")
 def import_budget(payload: dict = Body(...), user: User = Depends(require_admin)):
     from .budget import replace_budget
+    from .budget_import import FOLDER_KEY
+    from .notifications import get_setting
 
-    return _operation_call(lambda: replace_budget(user.sheet_id, payload))
+    def run():
+        # Depuis le passage à Drive (novembre 2026), l'onglet Budget est la référence : un envoi d'outputs.xlsx (ancienne
+        # tâche Windows de 21 h restée active) effacerait les opérations importées depuis Drive
+        if get_setting(user.sheet_id, FOLDER_KEY) and not payload.get("force"):
+            raise OperationError("Les relevés sont maintenant lus depuis Drive : l'envoi d'outputs.xlsx remplacerait l'onglet Budget. "
+                                 "Désactive la tâche Windows « Envoi budget appli » (ou renvoie avec --force si c'est voulu).")
+        return replace_budget(user.sheet_id, payload)
+    return _operation_call(run)
 
 
 # --- Alertes de prix et notifications (onglets Alertes prix et Réglages du Sheet de chaque utilisateur) ---

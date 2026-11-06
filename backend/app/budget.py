@@ -21,7 +21,9 @@ from .notifications import _tab
 from .operations import OperationError
 
 BUDGET_TAB = "Budget"
-BUDGET_HEADERS = ["Date", "Libellé", "Montant", "Catégorie", "Sous-catégorie", "Type", "Envoyé le"]
+# Clé : clé de règle du libellé brut (budget_rules.extract_key), écrite par l'import depuis Drive pour les opérations à
+# catégoriser (le libellé de la colonne B a perdu ses retours à la ligne, dont dépend la clé). Vide pour les autres.
+BUDGET_HEADERS = ["Date", "Libellé", "Montant", "Catégorie", "Sous-catégorie", "Type", "Envoyé le", "Clé"]
 # depense / revenu comptent dans le solde ; interne (entre ses propres comptes) et investissement sont affichés à
 # part, comme dans le Résumé d'outputs.xlsx ; a_categoriser compte dans les dépenses en attendant d'être classé.
 KINDS = ("depense", "revenu", "interne", "investissement", "a_categoriser")
@@ -67,8 +69,8 @@ def budget_row(op: dict, sent: str) -> list:
 def parse_budget(rows: list[list]) -> list[dict]:
     """Lignes de l'onglet (sans l'en-tête). Une ligne abîmée à la main dans le Sheet est ignorée."""
     operations = []
-    for row in rows:
-        row = (list(row) + [""] * 7)[:7]
+    for number, row in enumerate(rows, 2):  # numéro de ligne dans l'onglet (en-tête en ligne 1)
+        row = (list(row) + [""] * 8)[:8]
         try:
             day, amount = _day(row[0]), _amount(row[2])
         except OperationError:
@@ -77,7 +79,7 @@ def parse_budget(rows: list[list]) -> list[dict]:
         if kind not in KINDS:
             continue
         operations.append({"date": day, "label": str(row[1]), "amount": amount, "category": str(row[3]),
-                           "subcategory": str(row[4]), "kind": kind})
+                           "subcategory": str(row[4]), "kind": kind, "row": number, "key": str(row[7])})
     return operations
 
 

@@ -43,8 +43,10 @@ def test_lecture_ignore_les_lignes_abimees_a_la_main():
             ["2026-08-18", "x", 1, "Courses", "", "inconnu", ""],
             ["2026-08-19", "VIR Famille", 300, "Virement reçu", "", "revenu"]]  # colonne Envoyé le absente
     assert budget.parse_budget(rows) == [
-        {"date": "2026-08-17", "label": "CB SUPERMARCHE", "amount": 8.56, "category": "Courses", "subcategory": "Supermarché", "kind": "depense"},
-        {"date": "2026-08-19", "label": "VIR Famille", "amount": 300.0, "category": "Virement reçu", "subcategory": "", "kind": "revenu"}]
+        {"date": "2026-08-17", "label": "CB SUPERMARCHE", "amount": 8.56, "category": "Courses", "subcategory": "Supermarché", "kind": "depense",
+         "row": 2, "key": ""},
+        {"date": "2026-08-19", "label": "VIR Famille", "amount": 300.0, "category": "Virement reçu", "subcategory": "", "kind": "revenu",
+         "row": 5, "key": ""}]
 
 
 def test_versements_par_mois():
@@ -88,7 +90,7 @@ def test_un_envoi_remplace_tout_l_onglet(monkeypatch):
     payload = {"operations": ops(2) + [{**OP, "kind": "a_categoriser", "category": "À catégoriser", "date": "2026-09-08"}]}
     result = budget.replace_budget("s", payload, date(2026, 10, 2))
     assert result == {"count": 3, "first": "2026-08-08", "last": "2026-09-08", "months": 2, "to_categorize": 1, "sent": "2026-10-02"}
-    assert tab.rows[0] == budget.BUDGET_HEADERS and len(tab.rows) == 4 and tab.size == (4, 7)
+    assert tab.rows[0] == budget.BUDGET_HEADERS and len(tab.rows) == 4 and tab.size == (4, 8)
     assert [r[0] for r in tab.rows[1:]] == ["2026-09-08", "2026-08-08", "2026-08-08"]  # plus récentes en tête
     # Relire l'onglet redonne les opérations et la date d'envoi
     read = budget.read_budget("s")
@@ -123,6 +125,9 @@ def test_routes_reservees_a_l_administrateur(monkeypatch):
     client = TestClient(main.app)
     assert client.get("/budget").status_code == 403
     assert client.post("/budget/import", json={"operations": ops(1)}).status_code == 403
+    assert client.post("/budget/sync").status_code == 403
+    assert client.post("/budget/categorize", json={}).status_code == 403
+    assert client.post("/budget/folder", json={"folder": "x"}).status_code == 403
 
 
 # --- Lecture d'outputs.xlsx par le script d'envoi ---

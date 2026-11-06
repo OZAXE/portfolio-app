@@ -1,4 +1,7 @@
 """
+REMPLACÉ en novembre 2026 : l'appli lit les relevés directement sur Google Drive (backend/app/budget_import.py). Une fois
+le dossier Drive configuré dans Plus > Budget, l'API refuse cet envoi (sauf --force), qui écraserait l'onglet Budget.
+
 Envoie les opérations de outputs.xlsx (suivi bancaire d'Enzo) à l'appli, qui les affiche dans Plus > Budget.
 
 À lancer sur le PC après update_suivi.py, par la tâche mensuelle « maj-suivi-bancaire » :
