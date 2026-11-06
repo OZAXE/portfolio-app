@@ -6284,13 +6284,15 @@
       const complete = months.filter((m) => !m.partial);
       if (budgetMonth == null || !months.some((m) => m.key === budgetMonth)) budgetMonth = (complete.at(-1) || months.at(-1)).key;
       const head = `
-        ${budgetDriveHtml()}
+        ${budget.drive?.folder ? "" : budgetDriveHtml()}
         <p class="help" style="margin:0">${budget.sent ? `Mis à jour le ${new Date(budget.sent + "T12:00:00").toLocaleDateString("fr-FR")}, r` : "R"}elevé jusqu'au ${new Date(last + "T12:00:00").toLocaleDateString("fr-FR")}.</p>
         <div class="seg seg-flat" role="radiogroup" aria-label="Période">
           <button data-bud-view="mois" role="radio" aria-checked="${!budgetYearView()}" class="${budgetYearView() ? "" : "active"}">Mois</button>
           <button data-bud-view="annee" role="radio" aria-checked="${budgetYearView()}" class="${budgetYearView() ? "active" : ""}">Année</button>
         </div>`;
-      el.innerHTML = head + budgetTodoHtml() + (budgetYearView() ? budgetYearHtml(months, last) : budgetMonthHtml(months, last));
+      // Dossier Drive configuré : le bouton de lecture passe en bas (demande d'Enzo), le budget du mois d'abord
+      el.innerHTML = head + budgetTodoHtml() + (budgetYearView() ? budgetYearHtml(months, last) : budgetMonthHtml(months, last))
+        + (budget.drive?.folder ? budgetDriveHtml() : "");
     }
 
     function budgetMonthHtml(months, last) {

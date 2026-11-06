@@ -177,18 +177,30 @@ def parse_date(value) -> date | None:
 
 
 def parse_amount(value) -> float | None:
-    if isinstance(value, str):  # « 1 024,50 € » dans certains exports
-        value = (value.replace(" ", "").replace("\xa0", "").replace("€", "").replace(" ", "").replace(",", "."))
+    """Nombre, ou texte dans l'un des formats vus : « 1 024,50 € » (français) ou « 1,638.26 » (export du CA du
+    06/11/2026 : virgule des milliers, point décimal). Le dernier séparateur est le décimal."""
+    if isinstance(value, str):
+        text = value.replace("\u202f", "").replace("\xa0", "").replace("€", "").replace(" ", "")
+        if "," in text and "." in text:
+            text = text.replace(".", "").replace(",", ".") if text.rfind(",") > text.rfind(".") else text.replace(",", "")
+        value = text.replace(",", ".")
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
+def is_header(row) -> bool:
+    """« Date / Libellé / ... » (anciens exports) ou « Date d'opération / Libellé / ... » (novembre 2026)."""
+    return bool(row) and str(row[0] or "").strip().lower().startswith("date") and any(str(v or "").strip().startswith("Libell") for v in row)
+
+
 def read_export(rows) -> list[Line]:
-    """Opérations d'un export CA : lignes sous l'en-tête « Date / Libellé / Débit euros / Crédit euros »."""
+    """Opérations d'un export CA : lignes sous l'en-tête « Date / Libellé / Débit euros / Crédit euros ». L'export
+    contient aussi les livrets à la suite (Livret A...) : leurs lignes sont lues comme avant (update_suivi.py), un
+    virement entre ses comptes y apparaît des deux côtés et reste dans « Virements internes », hors du solde."""
     rows = list(rows)
-    start = next((i for i, row in enumerate(rows) if row and row[0] == "Date" and "Libellé" in row), None)
+    start = next((i for i, row in enumerate(rows) if is_header(row)), None)
     if start is None:
         raise ValueError("en-tête « Date / Libellé » introuvable : est-ce bien un export du Crédit Agricole ?")
     lines = []
