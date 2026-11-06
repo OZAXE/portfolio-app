@@ -162,9 +162,9 @@ def to_row(op: dict, sent: str, key: str) -> list:
 
 
 def sync(sheet_id: str, folder: str | None = None, today: date | None = None) -> dict:
-    """Lit les nouveaux exports du dossier et ajoute leurs opérations à l'onglet Budget. Un fichier illisible (pas un
-    export du CA) est signalé et retenu comme traité, pour ne pas le relire chaque matin ; le remplacer par un bon
-    fichier (autre date de modification) le fait relire."""
+    """Lit les nouveaux exports du dossier et ajoute leurs opérations à l'onglet Budget. Un fichier illisible n'est
+    pas retenu : signalé à chaque passage, il est relu tout seul quand l'appli sait le lire (export du 06/11/2026 au
+    nouveau format « Date d'opération », d'abord refusé)."""
     folder = folder or get_setting(sheet_id, FOLDER_KEY)
     if not folder:
         raise OperationError("Aucun dossier Drive configuré pour les relevés (Plus > Budget)")
@@ -184,9 +184,8 @@ def sync(sheet_id: str, folder: str | None = None, today: date | None = None) ->
     for f in todo[:MAX_FILES_PER_SYNC]:
         try:
             lines = read_export_file(download(f))
-        except Exception as e:  # mauvais fichier : signalé, on passe au suivant
+        except Exception as e:  # mauvais fichier : signalé à chaque passage, relu après une correction de l'appli
             result["errors"].append(f"{f['name']} : {e}")
-            done[f["id"]] = f["modifiedTime"]
             continue
         fresh = new_lines(lines, known)
         for line in fresh:

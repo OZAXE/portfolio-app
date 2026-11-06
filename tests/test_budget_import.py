@@ -94,6 +94,29 @@ def test_lecture_de_l_export_du_credit_agricole():
         br.read_export([["autre chose"]])
 
 
+def test_export_au_format_de_novembre_2026():
+    # En-tête « Date d'opération », montants en texte « 1,638.26 », livret à la suite du compte de dépôt
+    book = openpyxl.Workbook()
+    ws = book.active
+    for row in [["Téléchargement du 06/11/2026"], ["Liste des opérations du compte entre le 06/10/2026 et le 06/11/2026"],
+                ["Date d'opération", "Libellé", "Débit euros", "Crédit euros"],
+                ["29/10/2026", "Virement en votre faveur - VIR GRATIFICATION", None, "1,638.26"],
+                ["06/10/2026", "Virement émis - VIR VERS MON LIVRET", "1,000.00", None],
+                ["Livret A carte n° 000", None, None, None],
+                ["Date d'opération", "Libellé", "Débit euros", "Crédit euros"],
+                ["06/10/2026", "Virement en votre faveur - DE MON COMPTE", None, "1,000.00"]]:
+        ws.append(row)
+    buffer = io.BytesIO()
+    book.save(buffer)
+    lines = br.read_export_file(buffer.getvalue())
+    assert [(l.amount, l.credit) for l in lines] == [(1638.26, True), (1000.0, False), (1000.0, True)]
+
+
+@pytest.mark.parametrize("text, amount", [("1 024,50 €", 1024.5), ("1,638.26", 1638.26), ("1.024,50", 1024.5), ("16.56", 16.56), ("abc", None)])
+def test_montant_en_texte(text, amount):
+    assert br.parse_amount(text) == amount
+
+
 def test_dedoublonnage_compte_les_occurrences():
     # Deux virements identiques le même jour sont deux opérations ; deux exports qui se chevauchent ne les doublent pas
     vir = line("Virement émis - VIR INST vers Courtier", 100)
@@ -203,9 +226,10 @@ def test_synchronisation_depuis_drive(sheet):
     assert rows[2][3:6] == ["Courses", "Boulangerie", "depense"] and rows[3][3:6] == ["Voiture", "Péage", "depense"]
     assert rows[4][3:6] == ["À catégoriser", "", "a_categoriser"] and rows[4][7] == "nouveau commerce"
     assert rows[2][7] == ""  # clé écrite seulement pour une opération à catégoriser
-    # Rien de nouveau au passage suivant : fichiers retenus (y compris le mauvais), pas relus
-    assert set(json.loads(settings["budget_files"])) == {"f1", "f3"}
-    assert bi.sync("s", today=date(2026, 10, 15))["added"] == 0
+    # Rien de nouveau au passage suivant : bon fichier retenu ; le mauvais n'est pas retenu, il est signalé à nouveau
+    assert set(json.loads(settings["budget_files"])) == {"f1"}
+    again = bi.sync("s", today=date(2026, 10, 15))
+    assert again["added"] == 0 and len(again["errors"]) == 1
     # Un export plus récent qui recouvre le premier n'ajoute que la nouvelle opération
     drive.files["f4"] = ("CA20261020_0900.xlsx", "2026-10-20T09:00:00Z", export([
         ["13/10/2026", "Paiement par carte - X9900 NOUVEAU COMMERCE 12/10", 23.4, None],
