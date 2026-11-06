@@ -8,4 +8,5 @@ gspread==6.1.2
 google-auth==2.34.0
 python-dotenv==1.2.2
 pypdf==6.19.0
+openpyxl==3.1.5  # relevés du Crédit Agricole lus sur Drive (budget_rules.read_export_file) ; même version que requirements-dev.txt
 cryptography>=41.0  # notifications de l'appli (push.py : chiffrement Web Push et signature VAPID) ; pas épinglée : celle du système (Debian) ne se remplace pas dans le conteneur de dev

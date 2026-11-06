@@ -535,6 +535,9 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   virements internes des deux côtés). D'abord refusé ; `is_header` / `parse_amount` acceptent les deux formats, et un
   fichier illisible n'est plus retenu dans `budget_files` (relu tout seul après une correction). Vérifié sur le vrai
   fichier : 86 lignes, 75 nouvelles, 9 à catégoriser (12 %).
+  Puis en ligne : « No module named 'openpyxl' » (il n'était que dans requirements-dev.txt, que Render n'installe pas ;
+  tests et CI passaient). Ajouté à `backend/requirements.txt` ; `tests/test_dependances.py` vérifie que chaque import du
+  serveur est dans cette liste.
 
 - **Briefs hebdo (octobre 2026).** `briefs.py` lit le dossier Drive de l'utilisateur (`briefs_folder` de
   `USERS_JSON`, `PUBLIC_BRIEFS_FOLDER` pour les amis et inscrits), compte de service en `drive.readonly`. Brief = `.html`
