@@ -362,6 +362,10 @@
     .pill-gain { font-size: 13px; font-weight: 600; }
     .poscard { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 12px; }
     .poscard h3 { font-size: 15px; margin: 0 0 8px; }
+    .sell-sim { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+    .sell-sim summary { cursor: pointer; font-weight: 600; font-size: 14px; min-height: 44px; display: flex; align-items: center; }
+    .sell-sim .field input { width: 120px; }
+    .sell-sim .sim-out { margin-top: 8px; }
     .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat > div { background: var(--card-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
     .stat .k { font-size: 13px; color: var(--muted); }
@@ -1953,9 +1957,53 @@
             ${fx ? cell(`<span data-term="Effet du change">Effet du change</span>`, `${signedEur(fx.effect)}`, signClass(fx.effect)) : ""}
             ${fx?.stock_effect != null ? cell("Venu de l'action", signedEur(fx.stock_effect), signClass(fx.stock_effect)) : ""}
           </div>
+          ${sellSimBlock(h, pru)}
           <button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button><div class="buy-chart-slot"></div>
         </div>`;
     }
+
+    // --- Simulateur « si je vends » (carte Ta position) : plus-value, impôt estimé et net, sans rien écrire ---
+    // CTO : impôt = flat tax sur ce que la vente ajoute aux plus-values déjà réalisées cette année (une
+    // moins-value de l'année l'absorbe d'abord). PEA : rien à la vente, l'argent reste dans l'enveloppe.
+    const flatTaxRate = () => (realized?.flat_tax_rate ?? (new Date().getFullYear() >= 2026 ? 0.314 : 0.3));
+    function sellSimBlock(h, pru) {
+      const env = String(h.envelope || "").toUpperCase();
+      if (!["PEA", "CTO"].includes(env) || pru == null || !(h.quantity > 0) || h.value == null) return "";
+      const price = h.value / h.quantity;
+      return `<details class="sell-sim" data-env="${env}" data-pru="${pru}" data-qty="${h.quantity}">
+          <summary>🧮 Simuler une vente</summary>
+          <label class="field"><span>Quantité vendue</span><input type="number" class="sim-qty" min="0" max="${h.quantity}" step="any" value="${+h.quantity.toFixed(6)}" inputmode="decimal" /></label>
+          <label class="field"><span>Cours de vente (€)</span><input type="number" class="sim-price" min="0" step="any" value="${price.toFixed(2)}" inputmode="decimal" /></label>
+          <label class="field"><span>Frais de l'ordre (€)</span><input type="number" class="sim-fees" min="0" step="any" value="0" inputmode="decimal" /></label>
+          <div class="sim-out">${sellSimHtml(env, pru, h.quantity, price, 0, h.quantity)}</div>
+        </details>`;
+    }
+    function sellSimHtml(env, pru, qty, price, fees, held) {
+      if (!(qty > 0) || !(price > 0)) return `<p class="help">Indique une quantité et un cours.</p>`;
+      if (qty > held + 1e-9) return `<p class="help">Tu n'en détiens que ${num(held, 6)}.</p>`;
+      const proceeds = qty * price - (fees || 0), gain = proceeds - qty * pru;
+      const row = (k, v, cls = "") => `<tr><td>${k}</td><td class="${cls}">${v}</td></tr>`;
+      let tax = 0, taxNote;
+      if (env === "CTO") {
+        const year = new Date().getFullYear();
+        const before = realized?.years?.find((y) => y.year === year)?.envelopes?.CTO?.realized_gain ?? 0;
+        tax = (Math.max(before + gain, 0) - Math.max(before, 0)) * flatTaxRate();
+        taxNote = `Flat tax de ${pctPlain(flatTaxRate())} sur ce que la vente ajoute aux plus-values de ${year}`
+          + (before ? ` (déjà réalisé cette année sur le CTO : ${signedEur(before)})` : "")
+          + (gain < 0 ? ". Une moins-value se déduit des plus-values de l'année, et des 10 années suivantes (non comptées ici)" : "") + ".";
+      } else {
+        taxNote = "Dans le PEA, rien à payer à la vente : l'argent reste dans l'enveloppe. Seul un retrait est imposé (prélèvements sociaux sur les gains après 5 ans).";
+      }
+      return `<table class="fees-table">${row("Produit de la vente", eur.format(proceeds))}${row("Plus-value", signedEur(gain), signClass(gain))}
+          ${row("Impôt estimé", eur.format(Math.max(tax, 0)))}${row("Net après impôt", `<b>${eur.format(proceeds - Math.max(tax, 0))}</b>`)}</table>
+        <p class="help" style="margin:6px 0 0">${taxNote} Calcul indicatif au PRU frais compris, pas un conseil.</p>`;
+    }
+    document.addEventListener("input", (e) => {
+      const box = e.target.closest(".sell-sim");
+      if (!box) return;
+      const v = (cls) => parseFloat(box.querySelector(cls).value);
+      box.querySelector(".sim-out").innerHTML = sellSimHtml(box.dataset.env, +box.dataset.pru, v(".sim-qty"), v(".sim-price"), v(".sim-fees") || 0, +box.dataset.qty);
+    });
     function openPosition(ticker, envelope) {
       const h = overview.holdings.find((x) => x.ticker === ticker && (x.envelope || "") === envelope);
       if (!h) return;

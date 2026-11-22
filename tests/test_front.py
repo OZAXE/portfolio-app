@@ -211,7 +211,7 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
 
     # Plus : les pages du patrimoine s'ouvrent et se referment avec le retour du téléphone
     page.click("#tabbar [data-view=settings]")
-    for name in ["patrimoine", "projection", "goals", "accounts", "appearance"]:
+    for name in ["patrimoine", "projection", "goals", "accounts", "appearance", "track"]:
         page.click(f'#settings-home [data-spage="{name}"]')
         page.wait_for_selector(f'.spage[data-page="{name}"]:not([hidden])')
         page.go_back()
