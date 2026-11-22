@@ -4375,7 +4375,9 @@
         ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin, ticker: e.ticker })),
         ...data.opportunities
           .filter((o) => !data.events.some((e) => e.ticker === o.ticker && e.type === "sous-évaluée"))
-          .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin, ticker: o.ticker })),
+          .map((o) => ({ icon: "💰", origin: o.origin, ticker: o.ticker, text: o.upside != null
+            ? `${o.name} reste sous son prix juste (potentiel +${num(o.upside, 0)} %)`
+            : `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)` })),
       ];
       renderAlertsList();
     }

@@ -6,11 +6,17 @@ Deux familles :
 - les événements, qui comparent le calcul de la nuit à celui de la veille
   (champs prev_* du screener) : ils ne se déclenchent qu'une fois, et ce sont
   eux qui partent en notification ;
-- les opportunités, un état permanent (action surveillée actuellement sous sa
-  valeur intrinsèque), affichées dans l'appli sans notification.
+- les opportunités, un état permanent (action surveillée actuellement sous-évaluée),
+  affichées dans l'appli sans notification.
+
+« Sous-évaluée » (novembre 2026) = verdict du prix juste (plusieurs méthodes recoupées, voir
+valuation.blend_fair_value) ; avant, la seule marge de sécurité du DCF. Une fiche du screener sans
+fair_value_verdict (aucune méthode exploitable) garde l'ancienne règle du DCF.
 
 Fonctions pures : utilisées par l'API (/alerts) et par screener/notify.py.
 """
+
+from .valuation import VERDICT_UNDER
 
 UNDERVALUED_MARGIN = 20.0  # % de marge de sécurité à partir duquel une action est jugée sous-évaluée
 BIG_DROP = -0.07  # baisse sur une séance
@@ -28,6 +34,10 @@ def _undervalued(margin, reliable) -> bool:
     return bool(reliable) and margin is not None and margin >= UNDERVALUED_MARGIN
 
 
+def _fair_under(verdict) -> bool:
+    return verdict == VERDICT_UNDER
+
+
 def compute_alerts(positions: set[str], watchlist: set[str], screener: dict, investors: dict | None) -> dict:
     """positions / watchlist : tickers au format Yahoo. Renvoie {"events": [...], "opportunities": [...]}."""
     followed = positions | watchlist
@@ -41,7 +51,15 @@ def compute_alerts(positions: set[str], watchlist: set[str], screener: dict, inv
         name = s.get("name") or ticker
         base = {"ticker": ticker, "name": name, "origin": origin(ticker)}
 
-        if _undervalued(s.get("margin_of_safety"), s.get("dcf_reliable")):
+        if s.get("fair_value_verdict"):
+            if _fair_under(s["fair_value_verdict"]):
+                upside = s.get("fair_value_upside_pct") or 0
+                opportunities.append({**base, "upside": upside, "margin": upside, "quality_score": s.get("quality_score")})
+                # prev_fair_value_verdict absent la première nuit : pas d'alerte en rafale
+                if "prev_fair_value_verdict" in s and not _fair_under(s["prev_fair_value_verdict"]):
+                    events.append({**base, "type": "sous-évaluée",
+                                   "message": f"{name} passe sous son prix juste (potentiel {upside:+.0f} %)"})
+        elif _undervalued(s.get("margin_of_safety"), s.get("dcf_reliable")):
             opportunities.append({**base, "margin": s["margin_of_safety"], "quality_score": s.get("quality_score")})
             if "prev_margin_of_safety" in s and not _undervalued(s.get("prev_margin_of_safety"), s.get("prev_dcf_reliable")):
                 events.append({**base, "type": "sous-évaluée",

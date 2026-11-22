@@ -48,7 +48,8 @@ PROFILES_DIR = "profiles"
 HISTORY_EVERY_DAYS = 6  # un relevé par semaine (le run du samedi, après la clôture du vendredi)
 
 # Valeurs de la veille gardées sur chaque fiche : les alertes comparent avec elles
-TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score", "dividend_cut")
+TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score", "dividend_cut",
+                  "fair_value_verdict")
 
 PRICE_BATCH = 150
 DELAY_BETWEEN_TICKERS = 0.8  # secondes

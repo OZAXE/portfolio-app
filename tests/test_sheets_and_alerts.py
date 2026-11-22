@@ -72,6 +72,23 @@ def test_alerts_events_and_opportunities():
     assert [o["ticker"] for o in result["opportunities"]] == ["BN.PA", "SAP.DE"]
 
 
+def test_alerte_sur_le_prix_juste():
+    # BN.PA passe de « correcte » à « sous-évaluée » au sens du prix juste : alerte, même si la marge du DCF
+    # seule (10 %) ne l'aurait pas déclenchée ; SAP.DE reste sous-évaluée : opportunité sans alerte ;
+    # AI.PA « incertaine » : rien ; TTE.PA sans verdict de la veille (première nuit) : opportunité seulement
+    screener = {"stocks": [
+        stock("BN.PA", fair_value_verdict="sous-évaluée", prev_fair_value_verdict="correcte", fair_value_upside_pct=24.6,
+              margin_of_safety=10, dcf_reliable=True, prev_margin_of_safety=5, prev_dcf_reliable=True),
+        stock("SAP.DE", fair_value_verdict="sous-évaluée", prev_fair_value_verdict="sous-évaluée", fair_value_upside_pct=30),
+        stock("AI.PA", fair_value_verdict="incertaine", prev_fair_value_verdict="correcte", fair_value_upside_pct=60,
+              margin_of_safety=40, dcf_reliable=True, prev_margin_of_safety=5, prev_dcf_reliable=True),
+        stock("TTE.PA", fair_value_verdict="sous-évaluée", fair_value_upside_pct=18),
+    ]}
+    result = compute_alerts({"BN.PA", "AI.PA", "TTE.PA"}, {"SAP.DE"}, screener, None)
+    assert [(e["ticker"], e["message"]) for e in result["events"]] == [("BN.PA", "BN.PA passe sous son prix juste (potentiel +25 %)")]
+    assert sorted(o["ticker"] for o in result["opportunities"]) == ["BN.PA", "SAP.DE", "TTE.PA"]
+
+
 def test_no_alert_burst_on_first_night():
     # Sans valeurs de la veille (première nuit), pas d'événement de franchissement
     screener = {"stocks": [stock("BN.PA", margin_of_safety=36, dcf_reliable=True, dividend_cut=True)]}
