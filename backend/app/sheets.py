@@ -18,6 +18,7 @@ Onglets lus :
 import os
 import re
 import threading
+from contextlib import contextmanager
 import time
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -137,12 +138,25 @@ _cache: dict = {}
 _key_locks: dict = {}
 _cache_lock = threading.Lock()
 _generation = [0]
+_neutral = threading.local()
 
 
-def clear_sheet_cache() -> None:
+def clear_sheet_cache(bump: bool = True) -> None:
     with _cache_lock:
         _cache.clear()
-        _generation[0] += 1
+        if bump:
+            _generation[0] += 1
+
+
+@contextmanager
+def neutral_writes():
+    """Écritures qui ne changent rien aux calculs (Perf. gardée dans Réglages, stats_store.py) : le cache
+    des lectures est vidé, mais la génération ne bouge pas, sinon garder un calcul l'invaliderait aussitôt."""
+    _neutral.on = True
+    try:
+        yield
+    finally:
+        _neutral.on = False
 
 
 def cache_generation() -> int:
@@ -163,9 +177,10 @@ class CachedHTTPClient(HTTPClient):
     def request(self, method, endpoint, params=None, data=None, json=None, files=None, headers=None):
         kwargs = dict(params=params, data=data, json=json, files=files, headers=headers)
         if method.lower() != "get":
-            clear_sheet_cache()
+            bump = not getattr(_neutral, "on", False)
+            clear_sheet_cache(bump)
             response = self._send(method, endpoint, **kwargs)
-            clear_sheet_cache()
+            clear_sheet_cache(bump)
             return response
         key = (endpoint, repr(sorted(params.items()) if isinstance(params, dict) else params))
         with _cache_lock:

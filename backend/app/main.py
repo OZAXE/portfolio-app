@@ -36,6 +36,7 @@ Endpoints prévus pour le MVP :
 import copy
 import logging
 import re
+import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -599,15 +600,20 @@ _stats_cache: dict[tuple, tuple[float, dict | None]] = {}
 
 
 @app.get("/portfolio/stats")
-def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
+def get_stats(benchmark: str = "world", stored: bool = False, user: User = Depends(require_access)):
     from datetime import date
 
     from . import sheets
     from .performance import BENCHMARKS
     from .stats import stats_summary
+    from .stats_store import load_stats, save_stats
 
     if benchmark not in BENCHMARKS:
         raise HTTPException(status_code=400, detail=f"Indice inconnu (choix : {', '.join(BENCHMARKS)})")
+    if stored:
+        # Dernier calcul gardé dans le Sheet (stats_store.py), sans Yahoo : affiché pendant le calcul frais.
+        # Inutile quand le calcul est déjà en mémoire : le front le redemande aussitôt sans stored.
+        return load_stats(user.sheet_id, benchmark) or {"stored_at": None, "result": None}
     # Recalculé après chaque opération saisie (génération du cache des Sheets) et chaque jour
     key = (user.sheet_id, benchmark, sheets.cache_generation(), date.today())
     cached = _stats_cache.get(key)
@@ -617,6 +623,8 @@ def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
     if len(_stats_cache) > 200:  # anciennes clés (générations, jours passés)
         _stats_cache.clear()
     _stats_cache[key] = (time.monotonic(), result)
+    # Gardé dans le Sheet à côté, sans retarder la réponse (une écriture Google prend 1 à 2 s)
+    threading.Thread(target=save_stats, args=(user.sheet_id, benchmark, result), daemon=True).start()
     return result
 
 

@@ -73,7 +73,7 @@
     .muted { color: var(--muted); }
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
     .stale { font-size: 13px; color: var(--muted); margin: -4px 0 10px; display: flex; align-items: center; gap: 6px; }
-    .stale .spin { width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .stale .spin, .stats-stored .spin { display: inline-block; vertical-align: middle; margin-right: 4px; width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Synthèse */
@@ -4844,9 +4844,21 @@
       document.getElementById("stats-bench").value = STATS_BENCH_KEY();
       periodsEl.className = "help";
       periodsEl.textContent = "Calcul en cours (cours de chaque titre depuis 5 ans)…";
-      statsLoading = api(`/portfolio/stats?benchmark=${STATS_BENCH_KEY()}`)
-        .then((data) => { stats = data ?? { envelopes: {}, attribution: {}, legacy: true }; renderStats(); })
+      const bench = STATS_BENCH_KEY();
+      let fresh = false;
+      // Dernier calcul gardé dans le Sheet (stats_store.py) : affiché tout de suite, le serveur gratuit
+      // retéléchargeant 5 ans de cours à chaque réveil. Remplacé dès que le calcul frais arrive.
+      if (!stats) {
+        api(`/portfolio/stats?benchmark=${bench}&stored=1`).then((saved) => {
+          if (fresh || !saved?.result || bench !== STATS_BENCH_KEY()) return;
+          stats = { ...saved.result, storedAt: saved.stored_at };
+          renderStats();
+        }).catch(() => { /* rien de gardé : on attend le calcul */ });
+      }
+      statsLoading = api(`/portfolio/stats?benchmark=${bench}`)
+        .then((data) => { fresh = true; stats = data ?? { envelopes: {}, attribution: {}, legacy: true }; renderStats(); })
         .catch((e) => {
+          if (stats?.storedAt) { renderStats(e.message); return; }
           periodsEl.textContent = "Indisponible : " + e.message;
           document.getElementById("stats-risk").innerHTML = "";
           document.getElementById("stats-attrib").textContent = "";
@@ -4854,9 +4866,18 @@
         .finally(() => { statsLoading = null; });
       return statsLoading;
     }
+    // Chiffres gardés d'un calcul précédent : dit de quand ils datent, et si le calcul frais tourne ou a échoué
+    const storedFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    function storedNote(error) {
+      if (!stats?.storedAt) return "";
+      const when = storedFmt.format(new Date(stats.storedAt));
+      return `<p class="help stats-stored">${error ? `Calcul du ${when} (mise à jour impossible : ${escapeHtml(error)})` : `<i class="spin"></i> Calcul du ${when}, mise à jour en cours…`}</p>`;
+    }
 
-    function renderStats() {
+    function renderStats(error) {
       const periodsEl = document.getElementById("stats-periods");
+      document.querySelectorAll(".stats-stored").forEach((el) => el.remove());
+      periodsEl.insertAdjacentHTML("beforebegin", storedNote(error));
       if (!stats || !Object.keys(stats.envelopes || {}).length) {
         periodsEl.textContent = stats?.legacy
           ? "Disponible avec le Sheet modèle (onglet Opérations)."
