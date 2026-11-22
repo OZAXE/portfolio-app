@@ -1360,6 +1360,7 @@
       under: { label: "sous-évaluée", cls: "positive" },
       fair: { label: "prix correct", cls: "muted" },
       over: { label: "surévaluée", cls: "negative" },
+      unsure: { label: "incertaine", cls: "muted" },
     };
 
     function fairValueOf(s) {
@@ -1377,8 +1378,13 @@
       const value = values.reduce((a, b) => a + b, 0) / values.length;
       const low = Math.min(...values), high = Math.max(...values);
       const ratio = s.price ? s.price / value : null;
-      const verdict = ratio == null ? null : ratio < 1 - VERDICT_BAND ? "under" : ratio > 1 + VERDICT_BAND ? "over" : "fair";
-      return { value, low, high, methods, verdict, upside: s.price ? (value / s.price - 1) * 100 : null, divergent: high / low > DIVERGENCE_MAX };
+      const lean = ratio == null ? null : ratio < 1 - VERDICT_BAND ? "under" : ratio > 1 + VERDICT_BAND ? "over" : "fair";
+      const divergent = high / low > DIVERGENCE_MAX;
+      // Sans recoupement (une méthode, ou deux du simple au double) : pas de verdict franc, comme
+      // blend_fair_value (VERDICT_UNSURE). lean garde le sens du seul chiffre disponible, pour la phrase de la fiche.
+      const unsure = methods.length === 1 || (methods.length === 2 && divergent);
+      const verdict = lean && unsure ? "unsure" : lean;
+      return { value, low, high, methods, verdict, lean, upside: s.price ? (value / s.price - 1) * 100 : null, divergent };
     }
 
     // Limites du prix juste qui concernent cette action en particulier (la liste complète est dans le lexique).
@@ -2943,7 +2949,7 @@
     }
 
     // --- Présentation commune des lignes d'action : logo (ou initiales), verdict en mots, qualité en mots ---
-    const VERDICT_PILLS = { under: ["Sous-évaluée", "good"], fair: ["Prix correct", "warn"], over: ["Chère", "bad"] };
+    const VERDICT_PILLS = { under: ["Sous-évaluée", "good"], fair: ["Prix correct", "warn"], over: ["Chère", "bad"], unsure: ["Incertaine", "na"] };
     function verdictPill(s) {
       const f = fairValueOf(s);
       if (!f?.verdict) return `<span class="pill na">Pas d'estimation</span>`;
@@ -3236,7 +3242,7 @@
         <div class="sheet" role="dialog" aria-label="Filtres">
           <div class="grab"></div>
           <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:17px">Filtres</strong><button class="see-all" style="color:var(--muted)" data-sheet-close>Fermer</button></div>
-          <h3>Estimation</h3><div class="filters">${chip("verdict", "under", "Sous-évaluée")}${chip("verdict", "fair", "Prix correct")}${chip("verdict", "over", "Chère")}${toggle("reliable", "DCF fiable")}</div>
+          <h3>Estimation</h3><div class="filters">${chip("verdict", "under", "Sous-évaluée")}${chip("verdict", "fair", "Prix correct")}${chip("verdict", "over", "Chère")}${chip("verdict", "unsure", "Incertaine")}${toggle("reliable", "DCF fiable")}</div>
           <h3>Qualité minimum</h3><div class="filters">${chip("qualityMin", 8, "8/20")}${chip("qualityMin", 12, "12/20")}${chip("qualityMin", 15, "15/20")}</div>
           <h3>Région</h3><div class="filters">${chip("region", "Europe", "Europe")}${chip("region", "US", "États-Unis")}${chip("region", "Asie", "Asie")}</div>
           <h3>Secteur</h3><div class="filters">${sectors.map((x) => chip("sector", x, x)).join("")}</div>
@@ -3309,13 +3315,17 @@
         return `<div class="verdict-card"><div class="vtitle"><span class="dot" style="background:var(--muted)"></span>Pas d'estimation fiable</div>
           <p class="vtext">Les méthodes disponibles donnent un prix juste trop éloigné du cours pour être crédible (données Yahoo incomplètes ou entreprise atypique).</p></div>`;
       }
-      const [label, color] = { under: ["Paraît sous-évaluée", "good"], fair: ["Paraît à son juste prix", "warn"], over: ["Paraît chère", "bad"] }[f.verdict];
+      const [label, color] = { under: ["Paraît sous-évaluée", "good"], fair: ["Paraît à son juste prix", "warn"], over: ["Paraît chère", "bad"], unsure: ["Estimation incertaine", "na"] }[f.verdict];
+      const leanText = { under: "sous-évaluée", fair: "à son juste prix", over: "chère" }[f.lean];
+      const unsureText = f.verdict !== "unsure" ? "" : f.methods.length === 1
+        ? `Une seule méthode tient la route, sans recoupement : elle la donnerait ${leanText}, à vérifier par toi-même.`
+        : `Les deux méthodes vont du simple au double : la moyenne la donnerait ${leanText}, mais sans accord entre elles.`;
       // Jauge : cours et prix juste placés entre 0,4 et 2,5 fois le prix juste (échelle log, bornes des méthodes)
       const pos = (x) => Math.min(100, Math.max(0, (Math.log(x / f.value) - Math.log(RELIABLE_MIN)) / (Math.log(RELIABLE_MAX) - Math.log(RELIABLE_MIN)) * 100));
       const caveats = fairCaveats(s, f);
       return `<div class="verdict-card">
           <div class="vtitle"><span class="dot" style="background:${PILLAR_COLOR[color]}"></span>${label}</div>
-          <p class="vtext">Prix juste estimé <b>${money(f.value, cur)}</b>, soit ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} % par rapport au cours${f.methods.length > 1 ? ` (fourchette ${money(f.low, cur)} – ${money(f.high, cur)})` : ""}.</p>
+          <p class="vtext">Prix juste estimé <b>${money(f.value, cur)}</b>, soit ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} % par rapport au cours${f.methods.length > 1 ? ` (fourchette ${money(f.low, cur)} – ${money(f.high, cur)})` : ""}.${unsureText ? ` ${unsureText}` : ""}</p>
           <div class="gauge" role="img" aria-label="Cours comparé au prix juste">
             <div class="track"></div>
             <div class="mark fair" style="left:${pos(f.value)}%"><span>Prix juste</span></div>
@@ -3333,7 +3343,7 @@
       const v = valuationOf(s);
       const f = fairValueOf(s);
 
-      const verdictColor = f ? { under: "good", fair: "warn", over: "bad" }[f.verdict] : "na";
+      const verdictColor = f ? { under: "good", fair: "warn", over: "bad", unsure: "na" }[f.verdict] : "na";
       let dcf = fRow("Valeur intrinsèque", "N/A");
       if (v.iv != null) {
         // Hors fourchette de fiabilité, chiffre gardé pour info mais sans marge : il ne veut rien dire en l'état
@@ -3343,7 +3353,7 @@
       }
       const hypotheses = v.g != null
         ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
-      const valuation = pillar("Valorisation", verdictColor, f ? { under: "Paraît sous-évaluée", fair: "Prix correct", over: "Paraît chère" }[f.verdict] : "Pas d'estimation fiable",
+      const valuation = pillar("Valorisation", verdictColor, f ? { under: "Paraît sous-évaluée", fair: "Prix correct", over: "Paraît chère", unsure: "Estimation incertaine" }[f.verdict] : "Pas d'estimation fiable",
         (f ? fRow("Prix juste", `<b>${money(f.value, cur)}</b>`) + fRow("Potentiel", `${f.upside > 0 ? "+" : ""}${num(f.upside)} %`, "", signClass(f.upside)) : fRow("Prix juste", "N/A"))
         + fRow("PER", num(s.pe), "Combien d'années de bénéfices coûte l'action au prix actuel : plus c'est bas, moins c'est cher.")
         + fRow("PER prévisionnel", num(s.forward_pe), "Même calcul avec les bénéfices attendus l'an prochain.")
@@ -6915,8 +6925,8 @@
         "Cours / valeur comptable": "<p>Cours ÷ capitaux propres par action (ce que l'entreprise possède moins ce qu'elle doit, selon son bilan).</p><p>Surtout utile pour les banques et assurances : en dessous de 1, tu paies l'entreprise moins que sa valeur comptable.</p>",
         "VE / EBITDA": "<p>Valeur d'entreprise (capitalisation + dette nette) ÷ EBITDA (bénéfice avant intérêts, impôts et amortissements).</p><p>Comme le PER, mais en tenant compte de la dette : utile pour comparer des entreprises plus ou moins endettées. Repère : autour de 10, au-dessus de 15 c'est cher.</p>",
         "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, qui entre dans le prix juste quand il est fiable. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
-        "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)), et le bénéfice par action × le PER historique de l'action (sa médiane sur 10 ans au plus), quand il est connu.</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand les méthodes vont du simple au double, le verdict est affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
-        "Limites du prix juste": "<p>Le prix juste est une estimation automatique, à croiser avec ta propre analyse. Ses principales limites :</p><ul><li><b>Entreprises de qualité</b> : le marché paie durablement plus cher les entreprises exceptionnelles (Air Liquide, Hermès, L'Oréal) que la moyenne de leur secteur. Face au PER normal du secteur, elles ressortent souvent surévaluées, parfois pendant des années. Le PER historique de l'action corrige en partie ce biais, quand il est disponible.</li><li><b>PER historique</b> : il suppose que le marché payait l'action au bon prix en moyenne sur 10 ans. Une entreprise dont la croissance ralentit (ou dont le secteur a changé) peut rester chère face à son passé sans jamais y revenir. Il n'existe pas quand les comptes sont publiés dans une autre devise que la cotation, ni pour les actions trop récentes (moins de 3 exercices bénéficiaires connus).</li><li><b>Croissance propre à l'entreprise</b> : le PER du secteur ne voit pas qu'une entreprise grandit beaucoup plus vite (ou plus lentement) que ses concurrentes. Seul le DCF en tient compte, quand il est fiable.</li><li><b>Secteurs cycliques</b> (énergie, matériaux, automobile, semi-conducteurs, aérien) : en haut de cycle, les bénéfices sont gonflés, le PER paraît bas et l'action semble bon marché juste avant que les bénéfices ne rechutent. C'est l'inverse en bas de cycle.</li><li><b>Pièges à valeur</b> : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette, secteur en difficulté). Regarde le score qualité et les comptes annuels.</li><li><b>Données Yahoo</b> : gratuites et non officielles, parfois fausses ou périmées, surtout hors des États-Unis. Les méthodes aux résultats aberrants (moins de 0,4 ou plus de 2,5 fois le cours) sont écartées, mais une erreur plus discrète peut passer.</li><li><b>Mise à jour</b> : les bénéfices et bilans sont réanalysés tous les 3-4 jours et ne changent vraiment qu'aux publications de résultats ; seul le cours est à jour chaque jour.</li><li><b>Banques et assurances</b> : pas de DCF, le prix juste repose sur le PER et la valeur comptable, sensibles à la qualité du bilan qu'aucun ratio ne mesure bien.</li></ul><p>Ce n'est pas un conseil en investissement.</p>",
+        "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)), et le bénéfice par action × le PER historique de l'action (sa médiane sur 10 ans au plus), quand il est connu.</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand une seule méthode tient, ou que les deux seules retenues vont du simple au double, le verdict est « incertaine » : le prix juste reste affiché, mais rien ne le recoupe. Avec trois méthodes ou plus qui vont du simple au double, la moyenne garde son verdict, affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
+        "Limites du prix juste": "<p>Le prix juste est une estimation automatique, à croiser avec ta propre analyse. Ses principales limites :</p><ul><li><b>Entreprises de qualité</b> : le marché paie durablement plus cher les entreprises exceptionnelles (Air Liquide, Hermès, L'Oréal) que la moyenne de leur secteur. Face au PER normal du secteur, elles ressortent souvent surévaluées, parfois pendant des années. Le PER historique de l'action corrige en partie ce biais, quand il est disponible.</li><li><b>PER historique</b> : il suppose que le marché payait l'action au bon prix en moyenne sur 10 ans. Une entreprise dont la croissance ralentit (ou dont le secteur a changé) peut rester chère face à son passé sans jamais y revenir. Il n'existe pas quand les comptes sont publiés dans une autre devise que la cotation, ni pour les actions trop récentes (moins de 3 exercices bénéficiaires connus).</li><li><b>Croissance propre à l'entreprise</b> : le PER du secteur ne voit pas qu'une entreprise grandit beaucoup plus vite (ou plus lentement) que ses concurrentes. Seul le DCF en tient compte, quand il est fiable.</li><li><b>Secteurs cycliques</b> (énergie, matériaux, automobile, semi-conducteurs, aérien) : en haut de cycle, les bénéfices sont gonflés, le PER paraît bas et l'action semble bon marché juste avant que les bénéfices ne rechutent. C'est l'inverse en bas de cycle.</li><li><b>Pièges à valeur</b> : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette, secteur en difficulté). Regarde le score qualité et les comptes annuels.</li><li><b>Données Yahoo</b> : gratuites et non officielles, parfois fausses ou périmées, surtout hors des États-Unis. Les méthodes aux résultats aberrants (moins de 0,4 ou plus de 2,5 fois le cours) sont écartées, mais une erreur plus discrète peut passer.</li><li><b>Mise à jour</b> : les bénéfices et bilans sont réanalysés tous les 3-4 jours et ne changent vraiment qu'aux publications de résultats ; seul le cours est à jour chaque jour.</li><li><b>Banques et assurances</b> : pas de DCF, le prix juste repose sur le PER et la valeur comptable, sensibles à la qualité du bilan qu'aucun ratio ne mesure bien.</li><li><b>Sans recoupement</b> : quand une seule méthode reste, ou deux qui ne s'accordent pas, l'action est dite « incertaine » plutôt que sous- ou surévaluée. Une méthode isolée peut afficher le double du cours sur un bénéfice exceptionnel (NVIDIA en novembre 2026, sur son seul PER historique).</li></ul><p>Ce n'est pas un conseil en investissement.</p>",
         "Potentiel": "<p>(prix juste ÷ cours − 1) : ce que l'action gagnerait si elle rejoignait son prix juste. Négatif : elle devrait baisser pour y revenir.</p>",
         "Fourchette": "<p>De la méthode la plus prudente à la plus optimiste parmi celles qui composent le prix juste. Plus elle est large, plus l'estimation est incertaine.</p>",
         "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",

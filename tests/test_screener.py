@@ -30,9 +30,10 @@ def test_fair_value_follows_daily_price():
     assert record["fair_value"] == 90 and record["fair_value_verdict"] == "sous-évaluée"
     run.refresh_with_price(record, 90.0)
     assert record["fair_value_verdict"] == "correcte"
-    # Cours à 38 : le DCF (2,6 fois le cours) n'est plus fiable, il sort de la moyenne
+    # Cours à 38 : le DCF (2,6 fois le cours) n'est plus fiable, il sort de la moyenne ; reste une seule
+    # méthode, donc pas de verdict franc
     run.refresh_with_price(record, 38.0)
-    assert record["fair_value"] == 80 and record["fair_value_verdict"] == "sous-évaluée"
+    assert record["fair_value"] == 80 and record["fair_value_verdict"] == "incertaine"
 
 
 def test_old_record_without_fair_value_is_left_alone():

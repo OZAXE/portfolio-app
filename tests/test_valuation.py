@@ -6,6 +6,7 @@ from app.valuation import (
     VERDICT_FAIR,
     VERDICT_OVER,
     VERDICT_UNDER,
+    VERDICT_UNSURE,
     blend_fair_value,
     compute_dcf,
     compute_quality_score,
@@ -169,6 +170,18 @@ def test_blend_is_simple_average_with_range():
     assert fair["fair_value_divergent"] is False
     assert blend_fair_value(100, 240, 100, None)["fair_value_divergent"] is True
     assert blend_fair_value(80, None, None, None)["fair_value"] is None
+
+
+def test_verdict_incertain_sans_recoupement():
+    # Une seule méthode (PER historique seul, cours 125 et prix juste 249 comme NVIDIA en novembre 2026) :
+    # prix juste affiché, mais pas « sous-évaluée »
+    seule = blend_fair_value(125, None, None, None, 249)
+    assert seule["fair_value"] == 249 and seule["fair_value_verdict"] == VERDICT_UNSURE
+    # Deux méthodes du simple au double (60 et 130) : incertaine aussi
+    assert blend_fair_value(100, 60, 130, None)["fair_value_verdict"] == VERDICT_UNSURE
+    # Trois méthodes divergentes (60, 100, 130 -> moyenne 96,67) : la moyenne recoupe, verdict gardé
+    trois = blend_fair_value(100, 60, 130, None, 100)
+    assert trois["fair_value_divergent"] is True and trois["fair_value_verdict"] == VERDICT_FAIR
 
 
 def test_blend_drops_implausible_methods():
