@@ -1083,6 +1083,7 @@
       <div class="group-title">Aide</div><div class="group">
         <button class="setting" data-spage="help"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg></span><span style="min-width:0"><span class="t">Guide d'utilisation</span><span class="d">Comment tout marche, étape par étape</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="lexicon"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></span><span style="min-width:0"><span class="t">Lexique des indicateurs</span><span class="d">PER, ROE, prix juste... expliqués simplement</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="track"><span class="ic" style="background:#0f766e"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 14l3-3 3 2 5-6"/><circle cx="18" cy="7" r="1.5"/></svg></span><span style="min-width:0"><span class="t">Bilan du prix juste</span><span class="d">Les actions jugées sous-évaluées ont-elles fait mieux ensuite ?</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       </div>
       <div class="spage" data-page="patrimoine" hidden>
@@ -1248,6 +1249,10 @@
         <p class="help">Dans les fiches, touche un libellé souligné (PER, ROE…) pour afficher son explication.</p>
         <div class="lexicon" id="lexicon"></div>
       </div>
+      </div>
+      <div class="spage" data-page="track" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Bilan du prix juste</strong></div>
+        <div class="card" id="track-record"><div class="status">Chargement…</div></div>
       </div>
       <div class="spage" data-page="help" hidden>
         <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Guide d'utilisation</strong></div>
@@ -4550,16 +4555,104 @@
     let historyData = null;
     const historyCharts = {};
 
+    async function loadHistoryData() {
+      if (historyData) return historyData;
+      const res = await fetch(HISTORY_URL, { cache: "no-cache" });
+      if (!res.ok) throw new Error(`historique indisponible (${res.status})`);
+      historyData = await res.json();
+      return historyData;
+    }
+
+    // --- Bilan du prix juste (Plus > Bilan du prix juste) : les verdicts d'un relevé hebdomadaire passé, face
+    // à l'évolution du cours jusqu'au dernier relevé. Seul moyen de savoir si le modèle vaut quelque chose avant
+    // de s'en servir. Médianes (une action qui triple ne fait pas la moyenne à elle seule), dividendes non
+    // comptés, chaque action dans sa devise. Écarts de plus de x4 ou -75 % écartés : division d'actions entre
+    // deux relevés (cours non corrigés dans history.json) ou donnée Yahoo fausse, plus probables qu'un vrai mouvement.
+    const TRACK_GROUPS = [["u", "Jugées sous-évaluées", "positive"], ["f", "Prix correct", ""], ["o", "Jugées chères", "negative"], ["i", "Incertaines", "muted"]];
+    const TRACK_HORIZONS = [[365, "1 an"], [182, "6 mois"], [91, "3 mois"], [30, "1 mois"]];
+    const median = (xs) => {
+      if (!xs.length) return null;
+      const v = [...xs].sort((a, b) => a - b), m = v.length >> 1;
+      return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+    };
+    // Verdict d'un relevé : la lettre (7e valeur, depuis novembre 2026), sinon déduit du cours et du prix juste
+    // (relevés plus anciens : pas de « incertaine », qui demande le nombre de méthodes)
+    function pointVerdict(p) {
+      if (!p || !(p[0] > 0)) return null;
+      if (p[6]) return p[6];
+      if (!(p[5] > 0)) return null;
+      const r = p[0] / p[5];
+      return r < 1 - VERDICT_BAND ? "u" : r > 1 + VERDICT_BAND ? "o" : "f";
+    }
+    function trackFrom(h, i) {
+      const last = h.dates.length - 1;
+      const groups = Object.fromEntries(TRACK_GROUPS.map(([k]) => [k, []]));
+      const all = [];
+      for (const series of Object.values(h.series)) {
+        const a = series[i], b = series[last];
+        const v = pointVerdict(a);
+        if (!v || !(b?.[0] > 0)) continue;
+        const ret = b[0] / a[0] - 1;
+        if (ret > 3 || ret < -0.75) continue;
+        all.push(ret);
+        groups[v]?.push(ret);
+      }
+      const universe = median(all);
+      const rows = TRACK_GROUPS.map(([k, label, cls]) => ({ k, label, cls, n: groups[k].length, med: median(groups[k]),
+        beat: groups[k].length ? groups[k].filter((r) => r > universe).length / groups[k].length : null }));
+      return { start: h.dates[i], end: h.dates[last], n: all.length, universe, rows };
+    }
+    function trackStarts(h) {
+      const last = h.dates.length - 1;
+      const end = new Date(h.dates[last] + "T12:00:00");
+      // Premier relevé avec des prix justes (6e valeur) : avant, rien à juger
+      const first = h.dates.findIndex((_, i) => Object.values(h.series).some((s) => s[i]?.[5] > 0));
+      if (first < 0 || first >= last) return [];
+      const starts = new Map([[first, "Depuis le début"]]);
+      for (const [days, label] of TRACK_HORIZONS) {
+        const target = localISO(new Date(end - days * 864e5));
+        let i = -1;
+        h.dates.forEach((d, j) => { if (d <= target && j >= first) i = j; });
+        if (i >= 0 && i < last && !starts.has(i)) starts.set(i, label);
+      }
+      return [...starts.entries()].sort((a, b) => a[0] - b[0]);
+    }
+    async function renderTrackRecord() {
+      const el = document.getElementById("track-record");
+      let h;
+      try { h = await loadHistoryData(); } catch (e) { el.innerHTML = `<p class="help">${escapeHtml(e.message)}</p>`; return; }
+      const starts = trackStarts(h);
+      if (!starts.length) {
+        el.innerHTML = `<p class="help">Pas encore assez de relevés : il en faut au moins deux avec un prix juste (un par semaine).</p>`;
+        return;
+      }
+      const pct = (x) => x == null ? "—" : pctFmt.format(x);
+      const days = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+      const blocks = starts.map(([i, label]) => {
+        const t = trackFrom(h, i);
+        const under = t.rows[0];
+        const gap = under.med != null && t.universe != null ? under.med - t.universe : null;
+        const sentence = gap == null || under.n < 10 ? "Trop peu d'actions jugées sous-évaluées pour conclure."
+          : `Les actions jugées sous-évaluées ont fait <b class="${signClass(gap)}">${pctFmt.format(gap).replace("%", "pt")}</b> par rapport à l'ensemble (médianes), et ${pctPlain(under.beat)} d'entre elles ont fait mieux que la médiane.`;
+        const rows = t.rows.filter((r) => r.n).map((r) => `<tr><td>${r.label} <span class="muted">(${r.n})</span></td><td class="${signClass(r.med)}">${pct(r.med)}</td><td>${r.beat == null ? "—" : pctPlain(r.beat)}</td></tr>`).join("");
+        return `<h3 style="margin:14px 0 2px">${label} <span class="muted" style="font-weight:400;font-size:13px">du ${dayFmt.format(new Date(t.start + "T12:00:00"))}, ${days(t.start, t.end)} jours</span></h3>
+          <table class="fees-table perf-table"><tr><th>Verdict à cette date</th><th>Cours depuis</th><th>Mieux que la médiane</th></tr>${rows}
+          <tr><td><b>Toutes</b> <span class="muted">(${t.n})</span></td><td class="${signClass(t.universe)}"><b>${pct(t.universe)}</b></td><td>50 %</td></tr></table>
+          <p class="help" style="margin:6px 0 0">${sentence}</p>`;
+      }).join("");
+      const longest = days(h.dates[starts[0][0]], h.dates[h.dates.length - 1]);
+      el.innerHTML = `<p class="help" style="margin-top:0">Pour chaque date, on reprend le verdict du prix juste donné ce jour-là à chaque action du screener, et on regarde l'évolution de son cours jusqu'au dernier relevé (${dayFmt.format(new Date(h.dates[h.dates.length - 1] + "T12:00:00"))}). Si le modèle vaut quelque chose, les « sous-évaluées » doivent faire mieux que l'ensemble, et les « chères » moins bien.</p>
+        ${longest < 182 ? `<div class="caveat warn">⚠ <span>Seulement ${longest} jours de recul : sur moins de 6 mois à un an, le hasard du marché pèse bien plus que la valorisation. Ne conclus rien avant d'avoir au moins un an.</span></div>` : ""}
+        ${blocks}
+        <p class="help" style="margin-top:12px">Médianes, dividendes non comptés, chaque action dans sa devise ; mouvements de plus de x4 ou -75 % écartés (division d'actions, donnée erronée). Avant novembre 2026, les verdicts sont déduits du prix juste relevé, sans la catégorie « incertaine ». Le modèle a aussi changé en cours de route (méthodes ajoutées) : c'est le bilan des verdicts tels qu'affichés à l'époque. Pas un conseil en investissement.</p>`;
+    }
+
     async function showHistory(ticker) {
       const slot = document.querySelector(`[data-history-slot="${CSS.escape(ticker)}"]`);
       if (!slot) return;
       slot.innerHTML = `<div class="hypotheses">Chargement de l'historique…</div>`;
       try {
-        if (!historyData) {
-          const res = await fetch(HISTORY_URL, { cache: "no-cache" });
-          if (!res.ok) throw new Error(`historique indisponible (${res.status})`);
-          historyData = await res.json();
-        }
+        await loadHistoryData();
       } catch (e) {
         slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
         return;
@@ -6186,6 +6279,7 @@
       if (name === "appearance") syncDensityButtons();
       if (name === "budget") openBudget();
       if (name === "notifications") renderPushState();
+      if (name === "track") renderTrackRecord();
       if (PORTFOLIO_PAGES.includes(name)) {
         document.querySelector(`#view-settings .spage[data-page="${name}"] .needs-portfolio`).hidden = !!overview;
         if (overview && name === "projection") renderProjection();  // graphique dessiné page cachée : sans taille
