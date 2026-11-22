@@ -30,9 +30,10 @@ def test_fair_value_follows_daily_price():
     assert record["fair_value"] == 90 and record["fair_value_verdict"] == "sous-évaluée"
     run.refresh_with_price(record, 90.0)
     assert record["fair_value_verdict"] == "correcte"
-    # Cours à 38 : le DCF (2,6 fois le cours) n'est plus fiable, il sort de la moyenne
+    # Cours à 38 : le DCF (2,6 fois le cours) n'est plus fiable, il sort de la moyenne ; reste une seule
+    # méthode, donc pas de verdict franc
     run.refresh_with_price(record, 38.0)
-    assert record["fair_value"] == 80 and record["fair_value_verdict"] == "sous-évaluée"
+    assert record["fair_value"] == 80 and record["fair_value_verdict"] == "incertaine"
 
 
 def test_old_record_without_fair_value_is_left_alone():
@@ -49,7 +50,7 @@ def test_weekly_history_appends_once_per_week(tmp_path):
     run.update_history(path, stocks)  # même semaine : pas de second relevé
     history = json.loads(path.read_text())
     assert len(history["dates"]) == 1
-    assert history["series"]["AAA"] == [[10.0, 12.0, 16.7, 14.0, 1, None]]  # fiche sans prix juste : None
+    assert history["series"]["AAA"] == [[10.0, 12.0, 16.7, 14.0, 1, None, None]]  # fiche sans prix juste : None
     assert history["series"]["BBB"] == [None]
 
 
@@ -58,8 +59,9 @@ def test_prix_juste_ajoute_au_releve_hebdomadaire(tmp_path):
     path = tmp_path / "history.json"
     old = (datetime.now(timezone.utc).date() - timedelta(days=7)).isoformat()
     path.write_text(json.dumps({"dates": [old], "series": {"AI.PA": [[168.2, 66.57, -152.7, 12.0, 0]]}}))
-    run.update_history(path, {"AI.PA": {"price": 170.0, "intrinsic_value": 66.57, "fair_value": 193.456, "quality_score": 12.0}})
-    assert json.loads(path.read_text())["series"]["AI.PA"] == [[168.2, 66.57, -152.7, 12.0, 0], [170.0, 66.57, None, 12.0, 0, 193.46]]
+    run.update_history(path, {"AI.PA": {"price": 170.0, "intrinsic_value": 66.57, "fair_value": 193.456, "quality_score": 12.0,
+                                        "fair_value_verdict": "incertaine"}})
+    assert json.loads(path.read_text())["series"]["AI.PA"] == [[168.2, 66.57, -152.7, 12.0, 0], [170.0, 66.57, None, 12.0, 0, 193.46, "i"]]
 
 
 def test_new_ticker_history_is_aligned(tmp_path):

@@ -48,7 +48,8 @@ PROFILES_DIR = "profiles"
 HISTORY_EVERY_DAYS = 6  # un relevé par semaine (le run du samedi, après la clôture du vendredi)
 
 # Valeurs de la veille gardées sur chaque fiche : les alertes comparent avec elles
-TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score", "dividend_cut")
+TRACKED_FIELDS = ("price", "intrinsic_value", "margin_of_safety", "dcf_reliable", "quality_score", "dividend_cut",
+                  "fair_value_verdict")
 
 PRICE_BATCH = 150
 DELAY_BETWEEN_TICKERS = 0.8  # secondes
@@ -342,11 +343,16 @@ def main():
     log.info("terminé : %d fondamentaux mis à jour en %.0f min", done, (time.monotonic() - started) / 60)
 
 
+VERDICT_CODES = {"sous-évaluée": "u", "correcte": "f", "surévaluée": "o", "incertaine": "i"}
+
+
 def update_history(path: Path, stocks: dict[str, dict]) -> None:
     """Relevé hebdomadaire compact : pour chaque action, [cours, valeur intrinsèque, marge, score, DCF fiable,
-    prix juste]. Les séries sont alignées sur la liste des dates (None quand l'action n'avait pas de données).
+    prix juste, verdict]. Les séries sont alignées sur la liste des dates (None quand l'action n'avait pas de données).
     Le prix juste (6e valeur) est arrivé en septembre 2026 : les relevés plus anciens n'en ont que 5, et une
-    fiche pas encore réanalysée depuis son arrivée donne None, jamais un faux chiffre."""
+    fiche pas encore réanalysée depuis son arrivée donne None, jamais un faux chiffre.
+    Verdict (7e valeur, novembre 2026) : une lettre (VERDICT_CODES), pour le bilan du prix juste de l'appli
+    (« Plus > Bilan du prix juste ») ; « incertaine » ne se déduit pas du seul prix juste."""
     history = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"dates": [], "series": {}}
     today = datetime.now(timezone.utc).date()
     if history["dates"] and (today - datetime.fromisoformat(history["dates"][-1]).date()).days < HISTORY_EVERY_DAYS:
@@ -362,7 +368,8 @@ def update_history(path: Path, stocks: dict[str, dict]) -> None:
             point = None
         else:
             point = [rounded(s.get("price"), 4), rounded(s.get("intrinsic_value"), 2), rounded(s.get("margin_of_safety"), 1),
-                     rounded(s.get("quality_score"), 1), 1 if s.get("dcf_reliable") else 0, rounded(s.get("fair_value"), 2)]
+                     rounded(s.get("quality_score"), 1), 1 if s.get("dcf_reliable") else 0, rounded(s.get("fair_value"), 2),
+                     VERDICT_CODES.get(s.get("fair_value_verdict"))]
         series = history["series"].setdefault(ticker, [None] * n)
         series.extend([None] * (n - len(series)))  # action entrée dans l'univers en cours de route
         series.append(point)

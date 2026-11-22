@@ -104,6 +104,17 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
      `shares_cagr` dans la fiche (Apple −3,1 %/an).
   Verdict : cours < 85 % du prix juste → sous-évaluée, > 115 % → surévaluée, sinon correcte.
   « Divergent » quand la méthode la plus haute dépasse le double de la plus basse (affiché en italique).
+  **Incertaine** (novembre 2026, audit validé par Enzo) : une seule méthode retenue, ou deux divergentes -> verdict
+  `VERDICT_UNSURE` (« incertaine », `unsure` dans le front, `lean` garde le sens du chiffre pour la phrase de la fiche).
+  Avant, 36 % du screener ressortait sous-évalué (659 / 1 818), souvent sur une méthode seule (NVIDIA : PER historique
+  seul à 1,98 x le cours). Après : 412 sous-évaluées, 394 surévaluées, 510 incertaines. Médiane et bande resserrée
+  (0,5-2) simulées et écartées : la médiane écrase le PER historique qui corrige le biais des valeurs de qualité (Hermès
+  passait surévaluée), la bande resserrée ne fait que basculer des actions vers « une seule méthode ».
+  Bilan (Plus > Bilan du prix juste, `renderTrackRecord`, front seul) : verdicts de chaque relevé de `history.json`
+  (7e valeur `VERDICT_CODES` depuis novembre 2026, sinon déduit cours / prix juste) face au cours du dernier relevé,
+  médianes par verdict et part qui bat la médiane de l'univers, horizons 1 / 3 / 6 / 12 mois et depuis le début ;
+  écarts > x4 ou < -75 % écartés (divisions non corrigées dans l'historique). 48 jours de recul au 22/11/2026 :
+  sous-évaluées +0,2 pt face à l'ensemble, rien à conclure avant un an.
   Choix validés par Enzo : mix de méthodes, seuil ±15 %, affichage fiche + liste + positions.
   Limites signalées à l'utilisateur (demande d'Enzo) : avertissements ciblés dans la fiche
   (`fairCaveats` : méthodes divergentes, méthode unique, qualité ≥ 14 jugée surévaluée, cyclique ou
@@ -156,6 +167,18 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   (taux Yahoo du jour de chaque achat, donc indicatif), cours = valeur ÷ quantité ÷ `rate_now` ; symbole court
   (`localMoney` : « 200,29 $ ») et, dans la ligne, à la place du secteur (sinon coupé à 390 px). Absent tant que daily
   n'est pas chargé.
+
+- **Simulateur « si je vends » (novembre 2026, audit)** : carte « Ta position » d'une ligne PEA / CTO (`sellSimBlock`,
+  `sellSimHtml`, front seul) : quantité, cours, frais -> produit, plus-value au PRU, impôt et net. CTO : flat tax sur ce
+  que la vente ajoute aux plus-values déjà réalisées dans l'année (`realized.years[].envelopes.CTO.realized_gain`) ;
+  moins-values reportables non comptées. PEA : rien à la vente.
+
+- **Perf. gardée dans le Sheet (novembre 2026, audit)** : `stats_store.py`, clé `stats:<indice>` de l'onglet Réglages
+  (JSON RAW, < 49 000 caractères sinon pas gardé), écrite en arrière-plan après chaque calcul de `/portfolio/stats`
+  dans `sheets.neutral_writes()` (vide le cache des lectures sans changer `cache_generation`, sinon garder le calcul
+  l'invaliderait). `/portfolio/stats?stored=1` le relit sans Yahoo ; le front l'affiche (« Calcul du <date>, mise à
+  jour en cours… ») pendant le calcul frais. Raison : Render ne peut pas rester éveillé (750 h partagées avec un autre
+  projet d'Enzo qui en prend 360) et chaque réveil retéléchargeait 5 ans de cours.
 
 - **Courbe du portefeuille** : l'onglet Historique s'arrête à la veille (relevé nocturne après chaque
   jour de bourse, « Reconstituer l'historique » jusqu'à hier). Le front ajoute un point « en direct »
@@ -600,7 +623,12 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
       échec visible, car des données de la veille renverraient les mêmes alertes). Soir (`--briefs-only`) : le brief déposé
       le samedi est annoncé le soir même. `announce_brief` vide `user["brief"]` après envoi (pas deux fois par passage).
     - Heures fixes en UTC : +1 h à Paris l'été. Minutes non rondes : GitHub décale moins les heures peu demandées.
-      À vérifier sur les premiers jours (heure réelle de départ des deux workflows dans l'onglet Actions).
+    - Mesuré le 22/11/2026 : ça ne suffisait pas. Calcul lancé 3,5 à 6,5 h en retard (sans gravité, fini avant le
+      matin), notifications 6 à 9 h en retard (« matin » vers 17 h, « soir » vers minuit). Désormais cron-job.org
+      déclenche `notifications.yml` par `workflow_dispatch` à 8 h 07 et 18 h 07 heure de Paris (procédure et jeton
+      GitHub limité dans `docs/notifications-heure-fixe.md`). Les horaires planifiés restent en secours : étape
+      « Déjà envoyé ? » qui ne fait rien si un passage déclenché du même nom (titre `Notifications (<passage>, ...)`,
+      `run-name`) a réussi ou tourne depuis moins de 14 h.
 
 ## Tester le front (banc Playwright)
 
@@ -612,6 +640,12 @@ mémoire (patcher `sheets.sheets_client` et `workbook.sheets_client`, `main.reso
 `prices.fetch_price_history` remplacés par des cours synthétiques, requêtes vers l'API Render redirigées vers le
 TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, sinon le service worker intercepte
 `screener.json` avant Playwright (« Screener pas encore disponible »).
+
+- **Codes d'accès faux limités (novembre 2026)** : 30 par heure et par adresse (`BAD_CODE_LIMIT`, `client_ip` = dernière
+  adresse de X-Forwarded-For, comme l'inscription), puis 429 même avec le bon code pendant une heure ; une requête sans
+  code n'est pas comptée. Python 3.12 imposé à Render par `.python-version` (racine et `backend/`) : pandas 2.2.2 n'a pas
+  de version prête pour 3.13. Dates « du jour » du front en heure locale (`localISO`), jamais `toISOString().slice(0, 10)`
+  (UTC : entre minuit et 1 h, une opération prenait la date de la veille).
 
 - **Sécurité (octobre 2026, audit demandé par Enzo).** Points solides : le Sheet vient toujours du code d'accès
   (`require_access`), jamais d'un paramètre ; codes des inscrits aléatoires (144 bits), empreinte SHA-256 seulement,
@@ -641,8 +675,8 @@ TestClient par `page.route`. Créer le contexte avec `service_workers="block"`, 
 
 ## Pistes non faites
 
-- Notification ntfy quand une action suivie passe « sous-évaluée » au sens du prix juste
-  (aujourd'hui les alertes se basent sur la valeur intrinsèque seule, voir `screener/notify.py`).
+- (Fait en novembre 2026) Alerte « passe sous-évaluée » d'après le verdict du prix juste (`alerts.py`,
+  `prev_fair_value_verdict` dans `TRACKED_FIELDS`) ; une fiche sans prix juste garde l'ancienne règle du DCF.
 - Suite du compte-rendu d'octobre 2026 (points non retenus pour l'instant) : moins-values reportables dans l'impôt
   du CTO (Enzo n'en a pas encore), intégrer ROIC / cash-flow libre au score qualité, notification ntfy de
   concentration (aujourd'hui seulement dans « À regarder »), rééquilibrage par enveloppe, momentum

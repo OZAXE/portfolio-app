@@ -73,7 +73,7 @@
     .muted { color: var(--muted); }
     .status { padding: 16px 0; color: var(--muted); font-size: 14px; }
     .stale { font-size: 13px; color: var(--muted); margin: -4px 0 10px; display: flex; align-items: center; gap: 6px; }
-    .stale .spin { width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .stale .spin, .stats-stored .spin { display: inline-block; vertical-align: middle; margin-right: 4px; width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Synthèse */
@@ -362,6 +362,10 @@
     .pill-gain { font-size: 13px; font-weight: 600; }
     .poscard { background: var(--card); border-radius: 14px; padding: 14px; margin-top: 12px; }
     .poscard h3 { font-size: 15px; margin: 0 0 8px; }
+    .sell-sim { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+    .sell-sim summary { cursor: pointer; font-weight: 600; font-size: 14px; min-height: 44px; display: flex; align-items: center; }
+    .sell-sim .field input { width: 120px; }
+    .sell-sim .sim-out { margin-top: 8px; }
     .stat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat > div { background: var(--card-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
     .stat .k { font-size: 13px; color: var(--muted); }
@@ -1083,6 +1087,7 @@
       <div class="group-title">Aide</div><div class="group">
         <button class="setting" data-spage="help"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg></span><span style="min-width:0"><span class="t">Guide d'utilisation</span><span class="d">Comment tout marche, étape par étape</span></span><span class="chev" aria-hidden="true">›</span></button>
         <button class="setting" data-spage="lexicon"><span class="ic" style="background:#2563eb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></span><span style="min-width:0"><span class="t">Lexique des indicateurs</span><span class="d">PER, ROE, prix juste... expliqués simplement</span></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="setting" data-spage="track"><span class="ic" style="background:#0f766e"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 14l3-3 3 2 5-6"/><circle cx="18" cy="7" r="1.5"/></svg></span><span style="min-width:0"><span class="t">Bilan du prix juste</span><span class="d">Les actions jugées sous-évaluées ont-elles fait mieux ensuite ?</span></span><span class="chev" aria-hidden="true">›</span></button>
       </div>
       </div>
       <div class="spage" data-page="patrimoine" hidden>
@@ -1249,6 +1254,10 @@
         <div class="lexicon" id="lexicon"></div>
       </div>
       </div>
+      <div class="spage" data-page="track" hidden>
+        <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Bilan du prix juste</strong></div>
+        <div class="card" id="track-record"><div class="status">Chargement…</div></div>
+      </div>
       <div class="spage" data-page="help" hidden>
         <div class="stock-top"><button class="back" data-spage-back aria-label="Retour">‹</button><strong class="spage-title">Guide d'utilisation</strong></div>
       <div class="card">
@@ -1298,6 +1307,9 @@
     const signedEur = (x) => (x >= 0 ? "+" : "") + eur.format(x);
     const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    // Date du jour en heure locale (AAAA-MM-JJ). toISOString donne l'heure UTC : entre minuit et 1 h à Paris ou
+    // Bologne, une opération saisie prenait la date de la veille et « Aujourd'hui » parlait d'hier.
+    const localISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     // --- Réglages mémorisés sur l'appareil (le stockage peut être indisponible : on ne bloque jamais) ---
     const SETTINGS_KEY = "portfolio-insights-settings";
@@ -1357,6 +1369,7 @@
       under: { label: "sous-évaluée", cls: "positive" },
       fair: { label: "prix correct", cls: "muted" },
       over: { label: "surévaluée", cls: "negative" },
+      unsure: { label: "incertaine", cls: "muted" },
     };
 
     function fairValueOf(s) {
@@ -1374,8 +1387,13 @@
       const value = values.reduce((a, b) => a + b, 0) / values.length;
       const low = Math.min(...values), high = Math.max(...values);
       const ratio = s.price ? s.price / value : null;
-      const verdict = ratio == null ? null : ratio < 1 - VERDICT_BAND ? "under" : ratio > 1 + VERDICT_BAND ? "over" : "fair";
-      return { value, low, high, methods, verdict, upside: s.price ? (value / s.price - 1) * 100 : null, divergent: high / low > DIVERGENCE_MAX };
+      const lean = ratio == null ? null : ratio < 1 - VERDICT_BAND ? "under" : ratio > 1 + VERDICT_BAND ? "over" : "fair";
+      const divergent = high / low > DIVERGENCE_MAX;
+      // Sans recoupement (une méthode, ou deux du simple au double) : pas de verdict franc, comme
+      // blend_fair_value (VERDICT_UNSURE). lean garde le sens du seul chiffre disponible, pour la phrase de la fiche.
+      const unsure = methods.length === 1 || (methods.length === 2 && divergent);
+      const verdict = lean && unsure ? "unsure" : lean;
+      return { value, low, high, methods, verdict, lean, upside: s.price ? (value / s.price - 1) * 100 : null, divergent };
     }
 
     // Limites du prix juste qui concernent cette action en particulier (la liste complète est dans le lexique).
@@ -1939,9 +1957,53 @@
             ${fx ? cell(`<span data-term="Effet du change">Effet du change</span>`, `${signedEur(fx.effect)}`, signClass(fx.effect)) : ""}
             ${fx?.stock_effect != null ? cell("Venu de l'action", signedEur(fx.stock_effect), signClass(fx.stock_effect)) : ""}
           </div>
+          ${sellSimBlock(h, pru)}
           <button class="btn" data-buy-chart="${escapeHtml(h.ticker)}">📈 Graphique des achats</button><div class="buy-chart-slot"></div>
         </div>`;
     }
+
+    // --- Simulateur « si je vends » (carte Ta position) : plus-value, impôt estimé et net, sans rien écrire ---
+    // CTO : impôt = flat tax sur ce que la vente ajoute aux plus-values déjà réalisées cette année (une
+    // moins-value de l'année l'absorbe d'abord). PEA : rien à la vente, l'argent reste dans l'enveloppe.
+    const flatTaxRate = () => (realized?.flat_tax_rate ?? (new Date().getFullYear() >= 2026 ? 0.314 : 0.3));
+    function sellSimBlock(h, pru) {
+      const env = String(h.envelope || "").toUpperCase();
+      if (!["PEA", "CTO"].includes(env) || pru == null || !(h.quantity > 0) || h.value == null) return "";
+      const price = h.value / h.quantity;
+      return `<details class="sell-sim" data-env="${env}" data-pru="${pru}" data-qty="${h.quantity}">
+          <summary>🧮 Simuler une vente</summary>
+          <label class="field"><span>Quantité vendue</span><input type="number" class="sim-qty" min="0" max="${h.quantity}" step="any" value="${+h.quantity.toFixed(6)}" inputmode="decimal" /></label>
+          <label class="field"><span>Cours de vente (€)</span><input type="number" class="sim-price" min="0" step="any" value="${price.toFixed(2)}" inputmode="decimal" /></label>
+          <label class="field"><span>Frais de l'ordre (€)</span><input type="number" class="sim-fees" min="0" step="any" value="0" inputmode="decimal" /></label>
+          <div class="sim-out">${sellSimHtml(env, pru, h.quantity, price, 0, h.quantity)}</div>
+        </details>`;
+    }
+    function sellSimHtml(env, pru, qty, price, fees, held) {
+      if (!(qty > 0) || !(price > 0)) return `<p class="help">Indique une quantité et un cours.</p>`;
+      if (qty > held + 1e-9) return `<p class="help">Tu n'en détiens que ${num(held, 6)}.</p>`;
+      const proceeds = qty * price - (fees || 0), gain = proceeds - qty * pru;
+      const row = (k, v, cls = "") => `<tr><td>${k}</td><td class="${cls}">${v}</td></tr>`;
+      let tax = 0, taxNote;
+      if (env === "CTO") {
+        const year = new Date().getFullYear();
+        const before = realized?.years?.find((y) => y.year === year)?.envelopes?.CTO?.realized_gain ?? 0;
+        tax = (Math.max(before + gain, 0) - Math.max(before, 0)) * flatTaxRate();
+        taxNote = `Flat tax de ${pctPlain(flatTaxRate())} sur ce que la vente ajoute aux plus-values de ${year}`
+          + (before ? ` (déjà réalisé cette année sur le CTO : ${signedEur(before)})` : "")
+          + (gain < 0 ? ". Une moins-value se déduit des plus-values de l'année, et des 10 années suivantes (non comptées ici)" : "") + ".";
+      } else {
+        taxNote = "Dans le PEA, rien à payer à la vente : l'argent reste dans l'enveloppe. Seul un retrait est imposé (prélèvements sociaux sur les gains après 5 ans).";
+      }
+      return `<table class="fees-table">${row("Produit de la vente", eur.format(proceeds))}${row("Plus-value", signedEur(gain), signClass(gain))}
+          ${row("Impôt estimé", eur.format(Math.max(tax, 0)))}${row("Net après impôt", `<b>${eur.format(proceeds - Math.max(tax, 0))}</b>`)}</table>
+        <p class="help" style="margin:6px 0 0">${taxNote} Calcul indicatif au PRU frais compris, pas un conseil.</p>`;
+    }
+    document.addEventListener("input", (e) => {
+      const box = e.target.closest(".sell-sim");
+      if (!box) return;
+      const v = (cls) => parseFloat(box.querySelector(cls).value);
+      box.querySelector(".sim-out").innerHTML = sellSimHtml(box.dataset.env, +box.dataset.pru, v(".sim-qty"), v(".sim-price"), v(".sim-fees") || 0, +box.dataset.qty);
+    });
     function openPosition(ticker, envelope) {
       const h = overview.holdings.find((x) => x.ticker === ticker && (x.envelope || "") === envelope);
       if (!h) return;
@@ -2575,7 +2637,7 @@
       if (t.dataset.svDel != null) { savingsDraft.lines.splice(+t.dataset.svDel, 1); renderSavingsEditor(); }
       if (t.id === "savings-cancel") { savingsDraft = null; renderSavings(); }
       if (t.id === "savings-save") {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localISO();
         const lines = savingsDraft.lines.filter((l) => String(l.name || "").trim() || l.amount != null).map((l) => ({
           name: l.name, type: l.type, amount: l.amount, invested: l.invested,
           // Nouvelle valeur : datée d'aujourd'hui ; inchangée : on garde la date du relevé précédent
@@ -2777,7 +2839,7 @@
       const el = document.getElementById("day-change");
       const t = daily?.total;
       if (!t || !t.lines) { el.hidden = true; return; }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localISO();
       const when = daily.session === today ? "Aujourd'hui" : `Séance du ${sessionDate.format(new Date(daily.session + "T12:00:00"))}`;
       el.hidden = false;
       el.innerHTML = `<span data-term="Variation du jour">${when}</span> : <b class="${signClass(t.change)}">${signedEur(t.change)}${t.pct != null ? ` (${pctFmt.format(t.pct)})` : ""}</b>`
@@ -2940,7 +3002,7 @@
     }
 
     // --- Présentation commune des lignes d'action : logo (ou initiales), verdict en mots, qualité en mots ---
-    const VERDICT_PILLS = { under: ["Sous-évaluée", "good"], fair: ["Prix correct", "warn"], over: ["Chère", "bad"] };
+    const VERDICT_PILLS = { under: ["Sous-évaluée", "good"], fair: ["Prix correct", "warn"], over: ["Chère", "bad"], unsure: ["Incertaine", "na"] };
     function verdictPill(s) {
       const f = fairValueOf(s);
       if (!f?.verdict) return `<span class="pill na">Pas d'estimation</span>`;
@@ -3233,7 +3295,7 @@
         <div class="sheet" role="dialog" aria-label="Filtres">
           <div class="grab"></div>
           <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:17px">Filtres</strong><button class="see-all" style="color:var(--muted)" data-sheet-close>Fermer</button></div>
-          <h3>Estimation</h3><div class="filters">${chip("verdict", "under", "Sous-évaluée")}${chip("verdict", "fair", "Prix correct")}${chip("verdict", "over", "Chère")}${toggle("reliable", "DCF fiable")}</div>
+          <h3>Estimation</h3><div class="filters">${chip("verdict", "under", "Sous-évaluée")}${chip("verdict", "fair", "Prix correct")}${chip("verdict", "over", "Chère")}${chip("verdict", "unsure", "Incertaine")}${toggle("reliable", "DCF fiable")}</div>
           <h3>Qualité minimum</h3><div class="filters">${chip("qualityMin", 8, "8/20")}${chip("qualityMin", 12, "12/20")}${chip("qualityMin", 15, "15/20")}</div>
           <h3>Région</h3><div class="filters">${chip("region", "Europe", "Europe")}${chip("region", "US", "États-Unis")}${chip("region", "Asie", "Asie")}</div>
           <h3>Secteur</h3><div class="filters">${sectors.map((x) => chip("sector", x, x)).join("")}</div>
@@ -3306,13 +3368,17 @@
         return `<div class="verdict-card"><div class="vtitle"><span class="dot" style="background:var(--muted)"></span>Pas d'estimation fiable</div>
           <p class="vtext">Les méthodes disponibles donnent un prix juste trop éloigné du cours pour être crédible (données Yahoo incomplètes ou entreprise atypique).</p></div>`;
       }
-      const [label, color] = { under: ["Paraît sous-évaluée", "good"], fair: ["Paraît à son juste prix", "warn"], over: ["Paraît chère", "bad"] }[f.verdict];
+      const [label, color] = { under: ["Paraît sous-évaluée", "good"], fair: ["Paraît à son juste prix", "warn"], over: ["Paraît chère", "bad"], unsure: ["Estimation incertaine", "na"] }[f.verdict];
+      const leanText = { under: "sous-évaluée", fair: "à son juste prix", over: "chère" }[f.lean];
+      const unsureText = f.verdict !== "unsure" ? "" : f.methods.length === 1
+        ? `Une seule méthode tient la route, sans recoupement : elle la donnerait ${leanText}, à vérifier par toi-même.`
+        : `Les deux méthodes vont du simple au double : la moyenne la donnerait ${leanText}, mais sans accord entre elles.`;
       // Jauge : cours et prix juste placés entre 0,4 et 2,5 fois le prix juste (échelle log, bornes des méthodes)
       const pos = (x) => Math.min(100, Math.max(0, (Math.log(x / f.value) - Math.log(RELIABLE_MIN)) / (Math.log(RELIABLE_MAX) - Math.log(RELIABLE_MIN)) * 100));
       const caveats = fairCaveats(s, f);
       return `<div class="verdict-card">
           <div class="vtitle"><span class="dot" style="background:${PILLAR_COLOR[color]}"></span>${label}</div>
-          <p class="vtext">Prix juste estimé <b>${money(f.value, cur)}</b>, soit ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} % par rapport au cours${f.methods.length > 1 ? ` (fourchette ${money(f.low, cur)} – ${money(f.high, cur)})` : ""}.</p>
+          <p class="vtext">Prix juste estimé <b>${money(f.value, cur)}</b>, soit ${f.upside > 0 ? "+" : ""}${num(f.upside, 0)} % par rapport au cours${f.methods.length > 1 ? ` (fourchette ${money(f.low, cur)} – ${money(f.high, cur)})` : ""}.${unsureText ? ` ${unsureText}` : ""}</p>
           <div class="gauge" role="img" aria-label="Cours comparé au prix juste">
             <div class="track"></div>
             <div class="mark fair" style="left:${pos(f.value)}%"><span>Prix juste</span></div>
@@ -3330,7 +3396,7 @@
       const v = valuationOf(s);
       const f = fairValueOf(s);
 
-      const verdictColor = f ? { under: "good", fair: "warn", over: "bad" }[f.verdict] : "na";
+      const verdictColor = f ? { under: "good", fair: "warn", over: "bad", unsure: "na" }[f.verdict] : "na";
       let dcf = fRow("Valeur intrinsèque", "N/A");
       if (v.iv != null) {
         // Hors fourchette de fiabilité, chiffre gardé pour info mais sans marge : il ne veut rien dire en l'état
@@ -3340,7 +3406,7 @@
       }
       const hypotheses = v.g != null
         ? `<div class="hypotheses">Hypothèses DCF${v.custom ? ' <span class="custom-flag">(personnalisées)</span>' : ""} : croissance ${pctPlain(v.g)} décroissante, actualisation ${pctPlain(v.r)}${v.custom ? `, long terme ${pctPlain(settings.terminal ?? DEFAULT_TERMINAL)}` : ""}</div>` : "";
-      const valuation = pillar("Valorisation", verdictColor, f ? { under: "Paraît sous-évaluée", fair: "Prix correct", over: "Paraît chère" }[f.verdict] : "Pas d'estimation fiable",
+      const valuation = pillar("Valorisation", verdictColor, f ? { under: "Paraît sous-évaluée", fair: "Prix correct", over: "Paraît chère", unsure: "Estimation incertaine" }[f.verdict] : "Pas d'estimation fiable",
         (f ? fRow("Prix juste", `<b>${money(f.value, cur)}</b>`) + fRow("Potentiel", `${f.upside > 0 ? "+" : ""}${num(f.upside)} %`, "", signClass(f.upside)) : fRow("Prix juste", "N/A"))
         + fRow("PER", num(s.pe), "Combien d'années de bénéfices coûte l'action au prix actuel : plus c'est bas, moins c'est cher.")
         + fRow("PER prévisionnel", num(s.forward_pe), "Même calcul avec les bénéfices attendus l'an prochain.")
@@ -3734,7 +3800,7 @@
     const journalTicker = (s) => String(s.yahoo_ticker || s.ticker).toUpperCase();
     // Écart du cours à un prix visé : objectif à 260 $ pour un cours de 230 $ -> +13 %
     const distance = (price, now) => (price && now ? price / now - 1 : null);
-    const reviewDue = (e) => e.review && e.review <= new Date().toISOString().slice(0, 10);
+    const reviewDue = (e) => e.review && e.review <= localISO();
 
     function renderJournalCard(s) {
       const el = document.getElementById("stock-journal");
@@ -4362,7 +4428,9 @@
         ...data.events.map((e) => ({ icon: ALERT_ICONS[e.type] || "🔔", text: e.message, origin: e.origin, ticker: e.ticker })),
         ...data.opportunities
           .filter((o) => !data.events.some((e) => e.ticker === o.ticker && e.type === "sous-évaluée"))
-          .map((o) => ({ icon: "💰", text: `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)`, origin: o.origin, ticker: o.ticker })),
+          .map((o) => ({ icon: "💰", origin: o.origin, ticker: o.ticker, text: o.upside != null
+            ? `${o.name} reste sous son prix juste (potentiel +${num(o.upside, 0)} %)`
+            : `${o.name} reste sous sa valeur intrinsèque (marge ${num(o.margin, 0)} %)` })),
       ];
       renderAlertsList();
     }
@@ -4406,7 +4474,7 @@
     // une ligne masquée réapparaît : une concentration acceptée en septembre mérite d'être revue en décembre.
     const WATCH_HIDE_DAYS = 90;
     function hiddenWatch() {
-      const limit = new Date(Date.now() - WATCH_HIDE_DAYS * 864e5).toISOString().slice(0, 10);
+      const limit = localISO(new Date(Date.now() - WATCH_HIDE_DAYS * 864e5));
       const kept = Object.fromEntries(Object.entries(settings.hiddenWatch || {}).filter(([, day]) => day >= limit));
       if (Object.keys(kept).length !== Object.keys(settings.hiddenWatch || {}).length) { settings.hiddenWatch = kept; saveSettings(); }
       return kept;
@@ -4431,7 +4499,7 @@
     document.getElementById("alerts").addEventListener("click", (e) => {
       const hide = e.target.closest("[data-watch-hide]");
       if (hide) {
-        settings.hiddenWatch = { ...hiddenWatch(), [hide.dataset.watchHide]: new Date().toISOString().slice(0, 10) };
+        settings.hiddenWatch = { ...hiddenWatch(), [hide.dataset.watchHide]: localISO() };
         saveSettings();
         return renderAlertsList();
       }
@@ -4499,7 +4567,7 @@
       const el = document.getElementById("home-tiles");
       const c = dividendCalendar;
       if (!c || !overview?.total) { el.innerHTML = ""; return; }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localISO();
       const next = (c.events || []).find((ev) => ev.date >= today);
       const invested = overview.total.invested;
       el.innerHTML = `
@@ -4535,16 +4603,104 @@
     let historyData = null;
     const historyCharts = {};
 
+    async function loadHistoryData() {
+      if (historyData) return historyData;
+      const res = await fetch(HISTORY_URL, { cache: "no-cache" });
+      if (!res.ok) throw new Error(`historique indisponible (${res.status})`);
+      historyData = await res.json();
+      return historyData;
+    }
+
+    // --- Bilan du prix juste (Plus > Bilan du prix juste) : les verdicts d'un relevé hebdomadaire passé, face
+    // à l'évolution du cours jusqu'au dernier relevé. Seul moyen de savoir si le modèle vaut quelque chose avant
+    // de s'en servir. Médianes (une action qui triple ne fait pas la moyenne à elle seule), dividendes non
+    // comptés, chaque action dans sa devise. Écarts de plus de x4 ou -75 % écartés : division d'actions entre
+    // deux relevés (cours non corrigés dans history.json) ou donnée Yahoo fausse, plus probables qu'un vrai mouvement.
+    const TRACK_GROUPS = [["u", "Jugées sous-évaluées", "positive"], ["f", "Prix correct", ""], ["o", "Jugées chères", "negative"], ["i", "Incertaines", "muted"]];
+    const TRACK_HORIZONS = [[365, "1 an"], [182, "6 mois"], [91, "3 mois"], [30, "1 mois"]];
+    const median = (xs) => {
+      if (!xs.length) return null;
+      const v = [...xs].sort((a, b) => a - b), m = v.length >> 1;
+      return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+    };
+    // Verdict d'un relevé : la lettre (7e valeur, depuis novembre 2026), sinon déduit du cours et du prix juste
+    // (relevés plus anciens : pas de « incertaine », qui demande le nombre de méthodes)
+    function pointVerdict(p) {
+      if (!p || !(p[0] > 0)) return null;
+      if (p[6]) return p[6];
+      if (!(p[5] > 0)) return null;
+      const r = p[0] / p[5];
+      return r < 1 - VERDICT_BAND ? "u" : r > 1 + VERDICT_BAND ? "o" : "f";
+    }
+    function trackFrom(h, i) {
+      const last = h.dates.length - 1;
+      const groups = Object.fromEntries(TRACK_GROUPS.map(([k]) => [k, []]));
+      const all = [];
+      for (const series of Object.values(h.series)) {
+        const a = series[i], b = series[last];
+        const v = pointVerdict(a);
+        if (!v || !(b?.[0] > 0)) continue;
+        const ret = b[0] / a[0] - 1;
+        if (ret > 3 || ret < -0.75) continue;
+        all.push(ret);
+        groups[v]?.push(ret);
+      }
+      const universe = median(all);
+      const rows = TRACK_GROUPS.map(([k, label, cls]) => ({ k, label, cls, n: groups[k].length, med: median(groups[k]),
+        beat: groups[k].length ? groups[k].filter((r) => r > universe).length / groups[k].length : null }));
+      return { start: h.dates[i], end: h.dates[last], n: all.length, universe, rows };
+    }
+    function trackStarts(h) {
+      const last = h.dates.length - 1;
+      const end = new Date(h.dates[last] + "T12:00:00");
+      // Premier relevé avec des prix justes (6e valeur) : avant, rien à juger
+      const first = h.dates.findIndex((_, i) => Object.values(h.series).some((s) => s[i]?.[5] > 0));
+      if (first < 0 || first >= last) return [];
+      const starts = new Map([[first, "Depuis le début"]]);
+      for (const [days, label] of TRACK_HORIZONS) {
+        const target = localISO(new Date(end - days * 864e5));
+        let i = -1;
+        h.dates.forEach((d, j) => { if (d <= target && j >= first) i = j; });
+        if (i >= 0 && i < last && !starts.has(i)) starts.set(i, label);
+      }
+      return [...starts.entries()].sort((a, b) => a[0] - b[0]);
+    }
+    async function renderTrackRecord() {
+      const el = document.getElementById("track-record");
+      let h;
+      try { h = await loadHistoryData(); } catch (e) { el.innerHTML = `<p class="help">${escapeHtml(e.message)}</p>`; return; }
+      const starts = trackStarts(h);
+      if (!starts.length) {
+        el.innerHTML = `<p class="help">Pas encore assez de relevés : il en faut au moins deux avec un prix juste (un par semaine).</p>`;
+        return;
+      }
+      const pct = (x) => x == null ? "—" : pctFmt.format(x);
+      const days = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+      const blocks = starts.map(([i, label]) => {
+        const t = trackFrom(h, i);
+        const under = t.rows[0];
+        const gap = under.med != null && t.universe != null ? under.med - t.universe : null;
+        const sentence = gap == null || under.n < 10 ? "Trop peu d'actions jugées sous-évaluées pour conclure."
+          : `Les actions jugées sous-évaluées ont fait <b class="${signClass(gap)}">${pctFmt.format(gap).replace("%", "pt")}</b> par rapport à l'ensemble (médianes), et ${pctPlain(under.beat)} d'entre elles ont fait mieux que la médiane.`;
+        const rows = t.rows.filter((r) => r.n).map((r) => `<tr><td>${r.label} <span class="muted">(${r.n})</span></td><td class="${signClass(r.med)}">${pct(r.med)}</td><td>${r.beat == null ? "—" : pctPlain(r.beat)}</td></tr>`).join("");
+        return `<h3 style="margin:14px 0 2px">${label} <span class="muted" style="font-weight:400;font-size:13px">du ${dayFmt.format(new Date(t.start + "T12:00:00"))}, ${days(t.start, t.end)} jours</span></h3>
+          <table class="fees-table perf-table"><tr><th>Verdict à cette date</th><th>Cours depuis</th><th>Mieux que la médiane</th></tr>${rows}
+          <tr><td><b>Toutes</b> <span class="muted">(${t.n})</span></td><td class="${signClass(t.universe)}"><b>${pct(t.universe)}</b></td><td>50 %</td></tr></table>
+          <p class="help" style="margin:6px 0 0">${sentence}</p>`;
+      }).join("");
+      const longest = days(h.dates[starts[0][0]], h.dates[h.dates.length - 1]);
+      el.innerHTML = `<p class="help" style="margin-top:0">Pour chaque date, on reprend le verdict du prix juste donné ce jour-là à chaque action du screener, et on regarde l'évolution de son cours jusqu'au dernier relevé (${dayFmt.format(new Date(h.dates[h.dates.length - 1] + "T12:00:00"))}). Si le modèle vaut quelque chose, les « sous-évaluées » doivent faire mieux que l'ensemble, et les « chères » moins bien.</p>
+        ${longest < 182 ? `<div class="caveat warn">⚠ <span>Seulement ${longest} jours de recul : sur moins de 6 mois à un an, le hasard du marché pèse bien plus que la valorisation. Ne conclus rien avant d'avoir au moins un an.</span></div>` : ""}
+        ${blocks}
+        <p class="help" style="margin-top:12px">Médianes, dividendes non comptés, chaque action dans sa devise ; mouvements de plus de x4 ou -75 % écartés (division d'actions, donnée erronée). Avant novembre 2026, les verdicts sont déduits du prix juste relevé, sans la catégorie « incertaine ». Le modèle a aussi changé en cours de route (méthodes ajoutées) : c'est le bilan des verdicts tels qu'affichés à l'époque. Pas un conseil en investissement.</p>`;
+    }
+
     async function showHistory(ticker) {
       const slot = document.querySelector(`[data-history-slot="${CSS.escape(ticker)}"]`);
       if (!slot) return;
       slot.innerHTML = `<div class="hypotheses">Chargement de l'historique…</div>`;
       try {
-        if (!historyData) {
-          const res = await fetch(HISTORY_URL, { cache: "no-cache" });
-          if (!res.ok) throw new Error(`historique indisponible (${res.status})`);
-          historyData = await res.json();
-        }
+        await loadHistoryData();
       } catch (e) {
         slot.innerHTML = `<div class="hypotheses">${escapeHtml(e.message)}</div>`;
         return;
@@ -4829,9 +4985,21 @@
       document.getElementById("stats-bench").value = STATS_BENCH_KEY();
       periodsEl.className = "help";
       periodsEl.textContent = "Calcul en cours (cours de chaque titre depuis 5 ans)…";
-      statsLoading = api(`/portfolio/stats?benchmark=${STATS_BENCH_KEY()}`)
-        .then((data) => { stats = data ?? { envelopes: {}, attribution: {}, legacy: true }; renderStats(); })
+      const bench = STATS_BENCH_KEY();
+      let fresh = false;
+      // Dernier calcul gardé dans le Sheet (stats_store.py) : affiché tout de suite, le serveur gratuit
+      // retéléchargeant 5 ans de cours à chaque réveil. Remplacé dès que le calcul frais arrive.
+      if (!stats) {
+        api(`/portfolio/stats?benchmark=${bench}&stored=1`).then((saved) => {
+          if (fresh || !saved?.result || bench !== STATS_BENCH_KEY()) return;
+          stats = { ...saved.result, storedAt: saved.stored_at };
+          renderStats();
+        }).catch(() => { /* rien de gardé : on attend le calcul */ });
+      }
+      statsLoading = api(`/portfolio/stats?benchmark=${bench}`)
+        .then((data) => { fresh = true; stats = data ?? { envelopes: {}, attribution: {}, legacy: true }; renderStats(); })
         .catch((e) => {
+          if (stats?.storedAt) { renderStats(e.message); return; }
           periodsEl.textContent = "Indisponible : " + e.message;
           document.getElementById("stats-risk").innerHTML = "";
           document.getElementById("stats-attrib").textContent = "";
@@ -4839,9 +5007,18 @@
         .finally(() => { statsLoading = null; });
       return statsLoading;
     }
+    // Chiffres gardés d'un calcul précédent : dit de quand ils datent, et si le calcul frais tourne ou a échoué
+    const storedFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    function storedNote(error) {
+      if (!stats?.storedAt) return "";
+      const when = storedFmt.format(new Date(stats.storedAt));
+      return `<p class="help stats-stored">${error ? `Calcul du ${when} (mise à jour impossible : ${escapeHtml(error)})` : `<i class="spin"></i> Calcul du ${when}, mise à jour en cours…`}</p>`;
+    }
 
-    function renderStats() {
+    function renderStats(error) {
       const periodsEl = document.getElementById("stats-periods");
+      document.querySelectorAll(".stats-stored").forEach((el) => el.remove());
+      periodsEl.insertAdjacentHTML("beforebegin", storedNote(error));
       if (!stats || !Object.keys(stats.envelopes || {}).length) {
         periodsEl.textContent = stats?.legacy
           ? "Disponible avec le Sheet modèle (onglet Opérations)."
@@ -5247,7 +5424,7 @@
         for (const st of market?.stocks || []) if (!known.has(st.ticker)) known.set(st.ticker, st.name);
         opEl("op-tickers").innerHTML = [...known].map(([t, n]) => `<option value="${escapeHtml(t)}">${escapeHtml(n)}</option>`).join("");
       }
-      opEl("op-date").value = new Date().toISOString().slice(0, 10);
+      opEl("op-date").value = localISO();
       opEl("op-fx").value = 1;
       opEdited.clear();
       updateOperationForm();
@@ -5386,7 +5563,7 @@
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
         // Opération passée : la courbe est recalculée depuis cette date (les espèces n'y figurent pas)
-        if (!CASH_TYPES.includes(payload.type) && payload.date && payload.date < new Date().toISOString().slice(0, 10)) rebuildHistory(payload.date);
+        if (!CASH_TYPES.includes(payload.type) && payload.date && payload.date < localISO()) rebuildHistory(payload.date);
       } catch (e) {
         status.textContent = e.message;
       }
@@ -5682,7 +5859,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    const todayStamp = () => new Date().toISOString().slice(0, 10);
+    const todayStamp = () => localISO();
 
     // Opérations affichées (filtres compris), de la plus ancienne à la plus récente, colonnes de l'onglet Opérations
     function exportTransactions() {
@@ -5861,7 +6038,7 @@
       document.getElementById("tx-status").textContent = `${done}. Mise à jour du portefeuille…`;
       loadPortfolio();
       const since = dates.filter(Boolean).sort()[0];
-      if (rebuild && since && since < new Date().toISOString().slice(0, 10)) rebuildHistory(since);
+      if (rebuild && since && since < localISO()) rebuildHistory(since);
     }
 
     document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
@@ -6150,6 +6327,7 @@
       if (name === "appearance") syncDensityButtons();
       if (name === "budget") openBudget();
       if (name === "notifications") renderPushState();
+      if (name === "track") renderTrackRecord();
       if (PORTFOLIO_PAGES.includes(name)) {
         document.querySelector(`#view-settings .spage[data-page="${name}"] .needs-portfolio`).hidden = !!overview;
         if (overview && name === "projection") renderProjection();  // graphique dessiné page cachée : sans taille
@@ -6755,7 +6933,7 @@
     async function setBriefRead(id, read) {
       const before = settings.readBriefs || {};
       const marks = { ...before };
-      if (read) marks[id] = new Date().toISOString().slice(0, 10); else delete marks[id];
+      if (read) marks[id] = localISO(); else delete marks[id];
       storeBriefReads(marks);  // tout de suite, sans attendre le Sheet
       try {
         storeBriefReads(await postJson("/briefs/read", { id, read }));
@@ -6912,8 +7090,8 @@
         "Cours / valeur comptable": "<p>Cours ÷ capitaux propres par action (ce que l'entreprise possède moins ce qu'elle doit, selon son bilan).</p><p>Surtout utile pour les banques et assurances : en dessous de 1, tu paies l'entreprise moins que sa valeur comptable.</p>",
         "VE / EBITDA": "<p>Valeur d'entreprise (capitalisation + dette nette) ÷ EBITDA (bénéfice avant intérêts, impôts et amortissements).</p><p>Comme le PER, mais en tenant compte de la dette : utile pour comparer des entreprises plus ou moins endettées. Repère : autour de 10, au-dessus de 15 c'est cher.</p>",
         "Valeur intrinsèque": "<p>Estimation de ce que vaut une action, par un DCF (actualisation des flux de trésorerie) : l'appli projette le cash-flow libre sur 10 ans, ramène chaque année à sa valeur d'aujourd'hui, retire la dette nette et divise par le nombre d'actions.</p><p>C'est un ordre de grandeur, qui entre dans le prix juste quand il est fiable. « Indicatif » : le résultat est à plus de 2,5 fois ou moins de 0,4 fois le cours, le calcul simple ne capte pas l'entreprise. Non calculée pour les banques, les assurances et les ETF.</p>",
-        "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)), et le bénéfice par action × le PER historique de l'action (sa médiane sur 10 ans au plus), quand il est connu.</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand les méthodes vont du simple au double, le verdict est affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
-        "Limites du prix juste": "<p>Le prix juste est une estimation automatique, à croiser avec ta propre analyse. Ses principales limites :</p><ul><li><b>Entreprises de qualité</b> : le marché paie durablement plus cher les entreprises exceptionnelles (Air Liquide, Hermès, L'Oréal) que la moyenne de leur secteur. Face au PER normal du secteur, elles ressortent souvent surévaluées, parfois pendant des années. Le PER historique de l'action corrige en partie ce biais, quand il est disponible.</li><li><b>PER historique</b> : il suppose que le marché payait l'action au bon prix en moyenne sur 10 ans. Une entreprise dont la croissance ralentit (ou dont le secteur a changé) peut rester chère face à son passé sans jamais y revenir. Il n'existe pas quand les comptes sont publiés dans une autre devise que la cotation, ni pour les actions trop récentes (moins de 3 exercices bénéficiaires connus).</li><li><b>Croissance propre à l'entreprise</b> : le PER du secteur ne voit pas qu'une entreprise grandit beaucoup plus vite (ou plus lentement) que ses concurrentes. Seul le DCF en tient compte, quand il est fiable.</li><li><b>Secteurs cycliques</b> (énergie, matériaux, automobile, semi-conducteurs, aérien) : en haut de cycle, les bénéfices sont gonflés, le PER paraît bas et l'action semble bon marché juste avant que les bénéfices ne rechutent. C'est l'inverse en bas de cycle.</li><li><b>Pièges à valeur</b> : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette, secteur en difficulté). Regarde le score qualité et les comptes annuels.</li><li><b>Données Yahoo</b> : gratuites et non officielles, parfois fausses ou périmées, surtout hors des États-Unis. Les méthodes aux résultats aberrants (moins de 0,4 ou plus de 2,5 fois le cours) sont écartées, mais une erreur plus discrète peut passer.</li><li><b>Mise à jour</b> : les bénéfices et bilans sont réanalysés tous les 3-4 jours et ne changent vraiment qu'aux publications de résultats ; seul le cours est à jour chaque jour.</li><li><b>Banques et assurances</b> : pas de DCF, le prix juste repose sur le PER et la valeur comptable, sensibles à la qualité du bilan qu'aucun ratio ne mesure bien.</li></ul><p>Ce n'est pas un conseil en investissement.</p>",
+        "Prix juste": "<p>Moyenne de plusieurs estimations, pour ne pas dépendre d'une seule méthode : la valeur intrinsèque (DCF) quand elle est fiable, le bénéfice par action × le PER « normal » du secteur (moyenne du bénéfice passé et de celui prévu par les analystes), et pour les banques et assurances la valeur comptable × un cours / valeur comptable justifié par leur rentabilité ((ROE − 2 %) ÷ (coût des fonds propres − 2 %)), et le bénéfice par action × le PER historique de l'action (sa médiane sur 10 ans au plus), quand il est connu.</p><p>Une méthode qui donne plus de 2,5 fois ou moins de 0,4 fois le cours est écartée : elle repose sur un bénéfice exceptionnel ou effondré, ou sur une donnée erronée.</p><p>Sous-évaluée : cours plus de 15 % sous le prix juste. Surévaluée : plus de 15 % au-dessus. Entre les deux, prix correct : l'imprécision des estimations ne permet pas de trancher. Quand une seule méthode tient, ou que les deux seules retenues vont du simple au double, le verdict est « incertaine » : le prix juste reste affiché, mais rien ne le recoupe. Avec trois méthodes ou plus qui vont du simple au double, la moyenne garde son verdict, affiché en italique : à prendre avec prudence. Ce n'est pas un conseil en investissement.</p>",
+        "Limites du prix juste": "<p>Le prix juste est une estimation automatique, à croiser avec ta propre analyse. Ses principales limites :</p><ul><li><b>Entreprises de qualité</b> : le marché paie durablement plus cher les entreprises exceptionnelles (Air Liquide, Hermès, L'Oréal) que la moyenne de leur secteur. Face au PER normal du secteur, elles ressortent souvent surévaluées, parfois pendant des années. Le PER historique de l'action corrige en partie ce biais, quand il est disponible.</li><li><b>PER historique</b> : il suppose que le marché payait l'action au bon prix en moyenne sur 10 ans. Une entreprise dont la croissance ralentit (ou dont le secteur a changé) peut rester chère face à son passé sans jamais y revenir. Il n'existe pas quand les comptes sont publiés dans une autre devise que la cotation, ni pour les actions trop récentes (moins de 3 exercices bénéficiaires connus).</li><li><b>Croissance propre à l'entreprise</b> : le PER du secteur ne voit pas qu'une entreprise grandit beaucoup plus vite (ou plus lentement) que ses concurrentes. Seul le DCF en tient compte, quand il est fiable.</li><li><b>Secteurs cycliques</b> (énergie, matériaux, automobile, semi-conducteurs, aérien) : en haut de cycle, les bénéfices sont gonflés, le PER paraît bas et l'action semble bon marché juste avant que les bénéfices ne rechutent. C'est l'inverse en bas de cycle.</li><li><b>Pièges à valeur</b> : une action décotée l'est parfois pour de bonnes raisons (bénéfices en déclin, dette, secteur en difficulté). Regarde le score qualité et les comptes annuels.</li><li><b>Données Yahoo</b> : gratuites et non officielles, parfois fausses ou périmées, surtout hors des États-Unis. Les méthodes aux résultats aberrants (moins de 0,4 ou plus de 2,5 fois le cours) sont écartées, mais une erreur plus discrète peut passer.</li><li><b>Mise à jour</b> : les bénéfices et bilans sont réanalysés tous les 3-4 jours et ne changent vraiment qu'aux publications de résultats ; seul le cours est à jour chaque jour.</li><li><b>Banques et assurances</b> : pas de DCF, le prix juste repose sur le PER et la valeur comptable, sensibles à la qualité du bilan qu'aucun ratio ne mesure bien.</li><li><b>Sans recoupement</b> : quand une seule méthode reste, ou deux qui ne s'accordent pas, l'action est dite « incertaine » plutôt que sous- ou surévaluée. Une méthode isolée peut afficher le double du cours sur un bénéfice exceptionnel (NVIDIA en novembre 2026, sur son seul PER historique).</li></ul><p>Ce n'est pas un conseil en investissement.</p>",
         "Potentiel": "<p>(prix juste ÷ cours − 1) : ce que l'action gagnerait si elle rejoignait son prix juste. Négatif : elle devrait baisser pour y revenir.</p>",
         "Fourchette": "<p>De la méthode la plus prudente à la plus optimiste parmi celles qui composent le prix juste. Plus elle est large, plus l'estimation est incertaine.</p>",
         "Marge de sécurité": "<p>(valeur intrinsèque − cours) ÷ valeur intrinsèque.</p><p>Positive : le cours est sous la valeur estimée (+30 % = une décote de 30 %). Négative : l'action est plus chère que l'estimation. Les investisseurs « value » cherchent souvent 20 à 30 % de marge, pour se protéger des erreurs d'estimation.</p>",

@@ -38,7 +38,7 @@ class ValuationResult:
     fair_value_low: float | None = None  # méthode la plus prudente
     fair_value_high: float | None = None  # méthode la plus optimiste
     fair_value_upside_pct: float | None = None  # (prix juste / cours - 1) : positif = potentiel de hausse
-    fair_value_verdict: str | None = None  # VERDICT_UNDER, VERDICT_FAIR ou VERDICT_OVER
+    fair_value_verdict: str | None = None  # VERDICT_UNDER, VERDICT_FAIR, VERDICT_OVER ou VERDICT_UNSURE
     fair_value_divergent: bool = False  # méthodes trop éloignées entre elles : prix juste fragile
     # Ingrédients par action, gardés tels quels d'une nuit sur l'autre (le verdict suit le cours du jour)
     fair_value_pe: float | None = None  # bénéfice par action x PER normal du secteur
@@ -91,6 +91,12 @@ VERDICT_BAND = 0.15
 VERDICT_UNDER = "sous-évaluée"
 VERDICT_FAIR = "correcte"
 VERDICT_OVER = "surévaluée"
+# Verdict sans recoupement (novembre 2026) : une seule méthode retenue, ou deux qui vont du simple au double.
+# Avant, 36 % du screener ressortait « sous-évaluée » (659 actions sur 1 818), souvent sur une seule méthode :
+# NVIDIA, DCF à 0,36 x le cours et PER du secteur à 2,58 x écartés, restait le PER historique seul à 1,98 x le
+# cours, affiché « sous-évaluée de moitié ». Avec cette règle : 412 sous-évaluées, 394 surévaluées, 510 incertaines.
+# Avec trois méthodes ou plus, la moyenne recoupe déjà : la divergence reste seulement signalée (italique).
+VERDICT_UNSURE = "incertaine"
 # Au-delà de ce rapport entre la méthode la plus optimiste et la plus prudente, le prix juste est fragile
 DIVERGENCE_MAX = 2.0
 # Au-delà de ce rapport entre PER passé et PER prévisionnel, les deux ne décrivent pas le même bénéfice
@@ -313,13 +319,15 @@ def blend_fair_value(
                 "fair_value_upside_pct": None, "fair_value_verdict": None, "fair_value_divergent": False}
     fair = sum(methods) / len(methods)
     low, high = min(methods), max(methods)
+    divergent = high / low > DIVERGENCE_MAX
+    unsure = len(methods) == 1 or (len(methods) == 2 and divergent)
     return {
         "fair_value": round(fair, 2),
         "fair_value_low": round(low, 2),
         "fair_value_high": round(high, 2),
         "fair_value_upside_pct": round((fair / price - 1) * 100, 1) if price else None,
-        "fair_value_verdict": fair_value_verdict(price, fair),
-        "fair_value_divergent": high / low > DIVERGENCE_MAX,
+        "fair_value_verdict": VERDICT_UNSURE if unsure else fair_value_verdict(price, fair),
+        "fair_value_divergent": divergent,
     }
 
 

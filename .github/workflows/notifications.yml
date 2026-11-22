@@ -2,12 +2,17 @@
 # normales. Léger : l'API (réglages de chaque utilisateur, briefs, récap) et les données déjà publiées sur
 # la branche screener-data.
 #   - matin : nouveau brief, récap de la semaine le samedi, alertes de la nuit (attend les données de la
-#     nuit jusqu'à 3 h si GitHub a lancé le calcul en retard, puis échoue : mail de GitHub) ;
+#     nuit jusqu'à 3 h si le calcul a fini en retard, puis échoue : mail de GitHub) ;
 #   - soir : nouveau brief déposé dans la journée (le samedi), annoncé le soir même.
-# Heures fixes en UTC : une heure de plus à Paris l'été. GitHub lance souvent ses tâches planifiées avec
-# quelques minutes à quelques heures de retard (surtout aux heures rondes très demandées, d'où les minutes 07).
+#
+# Déclenchement (novembre 2026) : GitHub lançait les deux passages planifiés avec 6 à 9 h de retard (le
+# « matin » vers 17 h, le « soir » vers minuit à Paris). Le vrai déclencheur est maintenant cron-job.org, à
+# heure fixe de Paris (été compris), par l'API workflow_dispatch : voir docs/notifications-heure-fixe.md.
+# Les horaires planifiés ci-dessous restent en secours : ils ne font rien si le même passage a déjà été
+# déclenché par cron-job.org dans les 14 dernières heures (étape « Déjà envoyé ? »).
 
 name: Notifications
+run-name: Notifications (${{ github.event_name == 'workflow_dispatch' && inputs.passage || (github.event.schedule == '7 17 * * *' && 'soir' || 'matin') }}, ${{ github.event_name == 'schedule' && 'secours' || 'déclenché' }})
 
 on:
   schedule:
@@ -23,6 +28,7 @@ on:
 
 permissions:
   contents: read
+  actions: read  # étape « Déjà envoyé ? » : liste des lancements de ce workflow
 
 concurrency:
   group: notifications
@@ -32,19 +38,38 @@ jobs:
   send:
     runs-on: ubuntu-latest
     timeout-minutes: 200
+    env:
+      PASSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.passage || (github.event.schedule == '7 17 * * *' && 'soir' || 'matin') }}
     steps:
+      # Secours seulement : un passage déclenché (cron-job.org ou à la main) du même nom, réussi ou en cours,
+      # dans les 14 dernières heures suffit. Sinon le brief et le récap partiraient deux fois.
+      - name: Déjà envoyé ?
+        id: deja
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          since=$(date -u -d '14 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          found=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/notifications.yml/runs?event=workflow_dispatch&per_page=20" \
+            --jq "[.workflow_runs[] | select(.created_at >= \"$since\") | select(.display_title | startswith(\"Notifications ($PASSAGE,\"))
+                   | select(.conclusion == null or .conclusion == \"success\")] | length")
+          echo "Passage $PASSAGE déclenché depuis $since : $found"
+          if [ "$found" -gt 0 ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/checkout@v4
+        if: steps.deja.outputs.skip != '1'
       - uses: actions/setup-python@v5
+        if: steps.deja.outputs.skip != '1'
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r backend/requirements.txt
+        if: steps.deja.outputs.skip != '1'
       - name: Envoie les notifications
+        if: steps.deja.outputs.skip != '1'
         env:
           APP_ACCESS_TOKEN: ${{ secrets.APP_ACCESS_TOKEN }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          PASSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.passage || (github.event.schedule == '7 17 * * *' && 'soir' || 'matin') }}
         run: |
           if [ "$PASSAGE" = "soir" ]; then
             python screener/notify.py --briefs-only

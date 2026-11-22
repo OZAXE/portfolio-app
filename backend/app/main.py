@@ -36,6 +36,7 @@ Endpoints prévus pour le MVP :
 import copy
 import logging
 import re
+import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -127,10 +128,42 @@ app.add_middleware(
     allow_headers=["X-Access-Token"],
 )
 
+def client_ip(request: Request) -> str:
+    # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
+    return (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
+
+
+def _hit(hits: dict[str, list[float]], ip: str, window: float = 3600) -> int:
+    """Note une tentative de cette adresse et renvoie le nombre de tentatives dans la fenêtre."""
+    now = time.time()
+    if len(hits) > 5000:  # sinon chaque adresse vue resterait en mémoire jusqu'au redémarrage
+        for old in [k for k, seen in hits.items() if not seen or now - seen[-1] >= window]:
+            del hits[old]
+    hits[ip] = [t for t in hits[ip] if now - t < window] + [now]
+    return len(hits[ip])
+
+
+# Codes faux par adresse et par heure : au-delà, même le bon code est refusé une heure. Sans limite, un code
+# court d'ami (« paul2024 ») se devinerait en essayant des listes de mots ; 30 laisse de la marge à une faute
+# de frappe répétée ou à plusieurs appareils derrière la même box avec un ancien code.
+_bad_codes: dict[str, list[float]] = defaultdict(list)
+BAD_CODE_LIMIT = 30
+
+
+def _recent(hits: dict[str, list[float]], ip: str, window: float = 3600) -> int:
+    now = time.time()
+    return sum(1 for t in hits.get(ip, ()) if now - t < window)
+
+
 # Chaque code d'accès correspond à un utilisateur et à son propre Google Sheet (voir users.py)
-def require_access(x_access_token: str | None = Header(default=None)) -> User:
+def require_access(request: Request, x_access_token: str | None = Header(default=None)) -> User:
+    ip = client_ip(request)
+    if _recent(_bad_codes, ip) >= BAD_CODE_LIMIT:
+        raise HTTPException(status_code=429, detail="Trop de codes faux : réessaie dans une heure.")
     user = resolve(x_access_token)
     if user is None:
+        if x_access_token:  # sans code (premier lancement), rien à compter
+            _hit(_bad_codes, ip)
         raise HTTPException(status_code=401, detail="Code d'accès manquant ou invalide")
     return user
 
@@ -567,15 +600,20 @@ _stats_cache: dict[tuple, tuple[float, dict | None]] = {}
 
 
 @app.get("/portfolio/stats")
-def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
+def get_stats(benchmark: str = "world", stored: bool = False, user: User = Depends(require_access)):
     from datetime import date
 
     from . import sheets
     from .performance import BENCHMARKS
     from .stats import stats_summary
+    from .stats_store import load_stats, save_stats
 
     if benchmark not in BENCHMARKS:
         raise HTTPException(status_code=400, detail=f"Indice inconnu (choix : {', '.join(BENCHMARKS)})")
+    if stored:
+        # Dernier calcul gardé dans le Sheet (stats_store.py), sans Yahoo : affiché pendant le calcul frais.
+        # Inutile quand le calcul est déjà en mémoire : le front le redemande aussitôt sans stored.
+        return load_stats(user.sheet_id, benchmark) or {"stored_at": None, "result": None}
     # Recalculé après chaque opération saisie (génération du cache des Sheets) et chaque jour
     key = (user.sheet_id, benchmark, sheets.cache_generation(), date.today())
     cached = _stats_cache.get(key)
@@ -585,6 +623,8 @@ def get_stats(benchmark: str = "world", user: User = Depends(require_access)):
     if len(_stats_cache) > 200:  # anciennes clés (générations, jours passés)
         _stats_cache.clear()
     _stats_cache[key] = (time.monotonic(), result)
+    # Gardé dans le Sheet à côté, sans retarder la réponse (une écriture Google prend 1 à 2 s)
+    threading.Thread(target=save_stats, args=(user.sheet_id, benchmark, result), daemon=True).start()
     return result
 
 
@@ -1083,14 +1123,7 @@ SIGNUP_LIMIT = 20  # tentatives par heure et par adresse
 def _signup_call(request: Request, call):
     from .signup import SignupError
 
-    # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
-    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
-    now = time.time()
-    if len(_signup_hits) > 5000:  # sinon chaque adresse vue resterait en mémoire jusqu'au redémarrage
-        for old in [k for k, hits in _signup_hits.items() if not hits or now - hits[-1] >= 3600]:
-            del _signup_hits[old]
-    _signup_hits[ip] = [t for t in _signup_hits[ip] if now - t < 3600] + [now]
-    if len(_signup_hits[ip]) > SIGNUP_LIMIT:
+    if _hit(_signup_hits, client_ip(request)) > SIGNUP_LIMIT:
         raise HTTPException(status_code=429, detail="Trop de tentatives : réessaie dans une heure.")
     try:
         return call()
