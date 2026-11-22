@@ -1298,6 +1298,9 @@
     const signedEur = (x) => (x >= 0 ? "+" : "") + eur.format(x);
     const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    // Date du jour en heure locale (AAAA-MM-JJ). toISOString donne l'heure UTC : entre minuit et 1 h à Paris ou
+    // Bologne, une opération saisie prenait la date de la veille et « Aujourd'hui » parlait d'hier.
+    const localISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     // --- Réglages mémorisés sur l'appareil (le stockage peut être indisponible : on ne bloque jamais) ---
     const SETTINGS_KEY = "portfolio-insights-settings";
@@ -2575,7 +2578,7 @@
       if (t.dataset.svDel != null) { savingsDraft.lines.splice(+t.dataset.svDel, 1); renderSavingsEditor(); }
       if (t.id === "savings-cancel") { savingsDraft = null; renderSavings(); }
       if (t.id === "savings-save") {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localISO();
         const lines = savingsDraft.lines.filter((l) => String(l.name || "").trim() || l.amount != null).map((l) => ({
           name: l.name, type: l.type, amount: l.amount, invested: l.invested,
           // Nouvelle valeur : datée d'aujourd'hui ; inchangée : on garde la date du relevé précédent
@@ -2777,7 +2780,7 @@
       const el = document.getElementById("day-change");
       const t = daily?.total;
       if (!t || !t.lines) { el.hidden = true; return; }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localISO();
       const when = daily.session === today ? "Aujourd'hui" : `Séance du ${sessionDate.format(new Date(daily.session + "T12:00:00"))}`;
       el.hidden = false;
       el.innerHTML = `<span data-term="Variation du jour">${when}</span> : <b class="${signClass(t.change)}">${signedEur(t.change)}${t.pct != null ? ` (${pctFmt.format(t.pct)})` : ""}</b>`
@@ -3734,7 +3737,7 @@
     const journalTicker = (s) => String(s.yahoo_ticker || s.ticker).toUpperCase();
     // Écart du cours à un prix visé : objectif à 260 $ pour un cours de 230 $ -> +13 %
     const distance = (price, now) => (price && now ? price / now - 1 : null);
-    const reviewDue = (e) => e.review && e.review <= new Date().toISOString().slice(0, 10);
+    const reviewDue = (e) => e.review && e.review <= localISO();
 
     function renderJournalCard(s) {
       const el = document.getElementById("stock-journal");
@@ -4406,7 +4409,7 @@
     // une ligne masquée réapparaît : une concentration acceptée en septembre mérite d'être revue en décembre.
     const WATCH_HIDE_DAYS = 90;
     function hiddenWatch() {
-      const limit = new Date(Date.now() - WATCH_HIDE_DAYS * 864e5).toISOString().slice(0, 10);
+      const limit = localISO(new Date(Date.now() - WATCH_HIDE_DAYS * 864e5));
       const kept = Object.fromEntries(Object.entries(settings.hiddenWatch || {}).filter(([, day]) => day >= limit));
       if (Object.keys(kept).length !== Object.keys(settings.hiddenWatch || {}).length) { settings.hiddenWatch = kept; saveSettings(); }
       return kept;
@@ -4431,7 +4434,7 @@
     document.getElementById("alerts").addEventListener("click", (e) => {
       const hide = e.target.closest("[data-watch-hide]");
       if (hide) {
-        settings.hiddenWatch = { ...hiddenWatch(), [hide.dataset.watchHide]: new Date().toISOString().slice(0, 10) };
+        settings.hiddenWatch = { ...hiddenWatch(), [hide.dataset.watchHide]: localISO() };
         saveSettings();
         return renderAlertsList();
       }
@@ -4499,7 +4502,7 @@
       const el = document.getElementById("home-tiles");
       const c = dividendCalendar;
       if (!c || !overview?.total) { el.innerHTML = ""; return; }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localISO();
       const next = (c.events || []).find((ev) => ev.date >= today);
       const invested = overview.total.invested;
       el.innerHTML = `
@@ -5247,7 +5250,7 @@
         for (const st of market?.stocks || []) if (!known.has(st.ticker)) known.set(st.ticker, st.name);
         opEl("op-tickers").innerHTML = [...known].map(([t, n]) => `<option value="${escapeHtml(t)}">${escapeHtml(n)}</option>`).join("");
       }
-      opEl("op-date").value = new Date().toISOString().slice(0, 10);
+      opEl("op-date").value = localISO();
       opEl("op-fx").value = 1;
       opEdited.clear();
       updateOperationForm();
@@ -5386,7 +5389,7 @@
         setTimeout(() => { opEl("op-form").hidden = true; opEl("op-open").hidden = false; status.textContent = ""; }, 2500);
         loadPortfolio();
         // Opération passée : la courbe est recalculée depuis cette date (les espèces n'y figurent pas)
-        if (!CASH_TYPES.includes(payload.type) && payload.date && payload.date < new Date().toISOString().slice(0, 10)) rebuildHistory(payload.date);
+        if (!CASH_TYPES.includes(payload.type) && payload.date && payload.date < localISO()) rebuildHistory(payload.date);
       } catch (e) {
         status.textContent = e.message;
       }
@@ -5682,7 +5685,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    const todayStamp = () => new Date().toISOString().slice(0, 10);
+    const todayStamp = () => localISO();
 
     // Opérations affichées (filtres compris), de la plus ancienne à la plus récente, colonnes de l'onglet Opérations
     function exportTransactions() {
@@ -5861,7 +5864,7 @@
       document.getElementById("tx-status").textContent = `${done}. Mise à jour du portefeuille…`;
       loadPortfolio();
       const since = dates.filter(Boolean).sort()[0];
-      if (rebuild && since && since < new Date().toISOString().slice(0, 10)) rebuildHistory(since);
+      if (rebuild && since && since < localISO()) rebuildHistory(since);
     }
 
     document.getElementById("tx-search").addEventListener("input", (e) => { txFilter.query = e.target.value; renderTransactions(); });
@@ -6755,7 +6758,7 @@
     async function setBriefRead(id, read) {
       const before = settings.readBriefs || {};
       const marks = { ...before };
-      if (read) marks[id] = new Date().toISOString().slice(0, 10); else delete marks[id];
+      if (read) marks[id] = localISO(); else delete marks[id];
       storeBriefReads(marks);  // tout de suite, sans attendre le Sheet
       try {
         storeBriefReads(await postJson("/briefs/read", { id, read }));

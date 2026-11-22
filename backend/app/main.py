@@ -127,10 +127,42 @@ app.add_middleware(
     allow_headers=["X-Access-Token"],
 )
 
+def client_ip(request: Request) -> str:
+    # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
+    return (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
+
+
+def _hit(hits: dict[str, list[float]], ip: str, window: float = 3600) -> int:
+    """Note une tentative de cette adresse et renvoie le nombre de tentatives dans la fenêtre."""
+    now = time.time()
+    if len(hits) > 5000:  # sinon chaque adresse vue resterait en mémoire jusqu'au redémarrage
+        for old in [k for k, seen in hits.items() if not seen or now - seen[-1] >= window]:
+            del hits[old]
+    hits[ip] = [t for t in hits[ip] if now - t < window] + [now]
+    return len(hits[ip])
+
+
+# Codes faux par adresse et par heure : au-delà, même le bon code est refusé une heure. Sans limite, un code
+# court d'ami (« paul2024 ») se devinerait en essayant des listes de mots ; 30 laisse de la marge à une faute
+# de frappe répétée ou à plusieurs appareils derrière la même box avec un ancien code.
+_bad_codes: dict[str, list[float]] = defaultdict(list)
+BAD_CODE_LIMIT = 30
+
+
+def _recent(hits: dict[str, list[float]], ip: str, window: float = 3600) -> int:
+    now = time.time()
+    return sum(1 for t in hits.get(ip, ()) if now - t < window)
+
+
 # Chaque code d'accès correspond à un utilisateur et à son propre Google Sheet (voir users.py)
-def require_access(x_access_token: str | None = Header(default=None)) -> User:
+def require_access(request: Request, x_access_token: str | None = Header(default=None)) -> User:
+    ip = client_ip(request)
+    if _recent(_bad_codes, ip) >= BAD_CODE_LIMIT:
+        raise HTTPException(status_code=429, detail="Trop de codes faux : réessaie dans une heure.")
     user = resolve(x_access_token)
     if user is None:
+        if x_access_token:  # sans code (premier lancement), rien à compter
+            _hit(_bad_codes, ip)
         raise HTTPException(status_code=401, detail="Code d'accès manquant ou invalide")
     return user
 
@@ -1083,14 +1115,7 @@ SIGNUP_LIMIT = 20  # tentatives par heure et par adresse
 def _signup_call(request: Request, call):
     from .signup import SignupError
 
-    # Render ajoute l'adresse réelle en dernier dans X-Forwarded-For (les premières peuvent être inventées)
-    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[-1].strip()
-    now = time.time()
-    if len(_signup_hits) > 5000:  # sinon chaque adresse vue resterait en mémoire jusqu'au redémarrage
-        for old in [k for k, hits in _signup_hits.items() if not hits or now - hits[-1] >= 3600]:
-            del _signup_hits[old]
-    _signup_hits[ip] = [t for t in _signup_hits[ip] if now - t < 3600] + [now]
-    if len(_signup_hits[ip]) > SIGNUP_LIMIT:
+    if _hit(_signup_hits, client_ip(request)) > SIGNUP_LIMIT:
         raise HTTPException(status_code=429, detail="Trop de tentatives : réessaie dans une heure.")
     try:
         return call()
