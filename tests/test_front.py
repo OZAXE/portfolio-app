@@ -325,3 +325,34 @@ def test_parcours_des_cinq_onglets_sans_erreur(app_page):
     assert server_errors == [], f"erreurs 500 de l'API : {server_errors}"
     called = {re.sub(r"\?.*", "", path) for _, path, _ in api_calls}
     assert {"/portfolio/overview", "/portfolio/dividends", "/transactions", "/journal", "/budget", "/briefs"} <= called
+
+
+def test_infobulle_de_la_courbe_donne_chaque_enveloppe_a_la_meme_date(app_page):
+    """Bug signalé par Enzo (26/11/2026) : en mode Performance, le PEA disparaissait de l'infobulle sur les dates
+    récentes. Le mode « index » de Chart.js prend le n-ième point de chaque courbe ; le PEA commençant plus tard que le
+    Total, son n-ième point est à une autre date (ou n'existe pas). Ici : Total du 1er au 10 du mois, PEA du 5 au 10.
+    Au 10, l'index 9 du Total n'existe pas côté PEA (6 points) : avant, PEA absent ; au 7, avant, le PEA de l'index 6
+    n'existait pas non plus, et au 3 on lisait le PEA du 7 (index 2). Attendu : au 10, Total 9 et PEA 5 ; au 7, Total 6
+    et PEA 2 ; au 3, Total seul (pas de PEA ce jour-là)."""
+    page, errors, _ = app_page
+    page.click("#tabbar [data-view=portfolio]")
+    page.wait_for_function("chart && chart.options.interaction.mode === 'sameDate'")
+    found = page.evaluate("""() => {
+      const day = (d) => Date.UTC(2026, 10, d);
+      const canvas = document.createElement("canvas");
+      canvas.width = 400; canvas.height = 200;
+      document.body.appendChild(canvas);
+      const c = new Chart(canvas, {
+        type: "line",
+        data: { datasets: [
+          { label: "Total", data: [...Array(10)].map((_, i) => ({ x: day(i + 1), y: i })) },
+          { label: "PEA", data: [...Array(6)].map((_, i) => ({ x: day(i + 5), y: i })) },
+        ] },
+        options: { animation: false, responsive: false, scales: { x: { type: "linear" } } },
+      });
+      const at = (d) => c.getElementsAtEventForMode({ native: null, x: c.scales.x.getPixelForValue(day(d)), y: 50 },
+        "sameDate", { intersect: false }, false).map((it) => [c.data.datasets[it.datasetIndex].label, c.data.datasets[it.datasetIndex].data[it.index].y]);
+      return { d10: at(10), d7: at(7), d3: at(3) };
+    }""")
+    assert found == {"d10": [["Total", 9], ["PEA", 5]], "d7": [["Total", 6], ["PEA", 2]], "d3": [["Total", 2]]}
+    assert not errors

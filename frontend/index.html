@@ -1764,6 +1764,28 @@
         : "";
     }
 
+    // Infobulle des courbes datées (Évolution du portefeuille, comparaison à un indice) : chaque courbe donne sa
+    // valeur à la date touchée. Le mode « index » de Chart.js prend le n-ième point de chaque courbe : il ne marche
+    // que si toutes commencent le même jour. Bug signalé par Enzo (26/11/2026) : le PEA commence après le Total
+    // (10 avril 2025), donc au 24 novembre son n-ième point n'existait pas (PEA absent de l'infobulle), et au 25 août
+    // l'infobulle montrait la valeur du PEA d'une autre date. Ici : date la plus proche du doigt parmi toutes les
+    // courbes, puis le point de chaque courbe à cette date exacte (une courbe sans relevé ce jour-là n'est pas citée).
+    function sameDateItems(chart, e) {
+      const at = chart.scales.x.getValueForPixel(Chart.helpers.getRelativePosition(e, chart).x);
+      const visible = chart.data.datasets.map((d, i) => i).filter((i) => chart.isDatasetVisible(i));
+      let best = null;
+      for (const i of visible) for (const p of chart.data.datasets[i].data) {
+        if (p?.x != null && p.y != null && (best == null || Math.abs(p.x - at) < Math.abs(best - at))) best = p.x;
+      }
+      if (best == null) return [];
+      return visible.flatMap((datasetIndex) => {
+        const index = chart.data.datasets[datasetIndex].data.findIndex((p) => p?.x === best && p.y != null);
+        const element = chart.getDatasetMeta(datasetIndex).data[index];
+        return index >= 0 && element ? [{ element, datasetIndex, index }] : [];
+      });
+    }
+    if (window.Chart) Chart.Interaction.modes.sameDate = sameDateItems;
+
     const chartAmount = (v) => (settings.privacy ? "•••• €" : eurFmt.format(v));
     const chartTick = (v) => (settings.privacy ? "" : `${Math.round(v / 100) / 10} k€`);
 
@@ -1782,7 +1804,7 @@
           })),
         },
         options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          responsive: true, maintainAspectRatio: false, interaction: { mode: "sameDate", intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: { callbacks: { title: (items) => dateFmt.format(new Date(items[0].parsed.x)), label: (item) => ` ${item.dataset.label} : ${fmt(item.parsed.y)}` } },
@@ -1976,7 +1998,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
+          interaction: { mode: "sameDate", intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
