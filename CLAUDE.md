@@ -218,6 +218,17 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   « ETF (plusieurs secteurs) ». Un titre absent du screener (ADR comme TSMC) reste à compléter à la main
   dans l'onglet Titres.
 
+- **DA « Relevé » (novembre 2026, choix d'Enzo parmi 3 maquettes).** L'ancien look (fond quasi noir, cartes grises
+  arrondies, accent violet, police système) faisait « appli générique ». Esprit relevé de banque privée : papier crème
+  (clair, #f5f3ee) ou presque noir chaud (sombre, #151513), **filets fins à la place des cartes**, titres et grands chiffres
+  en Newsreader (serif, Google Fonts), texte en Inter, commandes en contour d'encre (rayon 2 px, bouton actif inversé),
+  sous-onglets `.seg` en texte serif souligné, barre du bas en texte seul avec trait au-dessus de l'onglet actif (icônes
+  SVG masquées par CSS), accents désaturés (vert sapin par défaut). Thème par défaut **Auto** (suit le téléphone), réglage
+  Plus > Apparence (Auto / Clair / Sombre / Noir) inchangé. Tout est dans le bloc CSS « DA « Relevé » » placé après les
+  styles du Budget : il surcharge les anciennes règles sans les supprimer. Toute nouvelle carte, commande ou liste suit ce
+  bloc (pas de fond `--card` plein ni de grand rayon). Budget : solde présenté en relevé (`budgetKpis` : Revenus, Dépenses,
+  Solde sous double filet, Mis de côté), classes `.bud-kpis` / `.bud-big` gardées pour le test du front. Couleurs des
+  catégories du budget (`BUDGET_COLORS`) passées en tons sourds.
 - **Interface (septembre 2026, maquette validée par Enzo).** Inspirée des applis bancaires et d'analyse :
   - Marché : accueil en sections (`MARKET_PRESETS` : Tes actions, Ta watchlist, Solides et sous-évaluées, Les
     plus solides, Dividendes réguliers), recherche + panneau de filtres (`renderFilterSheet`, puces supprimables),
