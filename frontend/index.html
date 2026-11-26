@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" id="app-favicon" href="icon-192.png" />
   <link rel="apple-touch-icon" id="app-touch-icon" href="icon-192.png" />
-  <meta name="theme-color" content="#151513" />
+  <meta name="theme-color" content="#1f1e1b" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" />
@@ -17,12 +17,12 @@
        banque privée. Papier crème ou presque noir chaud, encre, filets fins à la place des cartes, chiffres importants
        en Newsreader (empattements), texte en Inter, un seul accent sobre. Sombre par défaut ici, clair et noir plus bas. */
     :root {
-      --bg: #151513;
-      --card: #1d1c19;
-      --card-2: #262521;
-      --line: #34322d;
-      --text: #ece8df;
-      --muted: #a39e93;
+      --bg: #1f1e1b;
+      --card: #292824;
+      --card-2: #34322d;
+      --line: #46433c;
+      --text: #e4dfd4;
+      --muted: #aba599;
       --accent: #8fbfae;
       --accent-neg: #e58b78;
       --series-total: #ece8df;
@@ -30,7 +30,7 @@
       --series-cto: #d2a764;
       --positive: #7fbf9a;
       --warn: #d9b86a;
-      --tabbar-bg: #151513;
+      --tabbar-bg: #1f1e1b;
       --tabbar-h: 58px;
       --serif: "Newsreader", Georgia, "Times New Roman", serif;
       --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -38,9 +38,9 @@
     }
     /* Apparence (Plus > Apparence) : thème, couleur d'accent, taille du texte */
     html[data-mode="light"] {
-      --bg: #f5f3ee; --card: #fbfaf6; --card-2: #ece8df; --line: #d9d4c9; --text: #1c1b19; --muted: #5f5b53;
+      --bg: #e9e5dc; --card: #f4f1ea; --card-2: #dfd9cd; --line: #c9c1b2; --text: #23211d; --muted: #5d584f;
       --accent-neg: #a23b2a; --positive: #2f6b4f; --warn: #8a5a12; --series-total: #1c1b19; --series-pea: #3f6e8c; --series-cto: #a0702a;
-      --tabbar-bg: #f5f3ee; color-scheme: light;
+      --tabbar-bg: #e9e5dc; color-scheme: light;
     }
     html[data-mode="black"] {
       --bg: #000000; --card: #0e0e0d; --card-2: #1a1917; --line: #2a2926; --text: #f1eee7; --muted: #a39e93;
@@ -842,6 +842,27 @@
     .bud-year.on { background: var(--card-2); }
     .bud-check { margin-top: 8px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 12%, transparent); }
     .bud-check b { color: var(--warn); }
+
+    /* Retour d'Enzo (26/11/2026) : sombre trop sombre, clair trop éblouissant, et sans fond de bloc « on ne voit plus la
+       structure ». Fonds adoucis (couleurs ci-dessus) et chaque bloc redevient un panneau discret : fond à peine décollé
+       du papier, filet tout autour, petit arrondi. Les lignes à l'intérieur restent séparées par des filets. */
+    .card, .mlist, .group, .poscard, .verdict-card, .tiles, .envelopes, .pillars, .positions, .stock-list {
+      background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+    .card { padding: 14px 16px; margin-bottom: 12px; }
+    .card.hero, .spage > .card:first-of-type, .stock-top + .card { border-top: 1px solid var(--line); }
+    .watch-card { padding: 2px 16px; }
+    .card .card { background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 0; margin: 0; }
+    .mlist, .group { padding: 0 16px; }
+    .card .mlist, .card .pillars, .card .positions, .poscard .mlist { background: transparent; border: 0; border-radius: 0; padding: 0; }
+    .positions, .pillars { padding: 0 16px; }
+    .position:first-child, .stock:first-child, .pillar:first-child, .mrow:first-child, .group > .setting:first-child { border-top: 0; }
+    .verdict-card, .poscard { padding: 14px 16px; border-top: 1px solid var(--line); }
+    .envelopes { border-bottom: 1px solid var(--line); overflow: hidden; }
+    .envelope { padding: 12px 12px; }
+    .tiles { overflow: hidden; }
+    .tile { padding: 14px 14px 10px; }
+    .tile + .tile { padding-left: 14px; }
+    nav.tabbar { border-top: 1px solid var(--line); }
   </style>
   <script>
     const APP_ICONS = [["barres", "Barres"], ["courbe", "Courbe"], ["anneau", "Anneau"], ["euro", "Euro"], ["clair", "Clair"], ["violet", "Violet"]];
