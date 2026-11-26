@@ -7,55 +7,64 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" id="app-favicon" href="icon-192.png" />
   <link rel="apple-touch-icon" id="app-touch-icon" href="icon-192.png" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#151513" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
   <style>
+    /* DA « Relevé » (novembre 2026, choisie par Enzo parmi trois maquettes) : une appli qui se lit comme un relevé de
+       banque privée. Papier crème ou presque noir chaud, encre, filets fins à la place des cartes, chiffres importants
+       en Newsreader (empattements), texte en Inter, un seul accent sobre. Sombre par défaut ici, clair et noir plus bas. */
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --card-2: #273449;
-      --line: #334155;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #22c55e;
-      --accent-neg: #ef4444;
-      --series-total: #e2e8f0;
-      --series-pea: #38bdf8;
-      --series-cto: #f59e0b;
-      --positive: #22c55e;
-      --warn: #f59e0b;
-      --tabbar-bg: rgba(15, 23, 42, 0.96);
-      --tabbar-h: 64px;
+      --bg: #151513;
+      --card: #1d1c19;
+      --card-2: #262521;
+      --line: #34322d;
+      --text: #ece8df;
+      --muted: #a39e93;
+      --accent: #8fbfae;
+      --accent-neg: #e58b78;
+      --series-total: #ece8df;
+      --series-pea: #8fb0c9;
+      --series-cto: #d2a764;
+      --positive: #7fbf9a;
+      --warn: #d9b86a;
+      --tabbar-bg: #151513;
+      --tabbar-h: 58px;
+      --serif: "Newsreader", Georgia, "Times New Roman", serif;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color-scheme: dark;
     }
-    /* Apparence (Réglages) : thème, couleur d'accent, taille du texte */
+    /* Apparence (Plus > Apparence) : thème, couleur d'accent, taille du texte */
     html[data-mode="light"] {
-      --bg: #f1f5f9; --card: #ffffff; --card-2: #e8edf3; --line: #cbd5e1; --text: #0f172a; --muted: #64748b;
-      --accent-neg: #dc2626; --positive: #16a34a; --warn: #b45309; --series-total: #0f172a; --series-pea: #0284c7; --series-cto: #d97706;
-      --tabbar-bg: rgba(255, 255, 255, 0.96); color-scheme: light;
+      --bg: #f5f3ee; --card: #fbfaf6; --card-2: #ece8df; --line: #d9d4c9; --text: #1c1b19; --muted: #5f5b53;
+      --accent-neg: #a23b2a; --positive: #2f6b4f; --warn: #8a5a12; --series-total: #1c1b19; --series-pea: #3f6e8c; --series-cto: #a0702a;
+      --tabbar-bg: #f5f3ee; color-scheme: light;
     }
     html[data-mode="black"] {
-      --bg: #000000; --card: #111214; --card-2: #1c1d21; --line: #2a2c31; --text: #f1f5f9; --muted: #9ca3af;
-      --tabbar-bg: rgba(0, 0, 0, 0.96);
+      --bg: #000000; --card: #0e0e0d; --card-2: #1a1917; --line: #2a2926; --text: #f1eee7; --muted: #a39e93;
+      --tabbar-bg: #000000;
     }
-    html[data-accent="green"] { --accent: #22c55e; }
-    html[data-accent="blue"] { --accent: #3b82f6; }
-    html[data-accent="violet"] { --accent: #a78bfa; }
-    html[data-accent="orange"] { --accent: #fb923c; }
-    html[data-accent="pink"] { --accent: #f472b6; }
-    html[data-accent="teal"] { --accent: #2dd4bf; }
-    html[data-mode="light"][data-accent="green"] { --accent: #16a34a; }
-    html[data-mode="light"][data-accent="blue"] { --accent: #2563eb; }
-    html[data-mode="light"][data-accent="violet"] { --accent: #7c3aed; }
-    html[data-mode="light"][data-accent="orange"] { --accent: #ea580c; }
-    html[data-mode="light"][data-accent="pink"] { --accent: #db2777; }
-    html[data-mode="light"][data-accent="teal"] { --accent: #0d9488; }
+    /* Accents sobres (les clés gardent les anciens noms : réglage déjà mémorisé sur les appareils) */
+    html[data-accent="green"] { --accent: #8fbfae; }
+    html[data-accent="blue"] { --accent: #93a9d6; }
+    html[data-accent="violet"] { --accent: #bfa2cc; }
+    html[data-accent="orange"] { --accent: #d9b86a; }
+    html[data-accent="pink"] { --accent: #d9909b; }
+    html[data-accent="teal"] { --accent: #8db7c4; }
+    html[data-mode="light"][data-accent="green"] { --accent: #2f5d50; }
+    html[data-mode="light"][data-accent="blue"] { --accent: #2c4a7a; }
+    html[data-mode="light"][data-accent="violet"] { --accent: #5e3f6b; }
+    html[data-mode="light"][data-accent="orange"] { --accent: #8a5a12; }
+    html[data-mode="light"][data-accent="pink"] { --accent: #7d2e3a; }
+    html[data-mode="light"][data-accent="teal"] { --accent: #2d6470; }
     html[data-size="grand"] body { zoom: 1.1; }
     html[data-size="tres-grand"] body { zoom: 1.2; }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--sans);
       background: var(--bg);
       color: var(--text);
       padding-top: env(safe-area-inset-top, 0px);
@@ -644,10 +653,8 @@
     .bud-nav .label small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
     .bud-solde { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 14px; color: var(--muted); }
     .bud-big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-    .bud-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-    .bud-kpis > div { background: var(--card-2); border-radius: 10px; padding: 10px; min-width: 0; }
-    .bud-kpis > div > span { display: block; font-size: 12px; color: var(--muted); }
-    .bud-kpis b { display: block; font-size: 16px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .bud-kpis { margin-top: 10px; }
+    .bud-kpis b { font-weight: 400; font-variant-numeric: tabular-nums; }
     .bud-sentence { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
     .bud-sentence b { color: var(--text); font-weight: 600; }
     .bud-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
@@ -701,6 +708,138 @@
     .bud-year.on { background: var(--card-2); }
     .bud-year.head { min-height: 0; padding-top: 0; padding-bottom: 2px; font-size: 12px; color: var(--muted); cursor: default; }
     .bud-aside + .bud-aside { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+
+    /* ===== DA « Relevé » (novembre 2026) =====
+       Couche posée sur les styles d'origine plutôt que de les réécrire un par un : les règles ci-dessus gardent la mise
+       en page, celles-ci retirent les cartes (fond, arrondis) au profit de filets, passent titres et grands chiffres en
+       Newsreader et les commandes en contour d'encre. Toute nouvelle carte ou commande doit suivre ces règles. */
+    .serif, header h1, #home-hello, .stock-head h1, .spage-title, .term-title { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+    header h1 { font-size: 32px; }
+    #home-hello { font-size: 32px; }
+    .stock-head h1 { font-size: 26px; }
+    .spage-title { font-size: 22px; }
+    h2 { font-family: var(--serif); font-weight: 400; font-size: 22px; color: var(--text); letter-spacing: 0; }
+    .section-head h2, .msection-head h2 { font-size: 24px; font-weight: 400; }
+    .home-date { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+    /* Grands chiffres : chiffres alignés (Newsreader dessine des chiffres elzéviriens par défaut) */
+    .hero .value, .bigprice, .bud-big, .proj-result, .cal-total, .tile .v, .stat .v, .envelope .amount, .bud-nav .label, .bud-led .v {
+      font-family: var(--serif); font-weight: 400; font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
+    .hero .value { font-size: 50px; line-height: 1.05; }
+    .bigprice { font-size: 40px; }
+    .tile .v { font-size: 26px; }
+    .stat .v { font-size: 21px; }
+    .envelope .amount { font-size: 22px; }
+    .proj-result { font-size: 34px; }
+    .cal-total { font-size: 28px; }
+
+    /* Plus de cartes : des sections séparées par un filet */
+    .card, .position, .stock, .verdict-card, .pillar, .poscard, .group, #view-portfolio .envelope, .envelope, .mlist { background: transparent; border-radius: 0; box-shadow: none; }
+    .card { padding: 14px 0; border-top: 1px solid var(--line); }
+    .card.hero, .spage > .card:first-of-type, .stock-top + .card { border-top: 0; }
+    .watch-card { padding: 0; }
+    .positions { gap: 0; }
+    .position, .stock { padding: 12px 0; border-top: 1px solid var(--line); margin-bottom: 0; }
+    .mlist { border-top: 1px solid var(--text); }
+    .mrow { padding: 11px 0; }
+    .mrow:hover { background: transparent; }
+    .verdict-card { padding: 14px 0; border-top: 3px double var(--text); }
+    .pillars { gap: 0; }
+    .pillar { border-top: 1px solid var(--line); }
+    .pillar > summary { padding: 13px 0; }
+    .pillar .pbody { padding: 0 0 12px 22px; }
+    .poscard { padding: 14px 0; border-top: 3px double var(--text); }
+    .group { border-top: 1px solid var(--text); }
+    .group-title { font-family: var(--serif); text-transform: none; letter-spacing: 0; font-size: 22px; font-weight: 400; color: var(--text); margin: 26px 0 6px; }
+    .setting { padding: 12px 0; }
+    .setting .ic { background: transparent !important; color: var(--muted); width: 24px; }
+    .setting .ic svg { stroke-width: 1.6; }
+    .envelopes { gap: 0; border-top: 3px double var(--text); border-bottom: 1px solid var(--line); }
+    .envelope { padding: 12px 10px 12px 0; }
+    .envelope + .envelope { border-left: 1px solid var(--line); padding-left: 12px; }
+    button.envelope { border: 0; }
+    button.envelope + button.envelope { border-left: 1px solid var(--line); }
+    button.envelope.on { border: 0; box-shadow: inset 0 -2px 0 var(--accent); }
+    .tiles { gap: 0; border-top: 3px double var(--text); }
+    .tile { background: transparent; border-radius: 0; padding: 14px 12px 4px 0; min-height: 0; }
+    .tile + .tile { border-left: 1px solid var(--line); padding-left: 14px; }
+    .stat { gap: 0 14px; }
+    .stat > div { background: transparent; border-radius: 0; border-top: 1px solid var(--line); padding: 10px 0; }
+    .realized-grid { gap: 0 14px; }
+    .contrib-bar, .bar-track, .pea-track { border-radius: 0; height: 3px; }
+    .bar-fill, .pea-fill, .contrib-bar i { border-radius: 0; }
+
+    /* Commandes : contour d'encre, angles presque droits */
+    .segmented { background: transparent; border: 1px solid var(--text); border-radius: 0; padding: 0; }
+    .segmented button { border-radius: 0; color: var(--text); }
+    .segmented button + button { border-left: 1px solid var(--line); }
+    .segmented button.active { background: var(--text); color: var(--bg); font-weight: 600; }
+    .seg { background: var(--bg); border-radius: 0; padding: 0; box-shadow: none; border-bottom: 1px solid var(--line); gap: 18px; grid-auto-columns: auto; justify-content: start; }
+    .seg button { border-radius: 0; font-family: var(--serif); font-size: 19px; color: var(--muted); padding: 10px 0 8px; margin-bottom: -1px; overflow: visible; }
+    .seg button.active { background: none; color: var(--text); font-weight: 400; box-shadow: inset 0 -2px 0 var(--text); }
+    .seg.seg-flat { background: transparent; }
+    .btn, .head-btn, .filterbtn, .size-btns button, .stock-top .cmp-btn { background: transparent; border: 1px solid var(--text); border-radius: 2px; color: var(--text); }
+    .btn { font-weight: 600; }
+    .head-btn.primary { background: transparent; border-color: var(--text); color: var(--text); font-weight: 600; }
+    .stock-top .cmp-btn.on, .sheet .apply { background: var(--text); color: var(--bg); border-radius: 2px; }
+    .filterbtn .count { background: var(--text); color: var(--bg); border-radius: 2px; }
+    .iconbtn { background: transparent; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }
+    .link-btn, .see-all { font-weight: 500; }
+    .chip { border-radius: 2px; }
+    .chip.active, .chip.on, .line-chip.on-line { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .pill { border-radius: 2px; background: transparent !important; padding: 0; font-weight: 500; }
+    .badge { border-radius: 2px; background: transparent; border: 1px solid var(--line); }
+    .move { border-radius: 2px; background: transparent; border: 1px solid var(--line); }
+    .search { background: transparent; border: 0; border-bottom: 1.5px solid var(--text); border-radius: 0; padding: 11px 0; }
+    .search:focus { outline: none; border-bottom-color: var(--accent); }
+    .op-grid input, .op-grid select, .proj-grid input, .proj-grid select, .filters select, .field input, .edit-row input, .edit-row select,
+    .fee-block input, .fee-block select, .pa-form select, .pa-form input, .alloc-input input, .fin-select, .bud-todo-form select,
+    .bud-todo-form input[type=text], .bud-drive input[type=text], .journal-card textarea, .journal-card .op-grid input, .journal-card .op-grid select, .imp-ticker {
+      background: var(--card); border-radius: 2px; }
+    .avatar { border-radius: 50%; }
+    img.avatar.light { background: #1c1b19; }
+    /* Initiales (pas de logo) : cercle à filet et lettres en Newsreader plutôt qu'une pastille de couleur vive */
+    span.avatar, div.avatar { background: transparent !important; border: 1px solid var(--line); color: var(--text) !important; font-family: var(--serif); font-weight: 400; font-size: 15px; }
+    .watch-row .wic { background: transparent !important; border: 1px solid var(--line); border-radius: 50%; font-size: 17px; }
+    .watch-hide { border-radius: 50%; }
+    .brief-item .bdate { background: transparent; border: 1px solid var(--line); border-radius: 0; }
+    .brief-item .bdate b { font-family: var(--serif); font-weight: 400; }
+    .brief-item .new { background: var(--text); color: var(--bg); border-radius: 2px; }
+    #brief-frame { border-radius: 0; }
+    #term-dialog, .sheet { border-radius: 0; border-top: 1px solid var(--text); }
+    .sheet h3 { font-family: var(--serif); text-transform: none; letter-spacing: 0; font-size: 19px; font-weight: 400; color: var(--text); }
+    .tx-edit { background: transparent; }
+
+    /* Barre du bas : du texte, l'onglet actif souligné d'un trait d'encre au-dessus */
+    nav.tabbar { border-top: 1px solid var(--text); }
+    nav.tabbar svg { display: none; }
+    nav.tabbar button { font-size: 13px; }
+    nav.tabbar button.active { color: var(--text); font-weight: 600; box-shadow: inset 0 2px 0 var(--text); }
+
+    /* Budget : solde présenté comme un relevé (lignes, double filet, solde en grand) */
+    .bud-nav button { background: transparent; border: 1px solid var(--line); border-radius: 50%; width: 44px; }
+    .bud-nav .label { font-size: 26px; }
+    .bud-nav .label small { font-family: var(--sans); }
+    .bud-h { font-family: var(--serif); text-transform: none; letter-spacing: 0; font-size: 22px; font-weight: 400; color: var(--text); }
+    .bud-led { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; font-variant-numeric: tabular-nums; }
+    .bud-led.total { border-top: 3px double var(--text); padding-top: 12px; }
+    .bud-led.total > span:first-child { font-family: var(--serif); font-size: 20px; }
+    .bud-led.rate { border-top: 0; padding-top: 0; font-size: 13px; color: var(--muted); }
+    .bud-big { font-size: 34px; }
+    .bud-sentence { font-family: var(--serif); font-style: italic; font-size: 17px; line-height: 1.45; }
+    .bud-sentence b { font-style: normal; font-weight: 500; }
+    .bud-stack { height: 4px; border-radius: 0; gap: 1px; }
+    details.bud-cat { border-radius: 0; border-top: 1px solid var(--line); }
+    details.bud-cat[open] { background: transparent; }
+    details.bud-cat > summary { padding: 11px 0; }
+    .bud-dot { border-radius: 0; width: 8px; height: 8px; }
+    .bud-cname { font-weight: 500; }
+    .bud-bar, details.bud-cat[open] .bud-bar { height: 2px; border-radius: 0; background: var(--line); }
+    .bud-bar i { border-radius: 0; }
+    .bud-body { padding: 0 0 12px 20px; }
+    .bud-ops { border-top: 0; border-left: 1px solid var(--line); padding: 2px 0 2px 12px; }
+    #budget .bud-check { background: transparent; padding: 0; border-radius: 0; }
+    .bud-year { border-radius: 0; }
+    .bud-year.on { background: var(--card-2); }
     .bud-check { margin-top: 8px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 12%, transparent); }
     .bud-check b { color: var(--warn); }
   </style>
@@ -709,7 +848,7 @@
     const iconUrl = (id, size) => (id && id !== "barres" && APP_ICONS.some(([k]) => k === id) ? `icons/${id}-${size}.png` : `icon-${size}.png`);
     function applyAppearance(prefs) {
       const root = document.documentElement;
-      const theme = prefs.theme || "dark";
+      const theme = prefs.theme || "auto";
       const systemLight = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches;
       root.dataset.mode = theme === "auto" ? (systemLight ? "light" : "dark") : theme;
       root.dataset.accent = prefs.accent || "green";
@@ -1178,12 +1317,12 @@
         </div>
         <div class="appearance-row"><span>Couleur</span>
           <div class="swatches" data-pref="accent">
-            <button class="swatch" data-value="green" style="background:#22c55e" aria-label="Vert"></button>
-            <button class="swatch" data-value="blue" style="background:#3b82f6" aria-label="Bleu"></button>
-            <button class="swatch" data-value="violet" style="background:#8b5cf6" aria-label="Violet"></button>
-            <button class="swatch" data-value="orange" style="background:#f97316" aria-label="Orange"></button>
-            <button class="swatch" data-value="pink" style="background:#ec4899" aria-label="Rose"></button>
-            <button class="swatch" data-value="teal" style="background:#14b8a6" aria-label="Turquoise"></button>
+            <button class="swatch" data-value="green" style="background:#2f5d50" aria-label="Vert sapin" title="Vert sapin"></button>
+            <button class="swatch" data-value="blue" style="background:#2c4a7a" aria-label="Bleu nuit" title="Bleu nuit"></button>
+            <button class="swatch" data-value="violet" style="background:#5e3f6b" aria-label="Prune" title="Prune"></button>
+            <button class="swatch" data-value="orange" style="background:#8a5a12" aria-label="Ocre" title="Ocre"></button>
+            <button class="swatch" data-value="pink" style="background:#7d2e3a" aria-label="Bordeaux" title="Bordeaux"></button>
+            <button class="swatch" data-value="teal" style="background:#2d6470" aria-label="Pétrole" title="Pétrole"></button>
           </div>
         </div>
         <div class="appearance-row"><span>Taille du texte</span>
@@ -6370,10 +6509,12 @@
     // Relevés du compte courant déposés sur Drive (exports du Crédit Agricole), lus et catégorisés par le serveur
     // (budget_import.py) chaque matin et soir ou au bouton ; l'appli fait les mois d'après la date de chaque opération. Dépenses et revenus font le solde ; virements
     // internes et investissement restent à part, comme dans le Résumé du fichier.
-    const BUDGET_COLORS = { "Logement": "#3b82f6", "Courses": "#10b981", "Loisirs": "#ec4899", "Restaurant/Bar": "#f97316",
-      "Shopping": "#8b5cf6", "Voiture": "#eab308", "Abonnements": "#06b6d4", "Transport": "#94a3b8", "Santé": "#ef4444",
-      "Autre": "#64748b", "À catégoriser": "#a8a29e" };
-    const BUDGET_SPARE = ["#14b8a6", "#f43f5e", "#84cc16", "#0ea5e9", "#d946ef", "#f59e0b"];
+    // Teintes sourdes de la DA « Relevé », lisibles sur fond crème comme sur fond sombre, distinctes par la clarté
+    // autant que par la teinte (plus de barre arc-en-ciel)
+    const BUDGET_COLORS = { "Logement": "#4e7d6e", "Courses": "#8fae9f", "Loisirs": "#a8675a", "Restaurant/Bar": "#c09356",
+      "Shopping": "#6a7ba0", "Voiture": "#8c7d58", "Abonnements": "#5a8c93", "Transport": "#9a958a", "Santé": "#b04a3a",
+      "Autre": "#7b776e", "À catégoriser": "#c4beb2" };
+    const BUDGET_SPARE = ["#6f8f6a", "#9c6f86", "#b7a06a", "#587391", "#a3826b", "#7f9c9c"];
     const BUDGET_SPENDING = new Set(["depense", "a_categoriser"]);
     const budgetFmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
     const budgetEur = (v) => hideable(budgetFmt.format(v), "•••• €");
@@ -6628,11 +6769,12 @@
 
     const BUDGET_DEPOSIT_HINT = `<p class="help" style="margin:8px 0 0">Saisis tes versements dans Suivi &gt; Opérations pour que l'appli vérifie qu'aucun n'a été oublié.</p>`;
     function budgetKpis(p, solde, rate) {
-      return `<div class="bud-big ${signClass(solde)}">${budgetSigned(solde)}</div>
-          <div class="bud-kpis">
-            <div><span>Revenus</span><b>${budgetEur(p.rev)}</b></div>
-            <div><span>Dépenses</span><b>${budgetEur(p.dep)}</b></div>
-            <div><span>Mis de côté</span><b class="${signClass(rate)}">${rate === null ? "N/A" : budgetPct(rate)}</b></div>
+      // Présenté comme un relevé : revenus, dépenses, double filet, puis le solde en grand
+      return `<div class="bud-kpis">
+            <div class="bud-led"><span>Revenus</span><b class="v">${budgetEur(p.rev)}</b></div>
+            <div class="bud-led"><span>Dépenses</span><b class="v">${p.dep > 0 ? "− " : ""}${budgetEur(p.dep)}</b></div>
+            <div class="bud-led total"><span>Solde</span><span class="bud-big ${signClass(solde)}">${budgetSigned(solde)}</span></div>
+            <div class="bud-led rate"><span>Mis de côté</span><b class="${signClass(rate)}">${rate === null ? "N/A" : budgetPct(rate)}</b></div>
           </div>`;
     }
     // badge(k, total) : pastille de comparaison ; perMonth(k) : moyenne mensuelle sous le montant (vue Année)
@@ -7156,7 +7298,7 @@
     });
 
     // --- Apparence : thème, couleur, taille du texte, icône (mémorisés sur l'appareil) ---
-    const PREF_DEFAULTS = { theme: "dark", accent: "green", textSize: "normal", icon: "barres" };
+    const PREF_DEFAULTS = { theme: "auto", accent: "green", textSize: "normal", icon: "barres" };
     document.getElementById("icon-choices").innerHTML = APP_ICONS
       .map(([id, label]) => `<button class="icon-choice" data-value="${id}" aria-label="Icône ${label}" title="${label}"><img src="${iconUrl(id, 192)}" alt="" /></button>`).join("");
     function renderAppearance() {
