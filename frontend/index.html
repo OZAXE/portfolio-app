@@ -670,6 +670,8 @@
     .bud-line > span:first-child { min-width: 0; }
     .bud-line > span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .bud-ops { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+    /* display: grid passe avant l'attribut hidden : sans cette règle, « Masquer les opérations » ne masquait rien */
+    .bud-ops[hidden] { display: none; }
     .bud-op { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; font-size: 13px; align-items: baseline; }
     .bud-op .lib { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bud-op .sub { color: var(--muted); font-size: 12px; }
