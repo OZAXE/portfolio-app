@@ -229,6 +229,10 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   bloc (pas de fond `--card` plein ni de grand rayon). Budget : solde présenté en relevé (`budgetKpis` : Revenus, Dépenses,
   Solde sous double filet, Mis de côté), classes `.bud-kpis` / `.bud-big` gardées pour le test du front. Couleurs des
   catégories du budget (`BUDGET_COLORS`) passées en tons sourds.
+  Retour d'Enzo le jour même : sombre trop sombre, clair trop éblouissant, et sans fond de bloc « on ne voit plus la
+  structure ». Fonds adoucis (sombre #1f1e1b, clair #e9e5dc) et chaque bloc (`.card`, `.mlist`, `.group`, `.tiles`,
+  `.envelopes`, `.pillars`...) redevient un panneau discret : fond `--card` à peine décollé, filet autour, rayon 6 px ;
+  un bloc imbriqué dans une carte reste sans cadre (pas de double encadré). Règles à la fin du `<style>`.
 - **Interface (septembre 2026, maquette validée par Enzo).** Inspirée des applis bancaires et d'analyse :
   - Marché : accueil en sections (`MARKET_PRESETS` : Tes actions, Ta watchlist, Solides et sous-évaluées, Les
     plus solides, Dividendes réguliers), recherche + panneau de filtres (`renderFilterSheet`, puces supprimables),
