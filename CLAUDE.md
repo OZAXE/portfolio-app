@@ -211,6 +211,9 @@ Pour voir le front sans backend : servir `frontend/` (`python -m http.server`) e
   couleur d'après ce gain (achats retirés). `inPeriod` / `periodGain` / `periodWhen` prennent la période en paramètre.
   Bug corrigé au passage : `el.hidden = false` ne fait rien sur un SVG (pas de propriété `hidden`), la mini-courbe
   n'était jamais affichée ; utiliser `toggleAttribute("hidden", ...)` sur un élément SVG.
+  Infobulle (novembre 2026, bug signalé par Enzo) : mode d'interaction `sameDate` (`sameDateItems`) sur la courbe
+  d'Évolution et la comparaison à un indice, jamais `index` : le n-ième point du PEA (qui commence après le Total) n'est
+  pas à la même date, donc le PEA disparaissait de l'infobulle sur les dates récentes, ou affichait la valeur d'un autre jour.
 
 - **Secteur et zone des titres** : pris dans le screener (`sector`, `country`) à la saisie manuelle et à
   l'import (`write_import(profiles=...)`). Les titres importés avant (secteur vide, « Non classé ») sont
